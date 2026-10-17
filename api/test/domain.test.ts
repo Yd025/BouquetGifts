@@ -128,7 +128,7 @@ describe('cards match answers', () => {
     const stats = [{ label: 'Sunrise Hiker', count: 2 }, { label: 'Bookworm', count: 1 }, { label: 'Coffee Snob', count: 1 }];
     expect(D.orderStatsForTitle(stats, 'The Caffeinated Sunrise Hiker').map(s => s.label)).toEqual(['Sunrise Hiker', 'Coffee Snob', 'Bookworm']);
     expect(D.orderStatsForTitle(stats, 'The Well-Read Sunrise Hiker').map(s => s.label)).toEqual(['Sunrise Hiker', 'Bookworm', 'Coffee Snob']);
-    expect(D.orderStatsForTitle(stats, 'A poem by Grok').map(s => s.label)).toEqual(['Sunrise Hiker', 'Bookworm', 'Coffee Snob']); // unknown title: A–Z ties
+    expect(D.orderStatsForTitle(stats, 'A poem by Gemini').map(s => s.label)).toEqual(['Sunrise Hiker', 'Bookworm', 'Coffee Snob']); // unknown title: A–Z ties
     expect(D.orderStatsForTitle([{ label: 'Bookworm', count: 1 }, { label: 'Sunrise Hiker', count: 3 }], 'The Well-Read Sunrise Hiker').map(s => s.count)).toEqual([3, 1]); // count still wins
     expect(stats.map(s => s.label)).toEqual(['Sunrise Hiker', 'Bookworm', 'Coffee Snob']); // input untouched
   });

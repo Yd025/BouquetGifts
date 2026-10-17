@@ -46,35 +46,7 @@ export class NacNetwork implements NetworkVerify {
   async simSwappedRecently(phone: string, maxAgeHours = 240) { try { return !!(await this.post('/passthrough/camara/v1/sim-swap/sim-swap/v0/check', { phoneNumber: phone, maxAge: maxAgeHours })).swapped; } catch { return false; } }
 }
 
-/* ---------- Grok (xAI) for trait titles + fusion blurbs, deterministic mock fallback ---------- */
-export class GrokAi extends MockAi {
-  provider = 'grok';
-  constructor(private key: string) { super(); }
-  private async chat(prompt: string) {
-    const r = await fetch('https://api.x.ai/v1/chat/completions', { method: 'POST', headers: { authorization: `Bearer ${this.key}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: process.env.XAI_MODEL ?? 'grok-3-mini', messages: [{ role: 'user', content: prompt }], temperature: 0.7 }), signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error('xai ' + r.status); return ((await r.json()) as any).choices[0].message.content as string;
-  }
-  async cardTitle(traits: string[], story?: string) {
-    // Title must name the friend's own top trait so the card matches the answers.
-    try { const t = (await this.chat(`Write a 2-4 word playful trading-card title that MUST contain the words "${traits[0]}" for a person who is ${traits.join(', ')}${story ? ` (memory: "${story}")` : ''}. Title only.`)).trim().replace(/^"|"$/g, '').slice(0, 40);
-      return t.includes(traits[0]) ? t : mockTitle(traits); } catch { return mockTitle(traits); }
-  }
-  async cardArt(prompt: string) {
-    try { const r = await fetch('https://api.x.ai/v1/images/generations', { method: 'POST', headers: { authorization: `Bearer ${this.key}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ model: process.env.XAI_IMAGE_MODEL ?? 'grok-2-image', prompt, n: 1, response_format: 'b64_json' }), signal: AbortSignal.timeout(20000) });
-      if (!r.ok) return null; const j: any = await r.json(); return j.data?.[0]?.b64_json ? { body: Buffer.from(j.data[0].b64_json, 'base64'), type: 'image/png' } : null; } catch { return null; }
-  }
-  async polish(story: string, friend: string) {
-    try { return (await this.chat(`Lightly polish this birthday-card memory written by ${friend}. Keep it first person, keep every fact, max 30 words, no quotes: ${story}`)).trim().slice(0, 300); } catch { return story; }
-  }
-  async enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }) {
-    const base = mockFuse(traits, 2, avoid); // recipes + consensus rules stay authoritative; Grok only rewrites the blurb
-    try { for (const c of base) c.description = (await this.chat(`One warm sentence (<25 words) pitching the gift "${c.title}" for someone who is ${c.traits.join(' and ')}.`)).trim(); } catch {}
-    return base;
-  }
-}
-
+/* ---------- AI: Google Gemini (api/src/gemini.ts) with the deterministic MockAi (api/src/ai.ts) as fallback ---------- */
 export function makeAdapters() {
   return { payments: new MockVisaPayments() as Payments,
     network: process.env.NAC_API_KEY ? new NacNetwork(process.env.NAC_API_KEY) : new MockNetwork() as NetworkVerify,
