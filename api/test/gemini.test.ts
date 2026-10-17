@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GeminiAi } from '../src/gemini.js';
+import { GeminiAi, toWav } from '../src/gemini.js';
 import { aggregateTraits } from '../src/domain.js';
 
 // Offline: a fake fetch stands in for generativelanguage.googleapis.com, so CI never needs a key.
@@ -94,5 +94,27 @@ describe('card art pipeline', () => {
     const { MockAi } = await import('../src/ai.js');
     const { after, media } = await mintOne(new MockAi());
     expect(after).toMatch(/\.svg$/); expect(media.headers['content-type']).toContain('image/svg+xml');
+  });
+});
+
+describe('GeminiAi narrator (TTS)', () => {
+  it('requests AUDIO with a prebuilt voice and wraps raw PCM into a playable WAV', async () => {
+    const pcm = Buffer.alloc(4800, 1);
+    const { f, calls } = fakeGemini(() => ({ json: { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: pcm.toString('base64') } }] } }] } }));
+    const a = await new GeminiAi('k', { fetch: f }).speak('From Jon. We hiked at dawn.');
+    expect(calls[0].url).toMatch(/\/models\/gemini-2\.5-flash-preview-tts:generateContent$/);
+    expect(calls[0].body.generationConfig.responseModalities).toEqual(['AUDIO']);
+    expect(calls[0].body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Sulafat');
+    expect(calls[0].body.contents[0].parts[0].text).toContain('From Jon. We hiked at dawn.');
+    expect(a?.type).toBe('audio/wav');
+    const w = a!.body;
+    expect(w.subarray(0, 4).toString()).toBe('RIFF'); expect(w.subarray(8, 12).toString()).toBe('WAVE');
+    expect(w.readUInt32LE(24)).toBe(24000); expect(w.readUInt16LE(34)).toBe(16); expect(w.readUInt32LE(40)).toBe(pcm.length); expect(w.length).toBe(44 + pcm.length);
+  });
+  it('passes WAV through untouched and returns null on errors (→ browser speechSynthesis)', async () => {
+    const wav = toWav(Buffer.alloc(10)); expect(toWav(wav, 'audio/wav')).toBe(wav);
+    expect(toWav(Buffer.alloc(8), 'audio/L16;rate=16000').readUInt32LE(24)).toBe(16000);
+    expect(await new GeminiAi('k', { fetch: fakeGemini(() => ({ status: 500, json: {} })).f }).speak('x')).toBeNull();
+    expect(await new GeminiAi('k', { fetch: fakeGemini(() => textReply('no audio')).f }).speak('x')).toBeNull();
   });
 });

@@ -5,6 +5,16 @@ import { TraitCard, Garland, Flower } from '../../../components/Art';
 import Turnstile from '../../../components/Turnstile';
 const PACK = { petals: 10, petalColor: '#f7a1c4', bgColor: '#ffd6e7', centerColor: '#f6c34a', rotation: 0, layers: 3, petalShape: 'round' };
 function speak(t: string) { if (typeof window !== 'undefined' && 'speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(t); u.rate = 0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } }
+/** Narrator: Gemini TTS audio served (and cached) by the API; falls back to the browser's speechSynthesis if it is unavailable. */
+let current: HTMLAudioElement | null = null;
+function narrate(token: string, k: number, text: string) {
+  if (typeof window === 'undefined') return;
+  current?.pause(); if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const a = new Audio(`/api/reveal/${token}/voice/${k}`); current = a;
+  let fell = false; const fallback = () => { if (!fell && current === a) { fell = true; speak(text); } };
+  a.onerror = fallback; a.play().catch(fallback);
+}
+const prefetchVoice = (token: string, k: number) => { fetch(`/api/reveal/${token}/voice/${k}`).catch(() => {}); };
 function Confetti() {
   const c = ['#f7a1c4', '#c3a6ff', '#f6c34a', '#8fd3c1', '#ffb38a', '#9ec5ff'];
   return <div className="confetti" aria-hidden data-testid="confetti">{Array.from({ length: 70 }).map((_, i) =>
@@ -13,14 +23,18 @@ function Confetti() {
 export default function Reveal({ params }: { params: { token: string } }) {
   const [p, setP] = useState<any>(null); const [i, setI] = useState(-1); const [err, setErr] = useState(''); const [tearing, setTearing] = useState(false);
   const [human, setHuman] = useState<string | null>(null); const startX = useRef<number | null>(null); const [voice, setVoice] = useState(true);
-  useEffect(() => { api(`/reveal/${params.token}`).then(setP).catch(e => setErr(e.message)); }, []);
+  useEffect(() => { api(`/reveal/${params.token}`).then((x: any) => { setP(x); prefetchVoice(params.token, 0); }).catch(e => setErr(e.message)); }, []);
   if (!p) return <div className="panel narrow">{err || 'Loading…'}</div>;
   const n = p.cards.length; const done = i >= n;
   const go = async (k: number) => {
     if (k === 0) { try { await api(`/reveal/${params.token}/flip`, { body: { index: 0 }, human }); } catch (e: any) { setErr(e.message); return; } }
     else api(`/reveal/${params.token}/flip`, { body: { index: k } }).catch(() => {});
     setI(k); const c = p.cards[k];
-    if (voice) { if (c) speak(`From ${c.friend}. ${c.story ?? c.compliments?.[0] ?? c.title}`); else if (k === n) speak(`And your gift: ${p.gift.title}. From ${p.from.join(', ')}. Happy ${p.occasion.toLowerCase()}!`); }
+    if (voice) {
+      const fallbackText = p.narration?.[k] ?? (c ? `From ${c.friend}. ${c.story ?? c.compliments?.[0] ?? c.title}` : `And your gift: ${p.gift.title}. From ${p.from.join(', ')}. Happy ${p.occasion.toLowerCase()}!`);
+      if (k <= n) narrate(params.token, k, fallbackText);
+      if (k + 1 <= n) prefetchVoice(params.token, k + 1); // warm the next line while this one plays
+    }
   };
   const open = () => { setTearing(true); setTimeout(() => go(0), 900); };
   const next = () => { if (i < n) go(i + 1); };
@@ -28,7 +42,7 @@ export default function Reveal({ params }: { params: { token: string } }) {
   const ex = (e: React.PointerEvent) => { if (startX.current !== null && Math.abs(e.clientX - startX.current) > 60) next(); startX.current = null; };
   return <div className="reveal-stage">
     <h1 style={{ textAlign: 'center' }}>{p.recipientName}, your bouquet has arrived</h1>
-    <p className="muted">From {p.from.join(', ')} · {p.occasion} <button className="ghost sm" onClick={() => setVoice(!voice)} aria-pressed={voice}>{voice ? '🔊 Voice on' : '🔇 Voice off'}</button></p>
+    <p className="muted">From {p.from.join(', ')} · {p.occasion} <button className="ghost sm" onClick={() => { if (voice) { current?.pause(); if ('speechSynthesis' in window) speechSynthesis.cancel(); } setVoice(!voice); }} aria-pressed={voice}>{voice ? '🔊 Voice on' : '🔇 Voice off'}</button></p>
     <div className="dots">{Array.from({ length: n + 1 }).map((_, k) => <i key={k} className={k <= i ? 'on' : ''} />)}</div>
     {i === -1 && <>
       <button className={`bigpack ${tearing ? 'tear' : ''}`} onClick={open} data-testid="pack" disabled={tearing || human === null} aria-label="Tear open your pack">

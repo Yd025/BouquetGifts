@@ -432,9 +432,27 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       gift: { title: cand.title, description: cand.description, rare: cand.rare, traits: cand.trait_labels, compliments: (cand.trait_labels as string[]).map(D.compliment), includes: tiers.map((t: any) => t.title), tierLevel: tier.level,
         products: tiers.map((t: any) => publicProduct(productAt(cand.title, t.level, cand.trait_labels))).filter(Boolean), product: publicProduct(productAt(cand.title, tier.level, cand.trait_labels)),
         tracking: 'BQ' + b.id.slice(-8).toUpperCase() },
-      flipped: flips.map((f: any) => f.card_index), totalCards: cards.length + 1 };
+      flipped: flips.map((f: any) => f.card_index), totalCards: cards.length + 1,
+      // What the narrator says for each card, then the gift. The same text drives Gemini TTS and the browser fallback.
+      narration: [...cards.map((c: any) => `From ${c.display_name}. ${c.story ?? D.compliment((c.traits as string[])[0]) ?? c.title}`),
+        `And your gift: ${cand.title}. From ${names.join(', ')}. Happy ${String(b.occasion).toLowerCase()}!`] };
   }
   app.get('/api/reveal/:token', h(async req => revealPayload(String(req.params.token))));
+  /* Reveal narrator: Gemini TTS, cached per (bouquet, card, text, voice) so each line is generated once. 404 → browser speechSynthesis. */
+  const voiceJobs = new Map<string, Promise<{ body: Buffer; type: string } | null>>();
+  app.get('/api/reveal/:token/voice/:index', h(async (req, res) => {
+    const p = await revealPayload(String(req.params.token));
+    const index = Number(req.params.index); const text = p.narration[index];
+    if (!Number.isInteger(index) || text === undefined) fail(404, 'No such card');
+    const key = `voice/${p.bouquetId}/${index}-${crypto.createHash('sha1').update(`${ai.provider}|${process.env.GEMINI_TTS_MODEL ?? ''}|${process.env.GEMINI_TTS_VOICE ?? ''}|${text}`).digest('hex').slice(0, 12)}.wav`;
+    let audio = await storage.get(key); const hit = !!audio;
+    if (!audio) {
+      if (!voiceJobs.has(key)) voiceJobs.set(key, ai.speak(text).then(async a => { if (a) await storage.put(key, a.body, a.type); return a; }).finally(() => voiceJobs.delete(key)));
+      audio = await voiceJobs.get(key)!;
+    }
+    if (!audio) { res.status(404).json({ error: 'Narration voice unavailable', fallback: 'browser' }); return; }
+    res.set({ 'content-type': audio.type, 'cache-control': 'public, max-age=86400', 'x-narration': hit ? 'cache-hit' : 'generated' }).send(audio.body);
+  }));
   app.post('/api/reveal/:token/flip', h(async req => {
     const p = await revealPayload(String(req.params.token));
     const { index } = z.object({ index: z.number().int().min(0) }).parse(req.body);

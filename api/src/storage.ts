@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 /** Card-art storage. Cloudflare R2 via its S3-compatible API when R2_* env is set; local filesystem otherwise. */
 export interface Storage { put(key: string, body: Buffer, type: string): Promise<void>; get(key: string): Promise<{ body: Buffer; type: string } | null>; provider: string }
-const TYPES: Record<string, string> = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
+const TYPES: Record<string, string> = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.wav': 'audio/wav' };
 export class FsStorage implements Storage {
   provider = 'filesystem';
   constructor(private dir = process.env.STORAGE_DIR ?? path.resolve('data/media')) {}

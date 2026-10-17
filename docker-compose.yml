@@ -14,6 +14,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
+      GEMINI_TTS_MODEL: ${GEMINI_TTS_MODEL:-gemini-2.5-flash-preview-tts}
+      GEMINI_TTS_VOICE: ${GEMINI_TTS_VOICE:-Sulafat}
       XAI_API_KEY: ${XAI_API_KEY:-}
       XAI_MODEL: ${XAI_MODEL:-grok-3-mini}
       XAI_IMAGE_MODEL: ${XAI_IMAGE_MODEL:-grok-2-image}

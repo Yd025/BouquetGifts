@@ -11,8 +11,12 @@ import { traitProducts } from '../src/catalog.js';
 
 const VISA = '4242424242424242';
 let app: any, ctx: any, payments: MockVisaPayments;
+// MockAi plus a switchable fake narrator, so the TTS cache and the browser fallback can both be tested offline.
+class TestAi extends MockAi { voiceOn = false; spoken: string[] = [];
+  async speak(text: string) { if (!this.voiceOn) return null; this.spoken.push(text); return { body: Buffer.from('RIFF....WAVEfake'), type: 'audio/wav' }; } }
+const testAi = new TestAi();
 beforeAll(async () => { const db = await makeDb('memory'); await seed(db); payments = new MockVisaPayments();
-  ctx = createApp({ db, payments, network: new MockNetwork(), ai: new MockAi(), clock: makeClock(), demo: true, secret: 't', publicOrigin: 'https://bouquet.example', storage: new FsStorage(path.join(os.tmpdir(), 'bq-test-' + Date.now())) }); app = ctx.app; });
+  ctx = createApp({ db, payments, network: new MockNetwork(), ai: testAi, clock: makeClock(), demo: true, secret: 't', publicOrigin: 'https://bouquet.example', storage: new FsStorage(path.join(os.tmpdir(), 'bq-test-' + Date.now())) }); app = ctx.app; });
 
 const agent = () => request.agent(app);
 async function signup(name: string) { const a = agent(); const r = await a.post('/api/auth/signup').send({ email: `${name}${Math.random()}@x.io`, password: 'password1', name }); expect(r.status).toBe(201); return a; }
@@ -91,6 +95,16 @@ describe('bouquet lifecycle', () => {
     expect((await friends[0].get(`/api/bouquets/${b.id}`)).body.bouquet.revealToken).toBeNull();
     const rv = (await request(app).get(`/api/reveal/${tokn}`)).body;
     expect(rv.cards).toHaveLength(3); expect(rv.gift.includes).toHaveLength(exp.level); expect(rv.totalCards).toBe(4);
+    // narrator: one line per card + the gift; no TTS → 404 so the browser speaks it; with TTS → generated once, then cached
+    expect(rv.narration).toHaveLength(4); expect(rv.narration[0]).toMatch(/^From Friend0\. /); expect(rv.narration[3]).toContain(rv.gift.title);
+    const off = await request(app).get(`/api/reveal/${tokn}/voice/0`); expect(off.status).toBe(404); expect(off.body.fallback).toBe('browser');
+    testAi.voiceOn = true;
+    const v1 = await request(app).get(`/api/reveal/${tokn}/voice/1`); expect(v1.status).toBe(200); expect(v1.headers['content-type']).toContain('audio/wav'); expect(v1.headers['x-narration']).toBe('generated');
+    const v2 = await request(app).get(`/api/reveal/${tokn}/voice/1`); expect(v2.headers['x-narration']).toBe('cache-hit');
+    expect(testAi.spoken).toEqual([rv.narration[1]]);
+    expect((await request(app).get(`/api/reveal/${tokn}/voice/9`)).status).toBe(404);
+    expect((await request(app).get(`/api/reveal/nope/voice/0`)).status).toBe(404);
+    testAi.voiceOn = false;
     const last = (await request(app).post(`/api/reveal/${tokn}/flip`).send({ index: 3 })).body; expect(last.status).toBe('revealed');
   });
   it('checkout preview says exactly what checkout will charge each friend and release', async () => {
