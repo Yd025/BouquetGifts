@@ -1,3 +1,5 @@
+# Pinned so the stack keeps the same containers and volumes (pgdata, media) whatever folder it is started from.
+name: bouquet
 services:
   db:
     image: postgres:16-alpine
