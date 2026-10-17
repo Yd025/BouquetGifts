@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import { GeminiAi } from './gemini.js';
+import { MockAi, type Ai } from './ai.js';
+export { MockAi, GeminiAi }; export type { Ai };
 import { traitsFromAnswers, fuse as mockFuse, cardTitle as mockTitle, TraitAgg } from './domain.js';
 
 /* ---------- Payments (mock Visa sandbox; swap for a real processor) ---------- */
@@ -44,14 +47,6 @@ export class NacNetwork implements NetworkVerify {
 }
 
 /* ---------- Grok (xAI) for trait titles + fusion blurbs, deterministic mock fallback ---------- */
-export interface Ai { cardTitle(traits: string[], story?: string): Promise<string>; cardArt(prompt: string): Promise<Buffer | null>; polish(story: string, friend: string): Promise<string>; enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }): Promise<ReturnType<typeof mockFuse>>; provider: string }
-export class MockAi implements Ai {
-  provider = 'mock';
-  async cardTitle(traits: string[]) { return mockTitle(traits); }
-  async enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }) { return mockFuse(traits, 2, avoid); }
-  async cardArt(_prompt: string): Promise<Buffer | null> { return null; }
-  async polish(story: string, _friend?: string) { return story; }
-}
 export class GrokAi extends MockAi {
   provider = 'grok';
   constructor(private key: string) { super(); }
@@ -83,7 +78,7 @@ export class GrokAi extends MockAi {
 export function makeAdapters() {
   return { payments: new MockVisaPayments() as Payments,
     network: process.env.NAC_API_KEY ? new NacNetwork(process.env.NAC_API_KEY) : new MockNetwork() as NetworkVerify,
-    ai: process.env.XAI_API_KEY ? new GrokAi(process.env.XAI_API_KEY) : new MockAi() as Ai };
+    ai: process.env.GEMINI_API_KEY ? new GeminiAi(process.env.GEMINI_API_KEY) : new MockAi() as Ai };
 }
 export { traitsFromAnswers };
 
