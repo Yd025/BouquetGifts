@@ -2,6 +2,25 @@
 
 Decisions made by the agent team (architect, payments, realtime, frontend, QA, docs), newest first. Times are PT.
 
+## Sat Oct 17, 2026 · 4:15 PM: all AI moves from Grok/xAI to Google Gemini; SpaceXAI track dropped
+
+SpaceXAI isn't judging, so the pitch is now **Visa (main), T-Mobile and Cloudflare**, and every AI feature runs on Gemini. The project lives in Adelin's repo `Yd025/BouquetGifts` (`main`), one commit per change.
+
+- **Text: `GeminiAi`** (`api/src/gemini.ts`). It calls REST `models/{GEMINI_MODEL}:generateContent` (default `gemini-2.5-flash`) with `thinkingBudget: 0` for short copy, and handles titles, memory polish and gift blurbs.
+  - *Why REST, not the SDK:* it adds no dependency, and tests stub `fetch` so CI never needs a key.
+  - The key travels only in the `x-goog-api-key` header, never in a URL (so it can't leak into logs).
+  - Same guardrails as before: a title must name the friend's top trait, otherwise we use the mock title. Recipes, rarity and tiers stay deterministic.
+  - The `Ai` port and `MockAi` moved to `api/src/ai.ts` to break a circular import.
+- **Card art: `gemini-2.5-flash-image`.** Minting no longer waits on an image model.
+  - The SVG is stored at once. A background job then asks Gemini for watercolor art in the friend's flower palette, stores it as `cards/<id>.png` (R2 or the media volume), updates `art_key` and pushes a `card-art` room event.
+  - *Why:* image generation takes seconds, and the mint animation must stay instant. Any failure keeps the SVG.
+- **Narrator: `gemini-2.5-flash-preview-tts`**, voice `Sulafat` ("warm").
+  - The reveal payload carries the narration text. `GET /api/reveal/:token/voice/:i` generates each line once, wraps the 24 kHz PCM as WAV and caches it by (bouquet, line, voice, text hash). Concurrent requests share one job.
+  - The page prefetches the next line while the current one plays. A 404 (no key, mock or error) makes it fall back to `speechSynthesis`.
+- **Removed:** `GrokAi`, `XAI_*` from compose and `.env.example`. `check:keys` lists the key's models and confirms the text, image and TTS models are available, without printing the key.
+- **Compose project name** is pinned to `bouquet`, so moving from the old `bouquet/` folder to `BouquetGifts/` keeps the same Postgres and media volumes.
+- **Tests:** offline Gemini unit tests (request shape, header-only key, fallbacks, PCM→WAV), an art pipeline test (SVG first, then cached PNG), and a reveal voice test (404 fallback, generated, then cache-hit). The e2e still runs on mocks.
+
 ## Sat Oct 17, 2026 · ~2 PM cycle: phones work, the Judge button stops covering panels, chips follow the card title, no orphan gift
 
 Build state before: API 43/43, realtime 2/2, Playwright 3/3 in WebSocket mode (`E2E_REALTIME=1`). The first baseline E2E run had 1 failure (`demo account login works`: the login input wasn't editable within 15s) because I ran it alongside the API and realtime suites. The API suite also timed out in its hooks under that load. Both passed when re-run one at a time (API 43/43, E2E 3/3). So it's a load flake, not a regression, and from then on suites ran one after another. Critique is from the 1 PM screenshots (backed up to `/tmp/bq-shots-2pm` before the baseline run overwrote them), plus a 390px phone probe of the landing page and room, since there was no phone screenshot.
@@ -282,8 +301,8 @@ Build state after: API 35/35, realtime 2/2, Playwright 3/3 in WebSocket mode, an
 
 ### Keys due at 3 PM
 - `.env.example` and the compose file now carry these variables:
-  - `XAI_API_KEY`, `XAI_MODEL`, `XAI_IMAGE_MODEL`
+  - `XAI_API_KEY`, `XAI_MODEL`, `XAI_IMAGE_MODEL` *(superseded 4 PM: replaced by the `GEMINI_*` variables)*
   - `VISA_BASE_URL`, `VISA_USER_ID`, `VISA_PASSWORD`, `VISA_CERT_PATH`, `VISA_KEY_PATH`, `VISA_CA_PATH` (PEM files go in `./secrets`, mounted read-only)
   - `NAC_API_KEY`, `NAC_BASE_URL`, `NAC_TEST_PHONE`
-- `npm run check:keys` probes each service read-only: xAI `/v1/models`, Visa `/vdp/helloworld` over mTLS, and NaC SIM Swap. It never prints secrets.
+- `npm run check:keys` probes each service read-only: xAI `/v1/models` (now Gemini `models.list`), Visa `/vdp/helloworld` over mTLS, and NaC SIM Swap. It never prints secrets.
 - **Honest status:** Visa credentials are probed only. Holds and captures remain on `MockVisaPayments` until we pick and wire a sandbox authorization, capture and reversal API. This is documented in the README.

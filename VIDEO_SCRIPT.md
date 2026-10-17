@@ -18,11 +18,11 @@
 *Honesty note (don't read aloud): until the Visa sandbox keys arrive at 3 PM and are wired in, holds run on our mock payments service. If a judge asks, say so.*
 
 **1:35–1:55 · Reveal** *(screen: recipient pack → cards flip with voice → garland gift)*
-"Maya tears open her pack. Every card turns a trait into a compliment, 'You chase every sunrise', and plays that friend's memory in their own words. The last card is legendary: her gift, with a photo of exactly what's coming, in a garland, with confetti."
+"Maya tears open her pack. Every card turns a trait into a compliment, 'You chase every sunrise', and a Gemini voice reads that friend's memory in their own words. The last card is legendary: her gift, with a photo of exactly what's coming, in a garland, with confetti."
 
 *(optional, 10s, judge drawer: click the small 🎬 button at the bottom right)* "And for the judges: a SIM-swapped phone tries to put $60 on hold, and T-Mobile blocks it. Fast-forward past the deadline, and every hold is released."
 
 **1:55–2:00 · Close**
-"Bouquet. Gifts grown by everyone who loves them. Built on Visa, T-Mobile, Cloudflare, and Grok."
+"Bouquet. Gifts grown by everyone who loves them. Built on Visa, T-Mobile, and Cloudflare, with Google Gemini."
 
 *Recording tip (don't read aloud): record at 1280px or wider so the 🎬 button stays in the page margin. For a phone cut-in, the room works at 390px: the friend cards swipe sideways in one row.*
