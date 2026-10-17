@@ -30,7 +30,7 @@ export class R2Storage implements Storage {
 }
 export const makeStorage = (): Storage => process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID ? new R2Storage() : new FsStorage();
 
-/** Server-rendered SVG card art (fallback when Grok Imagine is not configured). */
+/** Server-rendered SVG card art (shown instantly, and kept when Gemini image generation is off or fails). */
 export function cardSvg(fb: any, title: string, traits: string[]) {
   const petals: string[] = [];
   for (let l = 0; l < fb.layers; l++) { const r = 70 - l * 18, n = fb.petals + l * 2;

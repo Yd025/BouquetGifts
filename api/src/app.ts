@@ -230,16 +230,30 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     let title = await ai.cardTitle(traits, b.story); if (taken.some(t => t.toLowerCase() === title.toLowerCase())) title = D.uniqueCardTitle(traits, taken);
     const story = b.story?.trim() ? await ai.polish(b.story.trim(), m.display_name) : null;
     const cardId = id('card'); const fb = m.flower_back;
-    let artKey: string | null = null;
-    try {
-      const img = await ai.cardArt(`Whimsical watercolor trading-card illustration, soft floral palette, for a friend who is ${traits.join(', ')}. No text.`);
-      if (img) { artKey = `cards/${cardId}.png`; await storage.put(artKey, img, 'image/png'); }
-      else { artKey = `cards/${cardId}.svg`; await storage.put(artKey, Buffer.from(cardSvg(fb, title, traits)), 'image/svg+xml'); }
-    } catch (e) { console.warn('card art failed', e); artKey = null; }
+    // The SVG card art is written now so minting stays instant; Gemini art (if configured) replaces it in the background.
+    let artKey: string | null = `cards/${cardId}.svg`;
+    try { await storage.put(artKey, Buffer.from(cardSvg(fb, title, traits)), 'image/svg+xml'); } catch (e) { console.warn('card art failed', e); artKey = null; }
     await db.query('INSERT INTO cards (id,bouquet_id,member_id,answers,story,traits,title,stats,avoids,art_key) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
       [cardId, bq.id, m.id, JSON.stringify(b.answers), story, JSON.stringify(traits), title, JSON.stringify(D.traitStats(b.answers)), JSON.stringify(D.avoidsFromAnswers(b.answers)), artKey]);
-    notify(bq.id, 'card'); res.status(201); return state(bq.id, uid);
+    notify(bq.id, 'card');
+    artJobs.set(cardId, generateCardArt(bq.id, cardId, traits, fb).finally(() => artJobs.delete(cardId)));
+    res.status(201); return state(bq.id, uid);
   }));
+
+  /** Gemini card art, cached in storage (R2 or local) under cards/<id>.<ext>; the SVG stays if generation fails. */
+  const artJobs = new Map<string, Promise<void>>();
+  async function generateCardArt(bid: string, cardId: string, traits: string[], fb: any) {
+    try {
+      const palette = [fb?.petalColor, fb?.bgColor, fb?.centerColor].filter(Boolean).join(', ');
+      const img = await ai.cardArt(`Whimsical watercolor trading-card illustration in a soft floral style${palette ? ` using the colours ${palette}` : ''}, portrait composition, for a friend who is ${traits.join(', ')}. Show symbols of those traits woven into flowers. No text, no letters, no borders.`);
+      if (!img) return;
+      const ext = img.type === 'image/jpeg' ? 'jpg' : img.type === 'image/webp' ? 'webp' : 'png';
+      const key = `cards/${cardId}.${ext}`;
+      await storage.put(key, img.body, img.type);
+      await db.query('UPDATE cards SET art_key=$1 WHERE id=$2', [key, cardId]);
+      notify(bid, 'card-art');
+    } catch (e) { console.warn('card art generation failed', (e as Error).message); }
+  }
 
   /* ---------- fusion + vote ---------- */
   app.post('/api/bouquets/:id/fuse', h(async req => {
@@ -470,5 +484,5 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (err instanceof z.ZodError) return res.status(400).json({ error: err.issues.map(i => `${i.path.join('.') || 'input'}: ${i.message}`).join('; ') });
     console.error(err); res.status(500).json({ error: 'Something went wrong' });
   });
-  return { app, sweep, lock, clock };
+  return { app, artJobs, sweep, lock, clock };
 }

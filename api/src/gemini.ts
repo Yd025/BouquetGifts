@@ -3,7 +3,7 @@
  * Recipes, consensus rules and tiers stay deterministic: Gemini only rewrites text, and every call falls back to MockAi.
  * The key is read from GEMINI_API_KEY and is only ever sent as the x-goog-api-key header to Google.
  */
-import { MockAi } from './ai.js';
+import { MockAi, type GeneratedMedia } from './ai.js';
 import { cardTitle as mockTitle, fuse as mockFuse, TraitAgg } from './domain.js';
 
 export const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -12,6 +12,7 @@ export type GeminiPart = { text?: string; inlineData?: { mimeType: string; data:
 export class GeminiAi extends MockAi {
   provider = 'gemini';
   constructor(private key: string, private opts: { model?: string; base?: string; fetch?: typeof fetch } = {}) { super(); }
+  get imageModel() { return process.env.GEMINI_IMAGE_MODEL ?? 'gemini-2.5-flash-image'; }
   get model() { return this.opts.model ?? process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'; }
 
   /** POST models/{model}:generateContent and return the response parts. Throws on HTTP errors so callers can fall back. */
@@ -32,6 +33,14 @@ export class GeminiAi extends MockAi {
     return t;
   }
 
+  /** Card art from Gemini's image model. Returns null (→ SVG fallback) on any error or a text-only answer. */
+  async cardArt(prompt: string): Promise<GeneratedMedia | null> {
+    try {
+      const parts = await this.generate(this.imageModel, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }, 60000);
+      const img = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'))?.inlineData;
+      return img ? { body: Buffer.from(img.data, 'base64'), type: img.mimeType } : null;
+    } catch (e) { console.warn('gemini card art failed:', (e as Error).message); return null; }
+  }
   async cardTitle(traits: string[], story?: string) {
     // The title must name the friend's own top trait so the card matches their answers (stat chips rely on it).
     try {

@@ -63,7 +63,7 @@ export class GrokAi extends MockAi {
   async cardArt(prompt: string) {
     try { const r = await fetch('https://api.x.ai/v1/images/generations', { method: 'POST', headers: { authorization: `Bearer ${this.key}`, 'content-type': 'application/json' },
         body: JSON.stringify({ model: process.env.XAI_IMAGE_MODEL ?? 'grok-2-image', prompt, n: 1, response_format: 'b64_json' }), signal: AbortSignal.timeout(20000) });
-      if (!r.ok) return null; const j: any = await r.json(); return j.data?.[0]?.b64_json ? Buffer.from(j.data[0].b64_json, 'base64') : null; } catch { return null; }
+      if (!r.ok) return null; const j: any = await r.json(); return j.data?.[0]?.b64_json ? { body: Buffer.from(j.data[0].b64_json, 'base64'), type: 'image/png' } : null; } catch { return null; }
   }
   async polish(story: string, friend: string) {
     try { return (await this.chat(`Lightly polish this birthday-card memory written by ${friend}. Keep it first person, keep every fact, max 30 words, no quotes: ${story}`)).trim().slice(0, 300); } catch { return story; }

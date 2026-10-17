@@ -13,6 +13,7 @@ services:
       # --- keys that drop in at 3 PM (each falls back to its mock when empty; check with `docker compose exec api npm run check:keys`) ---
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
       XAI_API_KEY: ${XAI_API_KEY:-}
       XAI_MODEL: ${XAI_MODEL:-grok-3-mini}
       XAI_IMAGE_MODEL: ${XAI_IMAGE_MODEL:-grok-2-image}
