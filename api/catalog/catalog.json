@@ -1,0 +1,503 @@
+{
+  "fetchedAt": "2026-10-17T16:12:06.780Z",
+  "currency": "USD",
+  "note": "Prices as shown on each store page at fetch time.",
+  "recipes": {
+    "Summit Pour-Over Kit": [
+      {
+        "tierTitle": "GSI Gourmet Pour Over Java Set",
+        "name": "Gourmet Pour Over Java Set",
+        "store": "GSI Outdoors",
+        "url": "https://gsioutdoors.com/products/gourmet-pour-over-java-set",
+        "priceCents": 5995,
+        "image": "gsioutdoors-gourmet-pour-over-java-set.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0647/4167/1144/files/gourmet-pour-over.jpg?v=1756803028"
+      },
+      {
+        "tierTitle": "+ TIMEMORE Chestnut C3 hand grinder",
+        "name": "TIMEMORE CHESTNUT C3 - Jet Black",
+        "store": "TIMEMORE",
+        "url": "https://timemore.com/products/timemore-chestnut-c3-jet-black",
+        "priceCents": 10900,
+        "image": "timemore-timemore-chestnut-c3-jet-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0642/9153/7138/files/C3ESP_1800x1800_2055c6fd-f18c-472e-999e-1e1dd083ef22.jpg?v=1748572698"
+      },
+      {
+        "tierTitle": "+ Fellow single-origin beans (Ethiopia Agaro)",
+        "name": "Ethiopia Agaro",
+        "store": "Fellow",
+        "url": "https://fellowproducts.com/products/ethiopia-agaro",
+        "priceCents": 1980,
+        "image": "fellowproducts-ethiopia-agaro.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0057/6235/1219/files/470A1275_1.png?v=1757445233"
+      }
+    ],
+    "Trail Film Camera Set": [
+      {
+        "tierTitle": "35mm point-and-shoot film camera",
+        "name": "Peanuts Beagle Scouts 35mm Film Camera",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/peanuts-beagle-scouts-fc-11-35mm-film-camera",
+        "priceCents": 6900,
+        "image": "retrospekt-peanuts-beagle-scouts-fc-11-35mm-film-camera.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/BeagleScoutsFC11-Straight.jpg?v=1741105692"
+      },
+      {
+        "tierTitle": "+ Kodak Gold 200 film (3 rolls)",
+        "name": "Kodak Gold 200 Color 35mm Film (36 Exposures) - 3 Pack",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/kodak-gold-200-color-35mm-film-36-exposures-3-pack",
+        "priceCents": 2900,
+        "image": "retrospekt-kodak-gold-200-color-35mm-film-36-exposures-3-pack.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/RF-KD-1009_1.jpg?v=1700581690"
+      },
+      {
+        "tierTitle": "+ refurbished Polaroid 600 instant camera",
+        "name": "Polaroid 600 Sun600 LMS Instant Film Camera",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/refurbished-polaroid-600-camera-silver-lms",
+        "priceCents": 13900,
+        "image": "retrospekt-refurbished-polaroid-600-camera-silver-lms.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/silver_lms-1.jpg?v=1711647406"
+      }
+    ],
+    "Vinyl Night In": [
+      {
+        "tierTitle": "Fleetwood Mac: Rumours on colored vinyl",
+        "name": "Fleetwood Mac: Rumours (Colored Vinyl) Vinyl LP",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/fleetwood-mac-rumors-colored-vinyl-vinyl-lp",
+        "priceCents": 4495,
+        "image": "turntablelab-fleetwood-mac-rumors-colored-vinyl-vinyl-lp.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/files/fleetwoodmac-rumours-coloredvinyl-1.jpg?v=1778597776"
+      },
+      {
+        "tierTitle": "+ Parachute organic rib knit throw",
+        "name": "Organic Rib Knit Throw (Tobacco)",
+        "store": "Parachute",
+        "url": "https://parachutehome.com/products/organic-rib-knit-throw-tobacco",
+        "priceCents": 9900,
+        "image": "parachutehome-organic-rib-knit-throw-tobacco.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0396/8269/files/organic-rib-knit-throw_tobacco_main_1276.jpg?v=1790105517"
+      },
+      {
+        "tierTitle": "+ Audio-Technica AT-LP60X turntable",
+        "name": "Audio-Technica: AT-LP60X-BK Automatic Turntable - Black",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/audio-technica-at-lp60x-bk-automatic-turntable-black",
+        "priceCents": 17900,
+        "image": "turntablelab-audio-technica-at-lp60x-bk-automatic-turntable-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/products/atlp60x-blk-nolid.jpg?v=1762276440"
+      }
+    ],
+    "Self-Watering Plant Wall": [
+      {
+        "tierTitle": "Self-watering plant globes",
+        "name": "Self Watering Plant Globes",
+        "store": "The Sill",
+        "url": "https://thesill.com/products/self-watering-plant-globes",
+        "priceCents": 2000,
+        "image": "thesill-self-watering-plant-globes.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0150/6262/files/33_jpg_f5f68da4-5ad7-4ea1-91bf-cae3c1ed555d.webp?v=1765569871"
+      },
+      {
+        "tierTitle": "+ String of Pearls plant",
+        "name": "String of Pearls",
+        "store": "The Sill",
+        "url": "https://thesill.com/products/senecio-rowleyanus-string-of-pearls",
+        "priceCents": 8900,
+        "image": "thesill-senecio-rowleyanus-string-of-pearls.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0150/6262/files/the-sill_senecio-string-of-pearls_gallery_xsmall_all_all_02_6ac9bcda-2184-4666-abcd-d8b75b627846.jpg?v=1790716495"
+      },
+      {
+        "tierTitle": "+ Soltech Vita grow light",
+        "name": "Vita™ Grow Light",
+        "store": "Soltech",
+        "url": "https://soltech.com/products/vita-grow-light",
+        "priceCents": 7650,
+        "image": "soltech-vita-grow-light.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0624/7972/8867/files/Vita-LED-Grow-Light-Bulb-White-Dimmable_b0ebbab8-12d7-49eb-878d-ef95a7b6698b.jpg?v=1714136224"
+      }
+    ],
+    "Reading Nook Ritual": [
+      {
+        "tierTitle": "Fellow Drops whole-bean coffee",
+        "name": "Cherry Pick",
+        "store": "Fellow",
+        "url": "https://fellowproducts.com/products/cherry-pick-fellow-drop-12oz-whole-bean",
+        "priceCents": 2200,
+        "image": "fellowproducts-cherry-pick-fellow-drop-12oz-whole-bean.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0057/6235/1219/files/06.02.26_drops_AdditionalPDP_Yeri_CherryPickIndia_1.png?v=1780681277"
+      },
+      {
+        "tierTitle": "+ East Fork handmade mug",
+        "name": "The Mug",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/east-fork-mug",
+        "priceCents": 4400,
+        "image": "eastfork-east-fork-mug.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/products/0bf6ab403584803c9ca31e2fb74984444d506041-2000x2000.jpg?v=1773703028"
+      },
+      {
+        "tierTitle": "+ Parachute reading throw",
+        "name": "Organic Rib Knit Throw (Garnet)",
+        "store": "Parachute",
+        "url": "https://parachutehome.com/products/organic-rib-knit-throw-garnet",
+        "priceCents": 9900,
+        "image": "parachutehome-organic-rib-knit-throw-garnet.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0396/8269/files/organic-rib-knit-throw_garnet_main_1293.jpg?v=1790105517"
+      }
+    ],
+    "Pocket Maker Kit": [
+      {
+        "tierTitle": "Ugmonk Analog starter kit",
+        "name": "Analog Starter Kit (Black)",
+        "store": "Ugmonk",
+        "url": "https://ugmonk.com/products/analog-starter-kit-black",
+        "priceCents": 2900,
+        "image": "ugmonk-analog-starter-kit-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0167/4484/files/sk-black-1-tags.jpg?v=1788890120"
+      },
+      {
+        "tierTitle": "+ HMM ballpoint pen",
+        "name": "HMM Ballpoint Pen (Black)",
+        "store": "Ugmonk",
+        "url": "https://ugmonk.com/products/hmm-pen-black",
+        "priceCents": 3800,
+        "image": "ugmonk-hmm-pen-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0167/4484/files/1-hmm-pen-2.jpg?v=1753901893"
+      },
+      {
+        "tierTitle": "+ Analog Daily Focus kit",
+        "name": "Analog Daily Focus Kit (Black Aluminum)",
+        "store": "Ugmonk",
+        "url": "https://ugmonk.com/products/analog-daily-focus-kit-black-aluminum",
+        "priceCents": 7900,
+        "image": "ugmonk-analog-daily-focus-kit-black-aluminum.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0167/4484/files/daily-focus-blk-1_e8ee0612-99de-40f2-9918-a8ff57239f4d.jpg?v=1773930611"
+      }
+    ],
+    "Brunch & Beats Day": [
+      {
+        "tierTitle": "East Fork Sunday Morning Mug",
+        "name": "Sunday Morning Mug",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/sunday-morning-mug",
+        "priceCents": 6400,
+        "image": "eastfork-sunday-morning-mug.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/products/211115-SMM-005-Web-NEW.jpg?v=1638471164"
+      },
+      {
+        "tierTitle": "+ Fleetwood Mac: Greatest Hits vinyl",
+        "name": "Fleetwood Mac: Greatest Hits Vinyl LP",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/fleetwood-mac-greatest-hits-vinyl-lp",
+        "priceCents": 2495,
+        "image": "turntablelab-fleetwood-mac-greatest-hits-vinyl-lp.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/products/fleetwoodmac-greatesthits-blackvinyl-1.jpg?v=1762279197"
+      },
+      {
+        "tierTitle": "+ Audio-Technica AT-LP60X turntable",
+        "name": "Audio-Technica: AT-LP60X-GM Automatic Turntable - Gunmetal Silver",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/audio-technica-at-lp60x-gm-automatic-turntable-gunmetal-black",
+        "priceCents": 18900,
+        "image": "turntablelab-audio-technica-at-lp60x-gm-automatic-turntable-gunmetal-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/products/atlp60x-gm-nolid.jpg?v=1762276441"
+      }
+    ]
+  },
+  "traits": {
+    "Sunrise Hiker": [
+      {
+        "tierTitle": "Topo Designs wool knit beanie",
+        "name": "Wool Knit Beanie",
+        "store": "Topo Designs",
+        "url": "https://topodesigns.com/products/wool-knit-beanie-garnet",
+        "priceCents": 4200,
+        "image": "topodesigns-wool-knit-beanie-garnet.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0277/0693/files/F26-WoolKnitBeanie-Garnet-542612608_1.webp?v=1788532708"
+      },
+      {
+        "tierTitle": "GSI Glacier stainless camp cup",
+        "name": "Glacier Stainless 14 fl. oz. Cup",
+        "store": "GSI Outdoors",
+        "url": "https://gsioutdoors.com/products/glacier-stainless-14-fl-oz-cup",
+        "priceCents": 1295,
+        "image": "gsioutdoors-glacier-stainless-14-fl-oz-cup.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0647/4167/1144/products/63209_0_i.jpg?v=1756803708"
+      },
+      {
+        "tierTitle": "Topo Designs Daypack Classic",
+        "name": "Daypack Classic",
+        "store": "Topo Designs",
+        "url": "https://topodesigns.com/products/daypack-classic-navy",
+        "priceCents": 10900,
+        "image": "topodesigns-daypack-classic-navy.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0277/0693/files/Daypack-Classic_c2d0be13-5651-4616-9816-3fe0bc7c3712.webp?v=1791986451"
+      }
+    ],
+    "Coffee Snob": [
+      {
+        "tierTitle": "Fellow single-origin beans (Ethiopia Agaro)",
+        "name": "Ethiopia Agaro",
+        "store": "Fellow",
+        "url": "https://fellowproducts.com/products/ethiopia-agaro",
+        "priceCents": 1980,
+        "image": "fellowproducts-ethiopia-agaro.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0057/6235/1219/files/470A1275_1.png?v=1757445233"
+      },
+      {
+        "tierTitle": "Fellow Carter Slide travel mug",
+        "name": "Carter Slide Mug",
+        "store": "Fellow",
+        "url": "https://fellowproducts.com/products/carter-slide-mug",
+        "priceCents": 2995,
+        "image": "fellowproducts-carter-slide-mug.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0057/6235/1219/files/Web_PDP_CarterCarry_MatteBlack_1-12oz.png?v=1773359133"
+      },
+      {
+        "tierTitle": "TIMEMORE Chestnut C3 hand grinder",
+        "name": "TIMEMORE CHESTNUT C3 - Jet Black",
+        "store": "TIMEMORE",
+        "url": "https://timemore.com/products/timemore-chestnut-c3-jet-black",
+        "priceCents": 10900,
+        "image": "timemore-timemore-chestnut-c3-jet-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0642/9153/7138/files/C3ESP_1800x1800_2055c6fd-f18c-472e-999e-1e1dd083ef22.jpg?v=1748572698"
+      }
+    ],
+    "Brunch Royalty": [
+      {
+        "tierTitle": "East Fork hand-painted breakfast bowl",
+        "name": "Hand Painted Breakfast Bowl, Tulip Crown",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/breakfast-bowl-tulip-crown",
+        "priceCents": 4600,
+        "image": "eastfork-breakfast-bowl-tulip-crown.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/files/501-007-SB1-MO-PNTEG.jpg?v=1785965492"
+      },
+      {
+        "tierTitle": "East Fork Sunday Morning Mug",
+        "name": "Sunday Morning Mug",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/sunday-morning-mug",
+        "priceCents": 6400,
+        "image": "eastfork-sunday-morning-mug.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/products/211115-SMM-005-Web-NEW.jpg?v=1638471164"
+      },
+      {
+        "tierTitle": "Cook in a Book: Pancakes!",
+        "name": "Cook in a Book: Pancakes!",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/cook-in-a-book-pancakes",
+        "priceCents": 2295,
+        "image": "eastfork-cook-in-a-book-pancakes.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/files/26_Q3_FW_Resale_WEB-508995.jpg?v=1791394903"
+      }
+    ],
+    "Maker": [
+      {
+        "tierTitle": "Craighill Spectra scissors",
+        "name": "Spectra Scissors",
+        "store": "Craighill",
+        "url": "https://craighill.co/products/spectra-scissors",
+        "priceCents": 4800,
+        "image": "craighill-spectra-scissors.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1040/0808/files/Spectra4762.png?v=1787671293"
+      },
+      {
+        "tierTitle": "HMM ballpoint pen",
+        "name": "HMM Ballpoint Pen (Black)",
+        "store": "Ugmonk",
+        "url": "https://ugmonk.com/products/hmm-pen-black",
+        "priceCents": 3800,
+        "image": "ugmonk-hmm-pen-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0167/4484/files/1-hmm-pen-2.jpg?v=1753901893"
+      },
+      {
+        "tierTitle": "Leatherman Wave+ multi-tool",
+        "name": "Wave® Plus",
+        "store": "Leatherman",
+        "url": "https://leatherman.com/products/wave",
+        "priceCents": 12995,
+        "image": "leatherman-wave.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0627/4986/8125/files/wave_20260402201902_5dib.jpg?v=1777562829"
+      }
+    ],
+    "Film Shooter": [
+      {
+        "tierTitle": "Kodak Gold 200 film (3 rolls)",
+        "name": "Kodak Gold 200 Color 35mm Film (36 Exposures) - 3 Pack",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/kodak-gold-200-color-35mm-film-36-exposures-3-pack",
+        "priceCents": 2900,
+        "image": "retrospekt-kodak-gold-200-color-35mm-film-36-exposures-3-pack.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/RF-KD-1009_1.jpg?v=1700581690"
+      },
+      {
+        "tierTitle": "35mm point-and-shoot film camera",
+        "name": "Peanuts Beagle Scouts 35mm Film Camera",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/peanuts-beagle-scouts-fc-11-35mm-film-camera",
+        "priceCents": 6900,
+        "image": "retrospekt-peanuts-beagle-scouts-fc-11-35mm-film-camera.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/BeagleScoutsFC11-Straight.jpg?v=1741105692"
+      },
+      {
+        "tierTitle": "Refurbished Polaroid 600 instant camera",
+        "name": "Polaroid 600 Sun600 LMS Instant Film Camera",
+        "store": "Retrospekt",
+        "url": "https://retrospekt.com/products/refurbished-polaroid-600-camera-silver-lms",
+        "priceCents": 13900,
+        "image": "retrospekt-refurbished-polaroid-600-camera-silver-lms.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0881/4568/files/silver_lms-1.jpg?v=1711647406"
+      }
+    ],
+    "Music Head": [
+      {
+        "tierTitle": "Mitski LP on gold vinyl",
+        "name": "Mitski: The Land Is Inhospitable And So Are We (Gold Colored Vinyl) Vinyl LP",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/mitski-the-land-is-inhospitable-and-so-are-we-gold-colored-vinyl-vinyl-lp",
+        "priceCents": 2695,
+        "image": "turntablelab-mitski-the-land-is-inhospitable-and-so-are-we-gold-colored-vinyl-vi.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/files/mitski-TheLandIsInhospitableAndSoAreWe_93ab090f-d499-49ab-93a8-7b4f2eee7fc7.jpg?v=1791320136"
+      },
+      {
+        "tierTitle": "Record care kit (brush, fluid, sleeves)",
+        "name": "Turntable Lab: Record Care Bundle #2 (Brush, Cleaning Fluid, Inner Sleeves)",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/turntable-lab-record-care-bundle-2-brush-fluid-inner-sleeves",
+        "priceCents": 5495,
+        "image": "turntablelab-turntable-lab-record-care-bundle-2-brush-fluid-inner-sleeves.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/files/ttl-recordkit-02.jpg?v=1790376192"
+      },
+      {
+        "tierTitle": "Audio-Technica AT-LP60X turntable",
+        "name": "Audio-Technica: AT-LP60X-BK Automatic Turntable - Black",
+        "store": "Turntable Lab",
+        "url": "https://turntablelab.com/products/audio-technica-at-lp60x-bk-automatic-turntable-black",
+        "priceCents": 17900,
+        "image": "turntablelab-audio-technica-at-lp60x-bk-automatic-turntable-black.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/products/atlp60x-blk-nolid.jpg?v=1762276440"
+      }
+    ],
+    "Plant Parent": [
+      {
+        "tierTitle": "String of Pearls plant",
+        "name": "String of Pearls",
+        "store": "The Sill",
+        "url": "https://thesill.com/products/senecio-rowleyanus-string-of-pearls",
+        "priceCents": 8900,
+        "image": "thesill-senecio-rowleyanus-string-of-pearls.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0150/6262/files/the-sill_senecio-string-of-pearls_gallery_xsmall_all_all_02_6ac9bcda-2184-4666-abcd-d8b75b627846.jpg?v=1790716495"
+      },
+      {
+        "tierTitle": "Self-watering plant globes",
+        "name": "Self Watering Plant Globes",
+        "store": "The Sill",
+        "url": "https://thesill.com/products/self-watering-plant-globes",
+        "priceCents": 2000,
+        "image": "thesill-self-watering-plant-globes.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0150/6262/files/33_jpg_f5f68da4-5ad7-4ea1-91bf-cae3c1ed555d.webp?v=1765569871"
+      },
+      {
+        "tierTitle": "Soltech Vita grow light",
+        "name": "Vita™ Grow Light",
+        "store": "Soltech",
+        "url": "https://soltech.com/products/vita-grow-light",
+        "priceCents": 7650,
+        "image": "soltech-vita-grow-light.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0624/7972/8867/files/Vita-LED-Grow-Light-Bulb-White-Dimmable_b0ebbab8-12d7-49eb-878d-ef95a7b6698b.jpg?v=1714136224"
+      }
+    ],
+    "Bookworm": [
+      {
+        "tierTitle": "Out of Print Library Card tote",
+        "name": "Library Card: Cloud Blue tote bag",
+        "store": "Out of Print",
+        "url": "https://outofprintclothing.com/products/library-card-tote-bag-cloud-blue",
+        "priceCents": 2200,
+        "image": "outofprintclothing-library-card-tote-bag-cloud-blue.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0380/6785/files/TOTE-1240-01-TOTE-Library-Card-Tote-Cloud-Blue-01.jpg?v=1787868659"
+      },
+      {
+        "tierTitle": "East Fork handmade mug",
+        "name": "The Mug",
+        "store": "East Fork",
+        "url": "https://eastfork.com/products/east-fork-mug",
+        "priceCents": 4400,
+        "image": "eastfork-east-fork-mug.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2281/6071/products/0bf6ab403584803c9ca31e2fb74984444d506041-2000x2000.jpg?v=1773703028"
+      },
+      {
+        "tierTitle": "Craighill False Books (hidden storage)",
+        "name": "False Books",
+        "store": "Craighill",
+        "url": "https://craighill.co/products/false-books",
+        "priceCents": 5800,
+        "image": "craighill-false-books.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1040/0808/files/False_Books_11697_260707_v2.jpg?v=1786745417"
+      }
+    ],
+    "Hates Clutter": [
+      {
+        "tierTitle": "Orbitkey leather key organizer",
+        "name": "Key Organizer Matte Leather",
+        "store": "Orbitkey",
+        "url": "https://orbitkey.com/products/key-organiser-matte-leather",
+        "priceCents": 4350,
+        "image": "orbitkey-key-organiser-matte-leather.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/OrbitkeyKeyOrganiser-MatteLeather-Cyber-1.jpg?v=1769489840"
+      },
+      {
+        "tierTitle": "Orbitkey Tech Organizer Mini",
+        "name": "Tech Organizer Mini",
+        "store": "Orbitkey",
+        "url": "https://orbitkey.com/products/tech-organiser-mini",
+        "priceCents": 2990,
+        "image": "orbitkey-tech-organiser-mini.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/Orbitkey-TechOrganiserMini-Black-1.jpg?v=1787187459"
+      },
+      {
+        "tierTitle": "Orbitkey Desk Mat",
+        "name": "Desk Mat",
+        "store": "Orbitkey",
+        "url": "https://orbitkey.com/products/deskmat",
+        "priceCents": 3990,
+        "image": "orbitkey-deskmat.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/Orbitkey-DeskMat-Large-Black2.jpg?v=1791258169"
+      }
+    ],
+    "Cozy Nester": [
+      {
+        "tierTitle": "Brooklinen Super-Plush slippers",
+        "name": "Super-Plush Slippers",
+        "store": "Brooklinen",
+        "url": "https://brooklinen.com/products/super-plush-slippers",
+        "priceCents": 6900,
+        "image": "brooklinen-super-plush-slippers.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0951/7126/files/BKL_26-08_Bath_Waffle_Slippers_StripedFrost_Flat_2x_PDP_WOgrey.jpg?v=1789593032"
+      },
+      {
+        "tierTitle": "Parachute organic rib knit throw",
+        "name": "Organic Rib Knit Throw (Tobacco)",
+        "store": "Parachute",
+        "url": "https://parachutehome.com/products/organic-rib-knit-throw-tobacco",
+        "priceCents": 9900,
+        "image": "parachutehome-organic-rib-knit-throw-tobacco.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0396/8269/files/organic-rib-knit-throw_tobacco_main_1276.jpg?v=1790105517"
+      },
+      {
+        "tierTitle": "Parachute Cozy Knit Robe",
+        "name": "Cozy Knit Robe (Garnet)",
+        "store": "Parachute",
+        "url": "https://parachutehome.com/products/cozy-knit-robe-garnet",
+        "priceCents": 17900,
+        "image": "parachutehome-cozy-knit-robe-garnet.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0396/8269/files/cozy-knit-robe_garnet_main_2058.jpg?v=1790101585"
+      }
+    ]
+  },
+  "traitsFetchedAt": "2026-10-17T18:10:24.052Z"
+}

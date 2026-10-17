@@ -1,0 +1,182 @@
+'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { api, $, countdown } from '../../../lib/api';
+import { Bloom, Flower, TraitCard } from '../../../components/Art';
+import Deck from '../../../components/Deck';
+import Questionnaire from '../../../components/Questionnaire';
+import PaySheet from '../../../components/PaySheet';
+import GiftStrip from '../../../components/GiftStrip';
+
+const STAGES = [['collecting', 'Cards'], ['fusing', 'Fuse & vote'], ['funding', 'Bloom & fund'], ['purchased', 'Purchased'], ['revealed', 'Revealed']];
+
+export default function Room({ params }: { params: { id: string } }) {
+  const r = useRouter(); const [s, setS] = useState<any>(null); const [err, setErr] = useState('');
+  const load = useCallback(() => api(`/bouquets/${params.id}`).then(setS).catch(e => { if (e.status === 401) r.push(`/login?next=/b/${params.id}`); else setErr(e.message); }), [params.id]);
+  const [live, setLive] = useState<{ mode: string; online: string[] }>({ mode: 'connecting', online: [] });
+  // Live room: Cloudflare Durable Object over WebSocket when available → SSE fallback → 15 s polling safety net.
+  useEffect(() => {
+    load(); let closed = false; let es: EventSource | null = null; let ws: WebSocket | null = null;
+    const sse = () => { if (closed || es) return; es = new EventSource(`/api/bouquets/${params.id}/stream`); es.onmessage = () => load(); setLive(l => ({ ...l, mode: 'sse' })); };
+    api(`/bouquets/${params.id}/realtime`).then((rt: any) => {
+      if (closed) return; if (!rt?.url || typeof WebSocket === 'undefined') return sse();
+      try { ws = new WebSocket(rt.url); } catch { return sse(); }
+      const failTimer = setTimeout(() => { if (ws && ws.readyState !== WebSocket.OPEN) { ws.close(); sse(); } }, 4000);
+      ws.onopen = () => { clearTimeout(failTimer); setLive(l => ({ ...l, mode: 'websocket' })); };
+      ws.onmessage = e => { try { const m = JSON.parse(e.data); if (m.online) setLive(l => ({ ...l, online: m.online })); if (m.type !== 'hello' && m.type !== 'presence') load(); } catch { /* ignore */ } };
+      ws.onclose = () => { clearTimeout(failTimer); if (!closed) sse(); };
+    }).catch(sse);
+    const t = setInterval(load, 15000);
+    return () => { closed = true; ws?.close(); es?.close(); clearInterval(t); };
+  }, [load, params.id]);
+  const act = async (path: string, body?: any, method?: string) => { setErr(''); try { setS(await api(`/bouquets/${params.id}${path}`, { body: body ?? {}, method })); } catch (e: any) { setErr(e.message); } };
+  if (!s) return <div className="panel">{err || 'Loading…'}</div>;
+  const b = s.bouquet; const idx = STAGES.findIndex(x => x[0] === b.status);
+  const invite = b.inviteUrl ?? (typeof window !== 'undefined' && b.inviteToken ? `${location.origin}/join/${b.inviteToken}` : '');
+  return <>
+    <div className="panel">
+      <div className="row"><div className="grow"><h1 data-testid="room-title">{b.recipientName}’s {b.occasion} bouquet</h1>
+        <div className="muted">{b.note}</div></div>
+        <div style={{ textAlign: 'right' }}>{['purchased', 'revealed'].includes(b.status)
+          ? <><div className="deadline done" data-testid="countdown">{b.status === 'revealed' ? `✓ Opened by ${b.recipientName}` : '✓ Purchased in time'}</div>
+            <div className="muted">Checked out ahead of the {new Date(b.buyByAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} buy-by date ({b.shipBufferDays} shipping days built in)</div></>
+          : <><div className="deadline" data-testid="countdown">{b.status === 'expired' ? 'Expired — all holds released' : countdown(b.buyByAt, s.now)}</div>
+            <div className="muted">Buy by {new Date(b.buyByAt).toLocaleString()} · {b.shipBufferDays} shipping days</div></>}</div></div>
+      <div className="live" data-testid="live" data-mode={live.mode} title={live.mode === 'websocket' ? 'Live via Cloudflare Durable Object' : live.mode === 'sse' ? 'Live via server-sent events (fallback)' : 'Connecting…'}>
+        <span className={'dot ' + live.mode} />{live.mode === 'websocket' ? `Live room${live.online.length ? ` · ${live.online.length} here now` : ''}` : live.mode === 'sse' ? 'Live (fallback)' : 'Connecting…'}</div>
+      <div className="stage">{STAGES.map(([k, l], i) => <span key={k} className={i === idx ? 'on' : i < idx ? 'done' : ''}>{i + 1}. {l}</span>)}</div>
+      <div className="members">{s.members.map((m: any) => <div className="member" key={m.id}><Flower fb={m.flowerBack} size={28} />{m.displayName}{m.role === 'organizer' && ' ★'}
+        {m.networkVerified && <span className="badge" title="Verified by T-Mobile network">✓ T-Mobile</span>}{m.hasCard && <span className="chip">card</span>}</div>)}</div>
+      {b.isOrganizer && ['collecting', 'fusing', 'funding'].includes(b.status) && <div style={{ marginTop: 16 }}><label>Invite friends with this link</label>
+        <div className="copy"><input readOnly value={invite} data-testid="invite-link" /><button className="ghost" onClick={() => navigator.clipboard?.writeText(invite)}>Copy</button></div></div>}
+      {err && <div className="err" role="alert">{err}</div>}
+    </div>
+    {b.status === 'collecting' && <Collecting s={s} act={act} setS={setS} />}
+    {b.status === 'fusing' && <Deck s={s} setS={setS} act={act} />}
+    {['funding', 'purchased', 'revealed', 'expired'].includes(b.status) && s.tiers.length > 0 && <Funding s={s} act={act} setS={setS} />}
+    {['purchased', 'revealed'].includes(b.status) && <Purchased s={s} />}
+    <DemoDrawer s={s} reload={load} />
+    {s.cards.length > 0 && b.status !== 'collecting' && <div className="panel"><h2>The cards</h2><div className="cards flipall">{s.cards.map((c: any, i: number) => <div key={c.id} style={{ animationDelay: `${i * 120}ms` }} className="flipin"><TraitCard card={c} /></div>)}</div></div>}
+  </>;
+}
+
+function Collecting({ s, act, setS }: any) {
+  const mine = s.cards.find((c: any) => c.memberId === s.me.id); const [minting, setMinting] = useState(false);
+  return <div className="grid2">
+    <div className="panel">{!s.me.hasCard || minting ? <Questionnaire s={s} setS={(r: any) => { setMinting(false); setS(r); }} onMint={() => setMinting(true)} />
+      : <><h2>Your card</h2><div style={{ maxWidth: 240 }}><TraitCard card={mine} testId="my-card" /></div><p className="muted">Nice! Your card is in. The others stay face-down until the group fuses.</p></>}</div>
+    <div className="panel"><h2>Cards so far ({s.cards.length})</h2><p className="muted">Everyone’s cards stay face-down (just their flower and name) until the organizer fuses. Then they flip together.</p>
+      <div className="cards">{s.cards.map((c: any) => <div key={c.id}><TraitCard card={c} flipped={c.memberId === s.me.id} /><div className="muted" style={{ textAlign: 'center', marginTop: 6 }}>{c.memberId === s.me.id ? 'You' : c.memberName}</div></div>)}
+        {s.cards.length === 0 && <div className="slot waiting" data-testid="cards-empty"><span className="slot-icon">✿</span><b>No cards yet</b><span className="muted">{s.me.hasCard ? 'Waiting for friends…' : 'Yours could be the first. Each card lands here face-down.'}</span></div>}</div>
+      {(() => { const waiting = s.members.filter((m: any) => m.role !== 'organizer' && !m.hasCard && m.id !== s.me.id).map((m: any) => m.displayName);
+        return waiting.length > 0 && <p className="muted" style={{ fontSize: 13, marginTop: 12 }} data-testid="still-writing">Still writing: {waiting.join(', ')}</p>; })()}
+      {s.bouquet.isOrganizer && <div style={{ marginTop: 18 }}><button disabled={s.cards.length < 2} onClick={() => act('/fuse')} data-testid="fuse">Fuse the cards ✨</button>
+        {s.cards.length < 2 && <p className="muted">Fusion needs at least 2 cards.</p>}</div>}
+    </div></div>;
+}
+
+function Fusing({ s, act }: any) {
+  return <div className="panel"><h2>Fusion results</h2>
+    <p className="muted">Traits from everyone’s cards fused into these gifts. <span className="chip rare">Rare</span> fusions only appear when 2+ friends independently named the same traits.</p>
+    <div className="chips" style={{ margin: '12px 0 18px' }}>{s.traits.map((t: any) => <span key={t.label} className="chip">{t.label} ×{t.consensus}</span>)}</div>
+    <div className="cands">{s.candidates.map((c: any) => <div key={c.id} className={`cand ${s.me.vote === c.id ? 'mine' : ''}`} data-testid="candidate">
+      <div className="fusion">{c.traits.join(' + ')} {c.rare && <span className="chip rare">Rare fusion</span>}</div>
+      <h3>{c.title}</h3><p className="muted" style={{ margin: 0 }}>{c.description}</p>
+      <div className="muted" style={{ fontSize: 13 }}>From the cards of {c.citedFriends.join(', ')}</div>
+      <div className="row"><b className="grow">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div>
+    {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} data-testid="choose">Pick the top-voted gift →</button></div>}
+  </div>;
+}
+
+function Funding({ s, act, setS }: any) {
+  const b = s.bouquet; const top = s.tiers[s.tiers.length - 1]?.thresholdCents ?? 1; const total = s.totals.fundedCents;
+  const pledged = s.me.contributions.filter((c: any) => c.status === 'held').reduce((a: number, c: any) => a + c.amount_cents, 0);
+  const room = Math.max(0, s.me.budgetMaxCents - pledged);
+  const [amt, setAmt] = useState(20); const [sheet, setSheet] = useState(false); const [err, setErr] = useState(''); const [pop, setPop] = useState<string | null>(null);
+  const [bud, setBud] = useState({ min: s.me.budgetMinCents / 100, max: s.me.budgetMaxCents / 100 }); const [claim, setClaim] = useState({ email: '', password: '' });
+  const next = s.tiers.find((t: any) => t.id === s.totals.nextTier); const cand = s.candidates.find((c: any) => c.id === b.chosenCandidateId);
+  const prevTier = useRef<string | null>(s.totals.currentTier); const prevTotal = useRef<number>(total);
+  useEffect(() => { const cur = s.totals.currentTier;
+    if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(`+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
+    prevTier.current = cur; prevTotal.current = total; }, [s.totals.currentTier, total]);
+  const petals = s.members.filter((m: any) => m.pledgedCents > 0); const co = b.status === 'funding' ? s.totals.checkout : null;
+  const pay = async (card: string, human: string | null) => { setErr('');
+    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: crypto.randomUUID() }, human })); return true; }
+    catch (e: any) { setErr(e.message); return true; } };
+  return <div className={b.status === 'funding' ? 'grid2' : 'solo'}>
+    {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}</div>}
+    <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
+      {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
+        unlocked: t.unlocked, note: t.unlocked ? (b.status === 'funding' ? `Tier ${t.level} unlocked` : `Tier ${t.level} · in the box`) : b.status === 'funding' ? `${$(t.thresholdCents - total)} more` : 'Not funded' }))} />}
+      <div className="bloomwrap"><Bloom progress={total / top} stems={3 + s.members.length} />
+        <div className="petals" data-testid="petals">{petals.map((m: any, i: number) => <div key={m.id} className="petal pop" style={{ animationDelay: `${i * 90}ms` }}><Flower fb={m.flowerBack} size={30} /><span>{m.displayName}</span></div>)}</div></div>
+      <div className="bar" style={{ margin: '14px 0 6px' }}><div style={{ width: `${Math.min(100, (total / top) * 100)}%` }} /></div>
+      <div data-testid="funded">{b.status === 'funding' && total >= top ? <><b>{$(total)}</b> held · {$(top)} goal reached ✿</> : b.status === 'funding' ? <><b>{$(total)}</b> held of {$(top)}</> : b.status === 'expired' ? <>Deadline passed · every hold was released, no one was charged</> : <><b>{$(total)}</b> charged · tier {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length}</>}</div>
+      {next && b.status === 'funding' && <p className="muted">{$(next.thresholdCents - total)} more unlocks <b>{next.title.replace(/^\+ /, '')}</b></p>}
+      {co && <div className="goal" data-testid="checkout-preview">{co.releaseCents > 0 || total >= top
+        ? <>{total >= top ? <b>Fully funded: every tier is unlocked. </b> : <b>Tier {co.tierLevel} is fully funded. </b>}{total >= top ? 'Checkout charges' : 'Checking out now charges'} exactly {$(co.chargeCents)}, split pro-rata across {co.holders === 1 ? 'the 1 hold' : `${co.holders} friends’ holds`}.{co.releaseCents > 0 && <> The extra {$(co.releaseCents)} is released back to their cards, never charged.</>}</>
+        : <><b>Tier {co.tierLevel} is exactly funded.</b> Checkout charges {$(co.chargeCents)}, and every hold is used in full.</>}</div>}
+      <div className="tiers" style={{ marginTop: 14, textAlign: 'left' }}>{s.tiers.map((t: any) => <div key={t.id} className={`tier ${t.unlocked ? 'unlocked' : ''}`} data-testid="tier">
+        {t.product ? <img className="tierimg" src={t.product.photoUrl} alt={t.product.name} data-testid="tier-photo" /> : <span className="tierimg ph">🎁</span>}
+        <div className="grow"><b>{t.title}</b>{t.product && <div className="tiermeta"><a href={t.product.url} target="_blank" rel="noreferrer">{t.product.name}</a> · {t.product.store} · {$(t.product.priceCents)}</div>}</div>
+        <span className="thr">{$(t.thresholdCents)}</span></div>)}</div>
+    </div>
+    {b.status === 'funding' && <div className="panel"><h2>Chip in</h2>
+      {s.me.isGuest ? <div data-testid="claim">
+        <p>You joined as a guest. Save your spot with an email and password so you can manage your hold later.</p>
+        <label>Email</label><input name="claimEmail" type="email" value={claim.email} onChange={e => setClaim({ ...claim, email: e.target.value })} />
+        <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
+        <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save my spot</button></div>
+      </div> : <>
+        <label>My budget for this gift ($)</label>
+        <div className="row"><input name="budgetMin" type="number" min={0} value={bud.min} onChange={e => setBud({ ...bud, min: Number(e.target.value) })} style={{ width: 110 }} /><span>to</span>
+          <input name="budgetMax" type="number" min={1} value={bud.max} onChange={e => setBud({ ...bud, max: Number(e.target.value) })} style={{ width: 110 }} />
+          <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100) }, 'PATCH')} data-testid="save-budget">Save</button></div>
+        <p className="muted" style={{ fontSize: 13 }}>Private to you. You’ve held {$(pledged)}, so {$(room)} is left in your budget.</p>
+        <label>{pledged > 0 ? 'Add to your hold ($)' : 'Chip in ($)'}</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
+        <div style={{ marginTop: 14 }}><button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more with Visa` : `Chip in ${$(Math.round(amt * 100))} with Visa`}</button></div>
+        {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Visa •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {c.status === 'held' ? 'on hold' : c.status}</span></div>)}</div>}
+      </>}
+      {err && <div className="err toast" role="alert" data-testid="pay-error">⛔ {err}</div>}
+      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">If the group checks out now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</div>}
+      <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
+        <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} holding · everyone’s amount and budget stay private</div>
+        <div className="who">{s.members.map((m: any) => <div className="wrow" key={m.id} data-testid="who-row"><Flower fb={m.flowerBack} size={24} /><span className="grow">{m.id === s.me.id ? `${m.displayName} (you)` : m.displayName}{m.role === 'organizer' ? ' ★' : ''}</span>
+          <span className={`st ${m.pledgedCents > 0 ? 'on' : ''}`}>{m.pledgedCents > 0 ? '✓ holding' : 'no hold yet'}</span></div>)}</div>
+        <div className="dl" data-testid="deadline-box">⏳ <b>{countdown(b.buyByAt, s.now)}</b> to check out (buy by {new Date(b.buyByAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, leaving {b.shipBufferDays} days to ship). If nobody checks out in time, every hold is released and no one is charged.</div></div>
+      {b.isOrganizer && <div style={{ marginTop: 22, borderTop: '1px dashed #f3d0df', paddingTop: 18 }}><h3>Ready to check out?</h3>
+        <p className="muted">{co ? <>Checking out now buys tier {co.tierLevel} and charges {$(co.chargeCents)} split fairly across everyone’s holds{co.releaseCents > 0 ? `; the extra ${$(co.releaseCents)} is released` : ''}.</> : 'Once the first tier is fully funded you can check out. Everyone pays a fair share of the best funded tier, and anything extra goes back to them.'}</p>
+        <button disabled={!s.totals.currentTier} onClick={() => act('/lock')} data-testid="checkout">Check out the bouquet</button></div>}
+      {sheet && <PaySheet amountCents={Math.round(amt * 100)} recipient={b.recipientName} onClose={() => setSheet(false)} onPay={pay} />}
+    </div>}
+  </div>;
+}
+
+function Purchased({ s }: any) {
+  const link = s.bouquet.revealToken && typeof window !== 'undefined' ? `${location.origin}/reveal/${s.bouquet.revealToken}` : null;
+  const mine = s.me.contributions.filter((c: any) => c.status === 'captured').reduce((a: number, c: any) => a + c.captured_cents, 0);
+  return <div className="panel"><h2>🎉 Purchased!</h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
+      if (!held) return <p>The group gift is on its way. You didn’t place a hold, so you weren’t charged anything.</p>;
+      return <p>The group gift is on its way. You were charged <b data-testid="my-charge">{$(mine)}</b>{held > mine ? <>, not {$(held)}, because the group funded tier {tier?.level} (“{tier?.title.replace(/^\+ /, '')}”) and the rest of your hold was released</> : ''}.</p>; })()}
+    {link && <><label>Send this to {s.bouquet.recipientName} to open their bouquet</label><div className="copy"><input readOnly value={link} data-testid="reveal-link" /><a className="btn sm" href={link} target="_blank">Preview</a></div></>}</div>;
+}
+
+function DemoDrawer({ s, reload }: any) {
+  const [demo, setDemo] = useState(false); const [open, setOpen] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  useEffect(() => { api('/health').then(h => setDemo(!!h.demo)).catch(() => {}); }, []);
+  if (!demo) return null;
+  const run = async (fn: () => Promise<string>) => { try { setMsg({ ok: true, t: await fn() }); } catch (e: any) { setMsg({ ok: false, t: e.message }); } reload(); };
+  const b = s.bouquet;
+  return <div className="drawer"><button className="ghost fab" onClick={() => setOpen(!open)} data-testid="demo-toggle" aria-label="Judge demo" title="Judge demo" aria-expanded={open}><span aria-hidden="true">🎬</span><span className="fablbl"> Judge demo {open ? '▾' : '▸'}</span></button>
+    {open && <div className="panel" style={{ marginTop: 8 }}>
+      <div className="row">
+        <button className="ghost" disabled={b.status !== 'funding'} onClick={() => run(async () => { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 500, cardNumber: '4000 0000 0000 0002', idempotencyKey: crypto.randomUUID() } }); return 'Hold placed'; })} data-testid="demo-decline">Try a declined card</button>
+        <button className="ghost" onClick={() => run(async () => { const r = await api('/dev/clock', { body: { offsetMs: new Date(b.buyByAt).getTime() - Date.now() + 60000 } }); return `Fast-forwarded past the buy-by deadline. ${r.expired} bouquet(s) expired and their holds were released.`; })} data-testid="demo-ff">⏩ Fast-forward past deadline</button>
+        <button className="ghost" onClick={() => run(async () => { await api('/dev/clock', { body: { offsetMs: 0 } }); return 'Clock reset to now'; })}>Reset clock</button>
+        <button className="ghost" disabled={b.status !== 'funding'} data-testid="demo-simswap" onClick={() => run(async () => { await api('/dev/simswap', { body: { bouquetId: b.id } });
+          try { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 6000, cardNumber: '4242424242424242', idempotencyKey: crypto.randomUUID() } }); return 'Hold went through (no phone on file?)'; }
+          finally { await api('/dev/simswap', { body: { bouquetId: b.id, on: false } }); } })}>📵 Simulate SIM-swapped friend</button>
+      </div>
+      <p className="muted" style={{ fontSize: 13 }}>“Simulate SIM-swapped friend” flags your own number as just swapped and tries a $60 hold. The <span className="badge">T-Mobile</span> SIM Swap check blocks it, then the flag is cleared.</p>
+      {msg && <div className={msg.ok ? 'ok' : 'err'} role="status" data-testid="demo-msg">{msg.ok ? '✓ ' : '⛔ '}{msg.t}</div>}</div>}</div>;
+}

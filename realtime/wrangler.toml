@@ -1,0 +1,15 @@
+name = "bouquet-realtime"
+main = "src/worker.ts"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "BouquetRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BouquetRoom"]
+
+[vars]
+# Overridden in docker-compose / `wrangler secret put REALTIME_SECRET` in production.
+REALTIME_SECRET = "dev-realtime-secret"

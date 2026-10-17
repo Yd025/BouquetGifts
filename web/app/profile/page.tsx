@@ -1,0 +1,23 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { api } from '../../lib/api';
+export default function Profile() {
+  const r = useRouter(); const [u, setU] = useState<any>(null); const [list, setList] = useState<any[]>([]);
+  useEffect(() => { api('/auth/me').then(x => setU(x.user)).catch(() => r.push('/login?next=/profile')); api('/bouquets').then(x => setList(x.bouquets)).catch(() => {}); }, []);
+  if (!u) return <div className="panel narrow">Loading…</div>;
+  const organized = list.filter(b => b.role === 'organizer').length;
+  return <div className="panel narrow" style={{ maxWidth: 560 }}>
+    <h1 data-testid="profile-title">Your profile</h1>
+    <div className="list">
+      <div className="item"><span className="muted">Name</span><b>{u.name}</b></div>
+      <div className="item"><span className="muted">Email</span><b>{u.email}</b></div>
+      <div className="item"><span className="muted">Phone</span><span>{u.phone ? <>{u.phone} {u.phoneVerified && <span className="badge">✓ T-Mobile verified</span>}</> : <span className="muted">Added when you join a bouquet</span>}</span></div>
+      <div className="item"><span className="muted">Bouquets</span><span>{list.length} total · {organized} organized</span></div>
+    </div>
+    <p className="muted" style={{ fontSize: 13, marginTop: 16 }}>Payments are card holds in the Visa sandbox. You’re only charged when a group checks out, and only your fair share of the funded tier.</p>
+    <div className="row" style={{ marginTop: 16 }}><Link className="btn" href="/dashboard">My bouquets</Link><Link className="ghost btn" href="/new">Plant a new one</Link>
+      <button className="ghost" onClick={async () => { await api('/auth/logout', { method: 'POST' }); r.push('/'); }}>Log out</button></div>
+  </div>;
+}

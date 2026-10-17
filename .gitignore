@@ -1,0 +1,11 @@
+*.tgz
+.DS_Store
+.env
+.next
+.stage
+node_modules
+playwright-report
+realtime/.wrangler
+secrets/*.key
+secrets/*.pem
+test-results
