@@ -8,9 +8,9 @@ import { FsStorage } from '../src/storage.js';
 import { MockNetwork, MockVisaPayments } from '../src/adapters.js';
 
 /** A whole bouquet at the funding stage (2 friends with cards, a gift chosen), using any AI adapter. */
-export async function fundingBouquet(ai: any) {
+export async function fundingBouquet(ai: any, opts: { payments?: any } = {}) {
   const db = await makeDb('memory'); await seed(db);
-  const ctx = createApp({ db, payments: new MockVisaPayments(), network: new MockNetwork(), ai, clock: makeClock(), demo: true, secret: 't', storage: new FsStorage(path.join(os.tmpdir(), 'bq-br-' + Math.random())) });
+  const ctx = createApp({ db, payments: opts.payments ?? new MockVisaPayments(), network: new MockNetwork(), ai, clock: makeClock(), demo: true, secret: 't', storage: new FsStorage(path.join(os.tmpdir(), 'bq-br-' + Math.random())) });
   const ag = async (name: string) => { const a = request.agent(ctx.app); await a.post('/api/auth/signup').send({ email: `${name}${Math.random()}@x.io`, password: 'password1', name }); return a; };
   const org = await ag('Org');
   const b = (await org.post('/api/bouquets').send({ recipientName: 'Maya', occasion: 'Birthday', neededBy: new Date(Date.now() + 10 * 864e5).toISOString(), shipBufferDays: 3 })).body.bouquet;

@@ -363,6 +363,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     await db.tx(async q => {
       const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
       if (cur.status !== 'funding') { await payments.release(hold!.holdId); fail(409, 'Funding just closed'); }
+      // Re-check the cap under a row lock: parallel holds from one friend can't jointly exceed their budget.
+      const [mm] = await q('SELECT budget_max_cents FROM members WHERE id=$1 FOR UPDATE', [m.id]);
+      const [{ s: heldNow }] = await q(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
+      if (Number(heldNow) + amountCents > mm.budget_max_cents) { await payments.release(hold!.holdId); fail(400, `That would exceed your budget of $${(mm.budget_max_cents / 100).toFixed(2)}`); }
       const cid = id('ctb');
       await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7)`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey]);
       await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'hold',$3)`, [bq.id, cid, amountCents]);
