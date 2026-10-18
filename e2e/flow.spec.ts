@@ -94,7 +94,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     await org.reload(); await expect(org.getByText('Cards so far (3)')).toBeVisible(); await expect(org.getByTestId('still-writing')).toHaveCount(0); }
   await org.getByTestId('fuse').click(); await expect(org.getByTestId('candidate').first()).toBeVisible();
   await expect(org.getByTestId('deck')).toBeVisible();
-  await expect(org.getByTestId('draw-slot')).toContainText('Draw a card'); await expect(org.getByTestId('discard-pile')).toContainText('discard');
+  await expect(org.getByTestId('draw-slot')).toContainText('Draw a card'); await expect(org.getByTestId('discard-pile')).toContainText('to pass');
   const cardTitles = await org.locator('.cards h3').allTextContents(); expect(cardTitles).toHaveLength(3); expect(new Set(cardTitles).size).toBe(3); // no look-alike cards
   // ideas stay face down until someone makes a gift: no photos or titles to anchor on yet
   for (const c of await org.getByTestId('candidate').all()) { await expect(c).toHaveAttribute('data-facedown', '1'); await expect(c.getByTestId('cand-photo')).toHaveCount(0); }

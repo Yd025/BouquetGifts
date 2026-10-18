@@ -490,3 +490,4 @@ nav a, nav button { min-height: 44px; display: inline-flex; align-items: center;
 .lp-ctas .btn { min-height: 46px; min-width: 96px; justify-content: center; display: inline-flex; align-items: center; }
 .prodlink, .gitem .glabel a, a.prodlink { display: inline-flex; align-items: center; min-height: 44px; }
 @media (max-width: 600px) { .lp-float i:nth-child(-n+3) { display: none; } } .lp-float i:nth-child(3) { top: 66%; }
+[data-testid^=cf-amt-], [data-testid=cf-hold] { min-height: 46px; }
