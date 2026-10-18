@@ -96,7 +96,7 @@ function Fusing({ s, act }: any) {
     <p className="muted">Traits from everyone’s cards fused into these gifts. <span className="chip rare">Rare</span> fusions only appear when 2+ friends independently named the same traits.</p>
     <div className="chips" style={{ margin: '12px 0 18px' }}>{s.traits.map((t: any) => <span key={t.label} className="chip">{t.label} ×{t.consensus}</span>)}</div>
     <div className="cands">{s.candidates.map((c: any) => <div key={c.id} className={`cand ${s.me.vote === c.id ? 'mine' : ''}`} data-testid="candidate">
-      <div className="fusion">{c.traits.join(' + ')} {c.rare && <span className="chip rare">Rare fusion</span>}</div>
+      <div className="fusion">{c.traits.join(' + ')} {c.rare && <span className="chip rare">Rare find</span>}</div>
       <h3>{c.title}</h3><p className="muted" style={{ margin: 0 }}>{c.description}</p>
       <div className="muted" style={{ fontSize: 13 }}>From the cards of {c.citedFriends.join(', ')}</div>
       <div className="row"><b className="grow">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div>

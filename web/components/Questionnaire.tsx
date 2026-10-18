@@ -23,7 +23,7 @@ export default function Questionnaire({ s, setS, onMint }: any) {
     <div className="qgrid">
       <div className="qgrow" aria-hidden><Flower fb={growFb} size={150} /><div className="muted" style={{ fontSize: 12 }}>Your card art grows as you answer</div></div>
       {q ? <div className={`qcard ${q.kind === 'random' ? 'drawn-q' : ''}`} key={q.id} data-testid="q-card">
-        {q.kind === 'random' ? <div className="drawbadge" data-testid="drawn-badge">🂠 Drawn from the deck: only some friends get this one</div> : <div className="drawbadge shared">Everyone answers this</div>}
+        {q.kind === 'random' ? <div className="drawbadge" data-testid="drawn-badge">A bonus question: only some friends get this one</div> : <div className="drawbadge shared">Everyone answers this</div>}
         <div className="prompt">{q.prompt}</div>
         <div className="opts">{q.options.map((o: string, k: number) => <button key={k} className={`opt ${ans[q.id] === k ? 'sel' : ''}`} onClick={() => choose(k)} data-testid="q-opt">{o}</button>)}</div>
         <div className="row" style={{ marginTop: 14 }}><button className="ghost" disabled={i === 0} onClick={() => setI(i - 1)}>← Back</button>
@@ -34,7 +34,7 @@ export default function Questionnaire({ s, setS, onMint }: any) {
         <textarea value={story} onChange={e => setStory(e.target.value)} placeholder={`I remember when ${s.bouquet.recipientName} and I…`} data-testid="story" rows={4} />
         <p className="muted" style={{ fontSize: 13 }}>It plays aloud when {s.bouquet.recipientName} opens the bouquet. Optional.</p>
         <div className="row"><button className="ghost" onClick={() => setI(i - 1)}>← Back</button>
-          <button disabled={answered < qs.length} onClick={submit} data-testid="mint-card">Mint my card ✿</button></div>
+          <button disabled={answered < qs.length} onClick={submit} data-testid="mint-card">Finish my card</button></div>
         {err && <div className="err">{err}</div>}
       </div>}
     </div>

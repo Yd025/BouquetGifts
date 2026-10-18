@@ -55,8 +55,8 @@ export default function Deck({ s, setS, act }: any) {
   const x = fly ? fly * 700 : dx;
 
   return <div className="panel deckpanel">
-    <div className="row"><div className="grow"><h2>Draw from the deck</h2>
-      <p className="muted" style={{ margin: 0 }}>Everyone’s answers became trait cards. Draw each one and <b>keep</b> it (swipe right / →) or <b>discard</b> it (swipe left / ←). Then fuse two kept cards into a gift.</p></div>
+    <div className="row"><div className="grow"><h2>The deck</h2>
+      <p className="muted" style={{ margin: 0 }}>Each card is something a friend loves about them. Keep it (swipe right) or pass (swipe left), then put two together to make a gift idea.</p></div>
       <button className="ghost" onClick={undo} disabled={!hist.length} data-testid="undo">↶ Undo</button></div>
     {err && <div className="err" role="alert">{err}</div>}
     <div className="table">
@@ -64,49 +64,49 @@ export default function Deck({ s, setS, act }: any) {
         <button className="stack" onClick={draw} disabled={!!drawn || !remaining.length} aria-label="Draw the top card" data-testid="deck">
           {remaining.slice(0, 4).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ transform: `translate(${i * 3}px, ${-i * 3}px) rotate(${(i - 1.5) * 2}deg)` }}>
             <div className="minback"><Flower fb={traitFlower(t.label + 'back')} size={70} /></div></div>)}
-          {!remaining.length && <div className="empty">All drawn ✿</div>}
+          {!remaining.length && <div className="empty">All drawn</div>}
         </button></div>
       <div className="playarea">
         {cur ? <div className={`drawn ${flipped ? 'flipped' : ''}`} data-testid="drawn-card" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
           style={{ transform: `translateX(${x}px) rotate(${x / 14}deg)`, transition: start.current !== null ? 'none' : 'transform .32s ease-out', opacity: fly ? 0 : 1 }}>
           <div className="flipinner"><div className="cardface back" style={{ background: '#ffd6e7' }}><div className="backframe"><Flower fb={traitFlower(cur.label + 'back')} size={110} /></div></div>
             <div className="cardface front tfront"><TraitFace t={cur} />
-              {dx > 40 && <div className="stamp keep">KEEP</div>}{dx < -40 && <div className="stamp toss">DISCARD</div>}</div></div>
+              {dx > 40 && <div className="stamp keep">KEEP</div>}{dx < -40 && <div className="stamp toss">PASS</div>}</div></div>
         </div> : <div className={`slot ${remaining.length ? '' : 'done'}`} data-testid="draw-slot">{remaining.length
           ? <><div className="slot-icon">🂠</div><b>Draw a card</b><span>Tap the deck or press <kbd>Space</kbd></span><span className="muted">{remaining.length} trait card{remaining.length === 1 ? '' : 's'} from your friends’ answers</span></>
-          : <><div className="slot-icon">✿</div><b>Deck curated</b><span>{hand.length >= 2 ? 'Now pick two cards in your hand to fuse a gift ↓' : 'Keep at least two cards to fuse a gift. Undo to rethink.'}</span></>}</div>}
+          : <><div className="slot-icon">✿</div><b>All sorted</b><span>{hand.length >= 2 ? 'Now pick two kept cards to make a gift ↓' : 'Keep at least two cards to make a gift. Undo to rethink.'}</span></>}</div>}
         {cur && <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
-          <button className="ghost" onClick={() => decide(false)} data-testid="discard">✕ Discard</button><button onClick={() => decide(true)} data-testid="keep">♥ Keep</button></div>}
+          <button className="ghost" onClick={() => decide(false)} data-testid="discard">✕ Pass</button><button onClick={() => decide(true)} data-testid="keep">♥ Keep</button></div>}
       </div>
       <div className="pile"><div className="pile-label">Discard · {discards.length}</div>
         <div className="stack discard" data-testid="discard-pile">{!discards.length && <div className="pile-hint">Swipe left<br />or press ←<br />to discard</div>}{discards.slice(-3).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ transform: `rotate(${(i - 1) * 9}deg)` }}><div className="mini"><TraitFace t={t} small /></div></div>)}</div></div>
     </div>
     <div className="handwrap"><div className="row"><h3 className="grow">Your hand · {hand.length}</h3>
-      <span className="muted">Select two (or drag one onto another) to fuse</span>
-      <button disabled={sel.length !== 2} onClick={() => fuse(sel)} data-testid="fuse-hand">✨ Fuse {sel.length}/2</button></div>
+      <span className="muted">Pick two (or drag one onto another) to make a gift</span>
+      <button disabled={sel.length !== 2} onClick={() => fuse(sel)} data-testid="fuse-hand">Make a gift ({sel.length}/2)</button></div>
       <div className={`hand ${hand.length ? '' : 'empty'}`} data-testid="hand">{hand.map((t: any, i: number) => { const mid = (hand.length - 1) / 2, on = sel.includes(t.id);
         return <button key={t.id} className={`handcard ${on ? 'sel' : ''}`} data-testid="hand-card" aria-pressed={on} draggable
           onDragStart={e => e.dataTransfer.setData('text/plain', t.id)} onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); const o = e.dataTransfer.getData('text/plain'); if (o && o !== t.id) fuse([o, t.id]); }}
           onClick={() => setSel(x => on ? x.filter(i => i !== t.id) : [...x, t.id].slice(-2))}
           style={{ transform: `rotate(${(i - mid) * 6}deg) translateY(${Math.abs(i - mid) * 6 - (on ? 22 : 0)}px)` }}><TraitFace t={t} small /></button>; })}
-        {!hand.length && <div className="hand-empty">{[0, 1].map(k => <span key={k} className="ghostcard" />)}<span className="muted">Cards you keep land here. Keep two, then fuse them into a gift.</span></div>}</div></div>
+        {!hand.length && <div className="hand-empty">{[0, 1].map(k => <span key={k} className="ghostcard" />)}<span className="muted">Cards you keep land here. Keep two, then put them together.</span></div>}</div></div>
     {fusing && <Overlay onClick={() => fusing.cand && setFusing(null)} testId="fuse-overlay">
       <div className="fuse-anim">{!fusing.cand ? <><div className="fz l"><TraitFace t={fusing.a} small /></div><div className="spark">✨</div><div className="fz r"><TraitFace t={fusing.b} small /></div></>
-        : <div className={`giftcard pop ${fusing.cand.rare ? 'holo' : ''}`} data-testid="fused-gift"><div className={`rar ${fusing.cand.rare ? 'r-legendary' : 'r-common'}`}>{fusing.cand.rare ? 'Rare fusion' : 'Fusion'}</div>
+        : <div className={`giftcard pop ${fusing.cand.rare ? 'holo' : ''}`} data-testid="fused-gift"><div className={`rar ${fusing.cand.rare ? 'r-legendary' : 'r-common'}`}>{fusing.cand.rare ? 'Rare find' : 'Gift idea'}</div>
           {fusing.cand.product ? <img className="prodimg" src={fusing.cand.product.photoUrl} alt={fusing.cand.product.name} /> : <GiftArt traits={fusing.cand.traits} />}
           <h2>{fusing.cand.title}</h2><p className="muted">{fusing.cand.description}</p><div className="muted cite">{fusing.cand.traits.join(' + ')} · from {fusing.cand.citedFriends.join(', ')}</div>
-          <button onClick={() => setFusing(null)} data-testid="fuse-close">Add to the gift table →</button></div>}</div></Overlay>}
-    <h3 style={{ marginTop: 26 }}>Gift table · live votes</h3>
+          <button onClick={() => setFusing(null)} data-testid="fuse-close">Add to the gift ideas →</button></div>}</div></Overlay>}
+    <h3 style={{ marginTop: 26 }}>Gift ideas · vote for your favorite</h3>
     <div className="cands">{[...s.candidates].sort((x: any, y: any) => y.votes - x.votes).map((c: any) =>
       <div key={c.id} className={`cand ${s.me.vote === c.id ? 'mine' : ''} ${c.rare ? 'holo' : ''}`} data-testid="candidate">
-        <div className="fusion">{c.traits.join(' + ')} <span className={`chip kind-${c.kind}`} data-testid="kind">{({ rare: 'Rare fusion', match: 'Fusion', safe: 'Safe pick', wildcard: 'Wildcard' } as any)[c.kind] ?? 'Fusion'}</span></div>{c.product ? <img className="prodimg" src={c.product.photoUrl} alt={c.product.name} data-testid="cand-photo" /> : <GiftArt traits={c.traits} />}<h3>{c.title}</h3>
+        <div className="fusion">{c.traits.join(' + ')} <span className={`chip kind-${c.kind}`} data-testid="kind">{({ rare: 'Rare find', match: 'Good match', safe: 'Safe pick', wildcard: 'Wildcard' } as any)[c.kind] ?? 'Fusion'}</span></div>{c.product ? <img className="prodimg" src={c.product.photoUrl} alt={c.product.name} data-testid="cand-photo" /> : <GiftArt traits={c.traits} />}<h3>{c.title}</h3>
         {c.product ? <a className="prodlink" href={c.product.url} target="_blank" rel="noreferrer" title={`${c.product.name} on ${c.product.store}`}>{c.product.label ?? c.product.name}{c.products?.length > 1 ? ` + ${c.products.length - 1} more` : ''}</a> : <span className="prodlink none">Group-curated box · no catalog product yet</span>}
         <div className="cited" data-testid="cited">{c.citedCardIds.map((cid: string) => { const k = s.cards.find((x: any) => x.id === cid); return k ? <span key={cid} className="citecard" title={`${k.memberName}: ${k.title}`}>
           <svg className="citeline" viewBox="0 0 20 30" aria-hidden><path d="M10 0 V30" stroke="#e2588f" strokeDasharray="3 3" /></svg>
           <span className="citeface"><Flower fb={s.members.find((m: any) => m.id === k.memberId)?.flowerBack ?? traitFlower(k.title)} size={26} /></span><small>{k.memberName}</small></span> : null; })}</div>
         <p className="muted" style={{ margin: 0 }}>{c.description}</p><div className="muted" style={{ fontSize: 13 }}>From the cards of {c.citedFriends.join(', ')}</div>
         <div className="row"><div className="grow"><b data-testid="votes">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><div className="tally"><div style={{ width: `${(c.votes / Math.max(1, s.members.length)) * 100}%` }} /></div></div><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div>
-    {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} data-testid="choose">Lock in the top-voted gift →</button></div>}
+    {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} data-testid="choose">Go with the top pick →</button></div>}
   </div>;
 }
