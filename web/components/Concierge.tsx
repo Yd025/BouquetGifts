@@ -20,6 +20,6 @@ export default function Concierge({ s, act }: { s: any; act: (p: string, body?: 
         {p.nextUpgrade && p.budget.coversCents ? ` · ${$(p.nextUpgrade.priceCents)} adds ${p.nextUpgrade.title}` : ''}</div>
       <div className="row" style={{ marginTop: 6 }}><span className="grow" /><button className="sm btn" onClick={() => act('/vote', { candidateId: p.candidateId })} data-testid="concierge-vote">{s.me.vote === p.candidateId ? 'Voted ✓' : 'Vote for this'}</button></div>
     </div>)}</div>}
-    {r && <div className="muted" style={{ fontSize: 12, marginTop: 10 }} data-testid="concierge-source">{r.source === 'gemini' ? 'Top pick worded by Gemini · ranking and prices come from Bouquet’s rules' : 'Ranked by Bouquet rules (Gemini offline)'}</div>}
+    {r && <div className="muted" style={{ fontSize: 12, marginTop: 10 }} data-testid="concierge-source">{r.source === 'gemini' ? 'Top pick worded by Gemini · ranking and prices come from Bouquet’s rules' : 'Ranked from your group’s kept cards, votes and budgets'}</div>}
   </div>;
 }

@@ -15,7 +15,7 @@ export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (
       <button className="ghost" disabled={busy || !text.trim()} onClick={understand} data-testid="chipin-understand">{busy ? 'Reading…' : 'Understand'}</button></div>
     {err && <div className="err" role="alert" data-testid="chipin-error">{err}</div>}
     {p && <div className="readback pop" data-testid="chipin-plan">
-      <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard · <span data-testid="chipin-source">{r.source === 'gemini' ? 'read by Gemini' : 'read by Bouquet rules (Gemini offline)'}</span></div>
+      <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard · <span data-testid="chipin-source">{r.source === 'gemini' ? 'read by Gemini' : 'read by Bouquet rules · amounts only from your words'}</span></div>
       <div className="rbgrid">
         <div><span className="muted">Comfortable</span><b data-testid="chipin-soft">{$(p.softCents)}</b></div>
         <div><span className="muted">Private cap</span><b data-testid="chipin-cap">{$(p.capCents)}</b></div>
