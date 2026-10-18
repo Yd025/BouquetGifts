@@ -491,3 +491,13 @@ nav a, nav button { min-height: 44px; display: inline-flex; align-items: center;
 .prodlink, .gitem .glabel a, a.prodlink { display: inline-flex; align-items: center; min-height: 44px; }
 @media (max-width: 600px) { .lp-float i:nth-child(-n+3) { display: none; } } .lp-float i:nth-child(3) { top: 66%; }
 [data-testid^=cf-amt-], [data-testid=cf-hold] { min-height: 46px; }
+/* invite on a phone: Chip in above the fold at 390×844 (small photo beside the price, tighter spacing) */
+@media (max-width: 480px) {
+  .chipfirst h1 { font-size: 26px; line-height: 1.12; }
+  .chipfirst .cf-photo { float: right; width: auto; max-width: 38%; max-height: 104px; padding: 5px 5px 14px; margin: 2px 0 6px 10px; }
+  .chipfirst .cf-meta { font-size: 14px; margin: 2px 0 8px; }
+  .chipfirst .aibox { padding: 10px 12px; margin-top: 6px; clear: both; }
+  .chipfirst label { margin-top: 8px; }
+  .chipfirst input { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+  .chipfirst .cf-go { margin-top: 10px; }
+}

@@ -19,6 +19,7 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await p.goto(`/join/${b.inviteToken}`);
   await expect(p.getByTestId('chip-first')).toBeVisible(); await expect(p.getByRole('heading', { level: 1 })).toContainText('Chip in on Maya’s gift');
   await expect(p.getByTestId('cf-meta')).toContainText(/\$\d+ for the whole gift.*Be the first to chip in.*open until/);
+  expect((await p.getByTestId('cf-hold').boundingBox())!.y + 46).toBeLessThanOrEqual(844); // Chip in is above the fold on a 390×844 phone
   // "Just say it" is the primary input on the invite too: read back, then it fills the amount
   await p.getByTestId('chipin-text').fill('$30, $40 max'); await p.getByTestId('chipin-understand').click();
   await expect(p.getByTestId('chipin-soft')).toHaveText('$30'); await p.getByTestId('chipin-confirm').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Chip in $30');
