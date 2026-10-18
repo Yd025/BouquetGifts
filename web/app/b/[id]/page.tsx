@@ -114,8 +114,10 @@ function Funding({ s, act, setS }: any) {
     if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(s.totals.blurred ? `Unlocked ${t?.title.replace(/^\+ /, '')} ✿` : `+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
     prevTier.current = cur; prevTotal.current = total; }, [s.totals.currentTier, total]);
   const petals = s.members.filter((m: any) => m.holding); const co = b.status === 'funding' ? s.totals.checkout : null;
+  // One idempotency key per opening of the Visa sheet: a double tap or a network retry can't place two holds.
+  const payKey = useRef(''); useEffect(() => { if (sheet) payKey.current = crypto.randomUUID(); }, [sheet]);
   const pay = async (card: string, human: string | null) => { setErr('');
-    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: crypto.randomUUID() }, human })); return true; }
+    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: payKey.current || crypto.randomUUID() }, human })); return true; }
     catch (e: any) { setErr(e.message); return true; } };
   // Latch the late card: once shown it stays mounted until the friend finishes or skips, so a realtime refresh
   // (which flips hasCard the moment the card is saved) can't yank the minted-card reveal mid-animation.
