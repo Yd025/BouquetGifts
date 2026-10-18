@@ -86,8 +86,11 @@ export function orderStatsForTitle<T extends { label: string; count: number }>(s
  *  Tries "adjective of one trait + another trait" in priority order, then numbers the first option. */
 export function uniqueCardTitle(traits: string[], taken: string[]) {
   const used = new Set(taken.map(t => t.toLowerCase())); const first = cardTitle(traits);
-  if (!used.has(first.toLowerCase())) return first;
-  for (const noun of traits) for (const adj of traits) if (adj !== noun && ADJ[adj]) {
+  const nounUsed = (n: string) => taken.some(t => t.toLowerCase().endsWith(n.toLowerCase()));
+  if (!used.has(first.toLowerCase()) && !(traits[0] && nounUsed(traits[0]) && traits.slice(1).some(n => !nounUsed(n)))) return first;
+  // Prefer a noun no other card ends with, so the table doesn't read "… Sunrise Hiker" three times.
+  const nouns = [...traits.filter(n => !nounUsed(n)), ...traits.filter(n => nounUsed(n))];
+  for (const noun of nouns) for (const adj of traits) if (adj !== noun && ADJ[adj]) {
     const t = `The ${ADJ[adj]} ${noun}`; if (!used.has(t.toLowerCase())) return t; }
   for (let n = 2; ; n++) { const t = `${first} No. ${n}`; if (!used.has(t.toLowerCase())) return t; }
 }

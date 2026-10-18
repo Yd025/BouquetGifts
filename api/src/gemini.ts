@@ -66,10 +66,11 @@ export class GeminiAi extends MockAi {
       return { body: toWav(Buffer.from(a.data, 'base64'), a.mimeType), type: 'audio/wav' };
     } catch (e) { console.warn('gemini tts failed:', (e as Error).message); return null; }
   }
-  async cardTitle(traits: string[], story?: string) {
+  /** Built from traits only: the friend's memory is never sent for titles. */
+  async cardTitle(traits: string[]) {
     // The title must name the friend's own top trait so the card matches their answers (stat chips rely on it).
     try {
-      const t = (await this.text(`Write a 2-4 word playful trading-card title that MUST contain the words "${traits[0]}" for a person who is ${traits.join(', ')}${story ? ` (memory: "${story}")` : ''}. Reply with the title only.`))
+      const t = (await this.text(`Write a 2-4 word playful trading-card title that MUST contain the words "${traits[0]}" for a person who is ${traits.join(', ')}. Reply with the title only.`))
         .split('\n')[0].trim().replace(/^["'*]+|["'*.]+$/g, '').slice(0, 40);
       return t.includes(traits[0]) ? t : mockTitle(traits);
     } catch { return mockTitle(traits); }

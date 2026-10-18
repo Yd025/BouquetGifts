@@ -275,7 +275,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if ((await db.query('SELECT 1 FROM cards WHERE member_id=$1', [m.id])).length) fail(409, 'You already made your card');
     const traits = D.traitsFromAnswers(b.answers);
     const taken = (await db.query('SELECT title FROM cards WHERE bouquet_id=$1', [bq.id])).map((r: any) => r.title as string);
-    let title = await ai.cardTitle(traits, b.story); if (taken.some(t => t.toLowerCase() === title.toLowerCase())) title = D.uniqueCardTitle(traits, taken);
+    // Titles come from traits only (the memory is never sent to the AI). If another card already ends with the same noun, vary it.
+    let title = await ai.cardTitle(traits); if (taken.some(t => t.toLowerCase() === title.toLowerCase() || (traits.length > 1 && t.toLowerCase().endsWith(traits[0].toLowerCase()) && title.toLowerCase().endsWith(traits[0].toLowerCase())))) title = D.uniqueCardTitle(traits, taken);
     const story = b.story?.trim() ? b.story.trim().slice(0, 600) : null; // the friend's own words, never rewritten by AI (and never sent to it)
     const cardId = id('card'); const fb = m.flower_back;
     // The SVG card art is written now so minting stays instant; Gemini art (if configured) replaces it in the background.

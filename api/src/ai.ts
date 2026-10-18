@@ -3,7 +3,7 @@ import type { ChipInDraft } from './bridge.js';
 import { fuse as mockFuse, cardTitle as mockTitle, TraitAgg } from './domain.js';
 /** Bytes produced by a model (image or audio) plus their MIME type. */
 export type GeneratedMedia = { body: Buffer; type: string };
-export interface Ai { cardTitle(traits: string[], story?: string): Promise<string>; cardArt(prompt: string): Promise<GeneratedMedia | null>; speak(text: string): Promise<GeneratedMedia | null>; polish(story: string, friend: string): Promise<string>; enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }): Promise<ReturnType<typeof mockFuse>>; provider: string;
+export interface Ai { cardTitle(traits: string[]): Promise<string>; cardArt(prompt: string): Promise<GeneratedMedia | null>; speak(text: string): Promise<GeneratedMedia | null>; polish(story: string, friend: string): Promise<string>; enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }): Promise<ReturnType<typeof mockFuse>>; provider: string;
   /** Free text → structured budget. Null means "use the rule-based parser". */
   understandChipIn(text: string, now: Date): Promise<ChipInDraft | null>;
   /** Friendlier wording of a money explanation. Null means "show the rule-based text". Callers verify every $ figure survives. */
