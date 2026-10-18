@@ -502,3 +502,4 @@ nav a, nav button { min-height: 44px; display: inline-flex; align-items: center;
   .chipfirst .cf-go { margin-top: 10px; }
 }
 .sayrow .sayinput::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width: 480px) { .chipfirst .cf-amts { flex-wrap: nowrap; gap: 6px; } .chipfirst .cf-amts button { min-width: 0; flex: 1 1 0; padding: 0 6px; } .chipfirst .cf-amts input { width: 64px; flex: 0 0 64px; } }
