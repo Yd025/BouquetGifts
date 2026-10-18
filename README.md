@@ -26,7 +26,7 @@ Bouquet turns group gifting into a card game:
 web/  Next.js 14 (App Router, React 18). Proxies /api/* to the API.
 api/  Express + TypeScript (tsx). Postgres (docker) or embedded PGlite (tests/dev).
       src/domain.ts    pure logic: question draw, traits, fusion + consensus, tiers, capture allocation, flower backs
-      src/app.ts       routes, auth (bcrypt + JWT httpOnly cookie), state machine, SSE, deadline sweep, demo clock
+      src/app.ts       routes, auth (bcrypt + JWT httpOnly cookie), state machine, SSE, deadline sweep, demo deadline shortcut
       src/adapters.ts  Payments (MockVisaPayments), Network (MockNetwork | NacNetwork CAMARA), AI (MockAi in src/ai.ts | GeminiAi in src/gemini.ts)
       src/db.ts        schema + pg/PGlite driver
       src/catalog.ts   real-product catalog → tier titles/thresholds, photos, store links
@@ -37,28 +37,28 @@ e2e/  Playwright full-flow test + screenshots
 - Bouquet states: `collecting → fusing → funding → purchased → revealed` (or `expired`).
 - Money is stored in integer cents. The funded total is always `SUM(ledger_events)` (hold − release); there is no stored counter. Ledger events are append-only.
 - Holds are idempotent (`idempotency_key` is unique). Checkout runs in a transaction with `SELECT … FOR UPDATE` and is idempotent, and it is tested against concurrent double-clicks and a race with the deadline sweep.
-- SIM Swap is checked before any hold ≥ $50 and before capture. With `NAC_RAPIDAPI_KEY` set it is a real Nokia Network as Code call (simulator numbers: `+99999991000` = swapped, `+99999991001` = clean; seeded Jon uses the clean one). Without a key, or on any NaC error, the mock answers silently: numbers ending in `9999` (and `+99999991000`) simulate a recent swap, and numbers ending in `0000` fail Number Verify. `/api/health` reports `networkChecks` (which check is live, and whether the last live SIM Swap call succeeded).
+- SIM Swap is checked before any hold ≥ $50 and before capture. With `NAC_RAPIDAPI_KEY` set it tries the real Nokia Network as Code call (on this deployment that live call is failing, which `/api/health` shows, so the simulator answers) (simulator numbers: `+99999991000` = swapped, `+99999991001` = clean; seeded Jon uses the clean one). Without a key, or on any NaC error, the mock answers silently: numbers ending in `9999` (and `+99999991000`) simulate a recent swap, and numbers ending in `0000` fail Number Verify. `/api/health` reports `networkChecks` (which check is live, and whether the last live SIM Swap call succeeded).
 - Mock Visa: any Luhn-valid card works (`4242 4242 4242 4242`), and `4000 0000 0000 0002` is declined.
 - Modals (pack opening, fusion reveal, Visa pay sheet) are portalled to `<body>` (`components/Overlay.tsx`). Panels use `backdrop-filter`, which would otherwise trap a `position:fixed` overlay inside the panel.
 - The backdrop fades in by animating its colour, never `opacity`, because children inherit opacity. The Visa sheet slides in using transform only, so it is fully opaque from the first frame.
 - While a modal is open the page behind it is scroll-locked (`body { overflow: hidden }`, padded by the scrollbar width so nothing shifts) and restored on close.
 - Turnstile runs in `interaction-only` mode, so the widget appears only if Cloudflare actually needs a click. Until it passes, the Hold button reads "Verifying with Cloudflare…". After it passes, the sheet shows "✓ Verified human by Cloudflare Turnstile".
 - E2E waits for every modal's finite animations to finish before taking a screenshot. It then asserts that the modal is opaque all the way up its ancestor chain and is the topmost element at its centre (and at the Hold button), so nothing is stacked over it.
-- Gemini: if `GEMINI_API_KEY` is set, Gemini (`GEMINI_MODEL`, default `gemini-2.5-flash`) writes the card titles, polishes memories and pitches gifts; the fusion and consensus rules stay deterministic. Every Gemini call falls back to the mock, so CI never needs a key.
+- Gemini: if `GEMINI_API_KEY` is set, Gemini (`GEMINI_MODEL`, default `gemini-2.5-flash`) writes the card titles (from traits) and pitches gifts; memories stay verbatim; the fusion and consensus rules stay deterministic. Every Gemini call falls back to the mock, so CI never needs a key.
 - Card art: SVG at mint, then Gemini image art in the background (`cards/<id>.png` in R2 or the media volume, `card-art` live event). Reveal narrator: `GET /api/reveal/:token/voice/:index` returns cached Gemini TTS audio (raw PCM wrapped as WAV); a 404 tells the page to use `speechSynthesis`.
 
 - **AI between people and payments** (`api/src/bridge.ts`): the rules compute every money figure, and Gemini only understands or rewords.
   - `POST bouquets/:id/chip-in/understand {text}`: plain words become `{softCents, capCents, payday, holdNowCents, warnings, summary}`. Gemini runs in JSON mode, and any amount the person didn't write is rejected. Nothing is held; the UI saves the budget and opens the Visa sheet prefilled.
   - `GET bouquets/:id/explain`: a per-person explanation of the checkout preview or the final charge. Gemini's wording is shown only if its `$` figures exactly match the rule text.
   - `GET bouquets/:id/concierge`: during the deck stage, ranks gifts by kept cards, votes and the group's combined budget caps. It returns the reachable tier and the next upgrade price, never the budget sum.
-  - `GET bouquets/:id/topup` / `POST bouquets/:id/topup/accept {cents, idempotencyKey}`: the gap to the next tier is split across friends' private headroom (people who can pay now first, then people who already topped up, then payday friends). Each friend gets only their own ask, and accepting re-uses their saved mock-Visa token. A stale amount gets a 409. `PATCH budget` accepts an optional `payday`.
+  - `GET bouquets/:id/topup` / `POST bouquets/:id/topup/accept {cents, idempotencyKey}`: a fair top-up split (with fewer than 3 holders, asks are "up to" the item price for privacy) across friends' private headroom (people who can pay now first, then people who already topped up, then payday friends). Each friend gets only their own ask, and accepting re-uses their saved mock-Visa token. A stale amount gets a 409. `PATCH budget` accepts an optional `payday`.
   - Each response carries `source: "gemini" | "rules"`, and the UI labels it.
 
 ### API (all under `/api`)
 `POST auth/signup|login|logout`, `GET auth/me`, `POST bouquets`, `GET bouquets`, `GET bouquets/:id`, `GET invite/:token`, `POST join/:token`,
 `PATCH bouquets/:id/budget`, `GET bouquets/:id/questions`, `POST bouquets/:id/cards`, `POST bouquets/:id/fuse`, `POST bouquets/:id/picks {traitId, keep}`, `DELETE bouquets/:id/picks/:traitId` (undo), `POST bouquets/:id/fuse-hand {traitIds:[a,b]}`, `POST bouquets/:id/vote`, `POST bouquets/:id/choose`,
 `POST bouquets/:id/contributions`, `POST bouquets/:id/lock`, `GET reveal/:token`, `POST reveal/:token/flip`, `GET bouquets/:id/stream` (SSE fallback), `GET bouquets/:id/realtime` (signed WebSocket ticket for the Durable Object room), `GET media/catalog/:file` (product photos),
-`POST dev/clock {offsetMs}` (DEMO_MODE only: fast-forwards the clock and runs the deadline sweep).
+`POST dev/deadline {bouquetId}` (DEMO_MODE only, organizer-only, per gift: moves that gift's buy-by date into the past and runs the deadline sweep; the shared demo gift refuses unless forced). There is no server-wide clock.
 
 ## Run
 ```bash
@@ -108,9 +108,9 @@ Wiring the keys in (about 2 minutes):
 
 | key | what it turns on | without it |
 |---|---|---|
-| `GEMINI_API_KEY` (+ `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMINI_TTS_MODEL`, `GEMINI_TTS_VOICE`) | Gemini card titles, memory polish and gift blurbs; Gemini image card art; Gemini TTS reveal narrator. `check:keys` confirms the key and that all three models are available. | deterministic mock, SVG art, browser speech |
+| `GEMINI_API_KEY` (+ `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMINI_TTS_MODEL`, `GEMINI_TTS_VOICE`) | Gemini card titles and gift blurbs (memories stay verbatim); Gemini image card art; Gemini TTS reveal narrator. `check:keys` confirms the key and that all three models are available. | deterministic mock, SVG art, browser speech |
 | `VISA_USER_ID`, `VISA_PASSWORD`, `VISA_CERT_PATH`, `VISA_KEY_PATH`, `VISA_CA_PATH`, `VISA_BASE_URL` | `check:keys` verifies two-way TLS against Visa's sandbox `/vdp/helloworld`. Put the PEM files in `./secrets/`. | `MockVisaPayments` |
-| `NAC_RAPIDAPI_KEY`, `NAC_BASE_URL`, `NAC_RAPIDAPI_HOST`, `NAC_TEST_PHONE` | Nokia Network as Code CAMARA SIM Swap check (live when the key is set; simulator numbers +99999991000 = swapped, +99999991001 = clean). Number Verification stays on the mock because it needs a device-side OAuth flow over mobile data | `MockNetwork` (also the silent fallback on any NaC error) |
+| `NAC_RAPIDAPI_KEY`, `NAC_BASE_URL`, `NAC_RAPIDAPI_HOST`, `NAC_TEST_PHONE` | Nokia Network as Code CAMARA SIM Swap check (tried when the key is set; currently failing on this deployment and falling back to the simulator; simulator numbers +99999991000 = swapped, +99999991001 = clean). Number Verification stays on the mock because it needs a device-side OAuth flow over mobile data | `MockNetwork` (also the silent fallback on any NaC error) |
 
 **Honest status:** holds and captures still run through `MockVisaPayments` even when the Visa credentials are set. Wiring a real sandbox authorization, capture and reversal API is the next step after the keys are verified.
 

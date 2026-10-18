@@ -21,4 +21,4 @@ Jon says: *"Thirty now, forty-five if we get the [last item on the gift strip]."
 **1:45–2:00 · The reveal** *(Maya's link: the pack tears open, cards flip, a memory is read aloud)*
 "Maya opens a pack of cards from her friends, hears their memories, and finds the gift they grew together. Bouquet: group gifts where everyone chips in their way and a one-time Visa card pays the store."
 
-*Mocks, if asked: holds, captures and the one-time Visa cards run on our Visa sandbox; the SIM check uses Nokia's simulator answers when Nokia is unreachable.*
+*Mocks, if asked: holds, captures and the one-time Visa cards run on our Visa sandbox; the SIM check isn't live: the Network as Code client is real code, tested against Nokia's simulator; on this deployment the live call is failing (our health check shows it), so it falls back to our simulator, which returns the same result for Nokia's test numbers; Number Verify is mocked.*

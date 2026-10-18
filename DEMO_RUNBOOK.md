@@ -35,6 +35,7 @@ Priya (priya@) and Sam (sam@) are also seeded if you want more friends holding.
 ## Money Q&A (answer these with confidence)
 - **Don't card holds expire?** Holds are placed or renewed only within the authorization window before the buy-by date, and renewed on day 6. Pledges made earlier than that are commitments, not holds. (Today's demo build places the hold at chip-in and renews it on day 6; a renewal the card declines releases the hold and asks the friend to hold again.)
 - **Who is the merchant of record? Who holds the money?** Bouquet is the merchant of record through a licensed payment facilitator partner. Stores are paid with single-use Visa virtual cards from an issuing partner (for example Visa issuing through a BaaS partner, or Stripe Connect + Issuing), so Bouquet never holds funds itself.
+- **Is the SIM swap check live?** No, and say so: the Network as Code client is real code, tested against Nokia's simulator; on this deployment the live call is failing (our health check shows it), so it falls back to our simulator, which returns the same result for Nokia's test numbers; Number Verify is mocked.
 - **Can you really charge less than the hold?** Yes. Partial capture is a standard authorization feature: we capture each friend's share and the rest of the hold is released automatically.
 
 ## Why early friends do the card quiz first
