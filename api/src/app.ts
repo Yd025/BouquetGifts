@@ -10,6 +10,7 @@ import { Payments, NetworkVerify, Ai, PaymentError, Turnstile, makeTurnstile } f
 import { Storage, FsStorage, cardSvg } from './storage.js';
 import { coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
 import * as D from './domain.js';
+import * as B from './bridge.js';
 
 export type Clock = { now(): Date; offsetMs: number };
 export const makeClock = (): Clock => { const c: Clock = { offsetMs: 0, now: () => new Date(Date.now() + c.offsetMs) }; return c; };
@@ -367,6 +368,21 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     notify(bq.id, 'contribution'); res.status(201); return state(bq.id, uid);
   }));
 
+  /* ---------- AI between people and payments ---------- */
+  // 1) Natural-language chip-in: "about $30, $40 max, paid Friday" → soft amount, private cap, payday → a plan the person confirms.
+  //    Gemini only reads the sentence; amounts are checked against what they wrote, and nothing is held until they press the Visa button.
+  app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
+    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+    if (bq.status !== 'funding') fail(409, 'Funding is not open');
+    const { text } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500) }).parse(req.body);
+    const now = clock.now(); const fromAi = await ai.understandChipIn(text, now);
+    const draft = fromAi ?? B.parseChipInRules(text, now);
+    if (!draft) fail(422, 'I couldn’t find an amount. Try something like “about $30, $40 max”.');
+    const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
+    const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bq.id]); const { held } = await fundedCents(bq.id); const nt = D.nextTier(tiers, held);
+    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null });
+    return { heard: text, plan, source: fromAi ? 'gemini' : 'rules' };
+  }));
   /* ---------- lock: capture at highest funded tier, release the rest ---------- */
   async function lock(bid: string) {
     const members = await db.query(`SELECT DISTINCT m.phone, m.display_name FROM members m JOIN contributions c ON c.member_id=m.id WHERE m.bouquet_id=$1 AND c.status='held'`, [bid]);

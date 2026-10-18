@@ -230,3 +230,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
   .hero { grid-template-columns: minmax(0, 1fr); padding: 16px 0; } .hero > * { min-width: 0; } .hero h1 { font-size: 36px; } .herogift { grid-template-columns: minmax(0, 1fr); } .navr { gap: 10px; font-size: 13px; flex-wrap: wrap; justify-content: flex-end; } .navr .ghost { padding: 5px 10px; } .navr a[href="/new"] { display: none; }
   .cards { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 72%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; } .cards > * { scroll-snap-align: start; }
 }
+/* AI between people and payments */
+.aibox{border:1px dashed #e2c6f5;border-radius:14px;padding:12px 14px;margin:6px 0 16px;background:linear-gradient(160deg,#fff,#f8f1ff)}
+.chip.ai{background:#efe3ff;color:#6b3fa0;font-size:11px;vertical-align:middle}
+.readback{margin-top:10px;background:#fff;border-radius:12px;padding:12px;border:1px solid #eadcf7}
+.rbgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.rbgrid>div{display:flex;flex-direction:column;background:#fbf7ff;border-radius:10px;padding:8px}
+.rbgrid b{font-size:20px}
+.explain{margin-top:12px;background:#fff;border:1px solid #eadcf7;border-radius:12px;padding:12px;text-align:left}
