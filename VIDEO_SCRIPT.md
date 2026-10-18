@@ -1,6 +1,6 @@
 # Bouquet Gifts: demo video script (2:00, about 300 spoken words)
 
-*Setup (not read aloud): follow DEMO_RUNBOOK.md. Phone = Jon (jon@bouquet.gift), laptop = Adelin, the organizer (demo@bouquet.gift); all passwords bouquet123. The organizer never uses the Demo tools drawer on camera. Record the deck section first so the gift is funding, then edit the money moment to the front.*
+*Setup (not read aloud): follow DEMO_RUNBOOK.md. Phone = Jon (jon@bouquet.gift), laptop = Adelin, the organizer (demo@bouquet.gift), on the seeded Maya gift (its organizer $40 hold is placed when the gift is picked, so Bought reads "You paid $X of your $40 hold"; don't record a fresh gift); all passwords bouquet123. The organizer never uses the Demo tools drawer on camera. Record the deck section first so the gift is funding, then edit the money moment to the front.*
 
 **0:00–0:30 · The money moment** *(phone: Maya's gift. Tap 🎙 next to "Just say it")*
 Jon says: *"Thirty now, forty-five if we get the [last item on the gift strip]."* (Say the item name shown on screen.)
