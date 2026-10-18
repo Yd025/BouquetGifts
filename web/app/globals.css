@@ -365,3 +365,11 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
 .stamp-bought { position: absolute; right: 26px; top: 22px; font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: #2c7a43; border: 3px solid #2c7a43; border-radius: 10px; padding: 4px 12px; transform: rotate(-9deg); opacity: .8; animation: stampIn .5s cubic-bezier(.3,1.7,.5,1) .2s both; pointer-events: none; }
 @keyframes stampIn { from { transform: rotate(-9deg) scale(2.2); opacity: 0; } to { transform: rotate(-9deg) scale(1); opacity: .8; } }
 @media (max-width: 800px) { .stamp-bought { font-size: 15px; right: 14px; top: 14px; } }
+/* ---------- deck: a physical, tilted stack you flick ---------- */
+.stack .stackcard { transform: translate(calc(var(--i) * 3px), calc(var(--i) * -3px)) rotate(var(--r)); transition: transform .35s cubic-bezier(.3,1.5,.5,1); }
+@media (hover: hover) { .stack:not(:disabled):hover .stackcard { transform: translate(calc(var(--i) * 9px - 12px), calc(var(--i) * -6px)) rotate(calc(var(--r) * 2.2)); } }
+.stack:not(:disabled):active .stackcard:last-child { transform: translate(14px, -14px) rotate(0deg) scale(1.03); }
+.drawn { animation: drawIn .5s cubic-bezier(.25,1.2,.4,1); will-change: transform; }
+@keyframes drawIn { from { transform: translate(-230px, -10px) rotate(-14deg) scale(.62); opacity: .4; } }
+.drawn .cardface { box-shadow: 0 22px 44px #9b5a7a3d; }
+.slot-card { display: inline-block; width: 30px; height: 42px; border-radius: 6px; border: 2.5px solid currentColor; transform: rotate(-8deg); box-shadow: 6px 2px 0 -2px #fff, 7px 2px 0 0 currentColor; opacity: .7; }

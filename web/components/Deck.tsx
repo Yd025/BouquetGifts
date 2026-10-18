@@ -49,9 +49,10 @@ export default function Deck({ s, setS, act }: any) {
   useEffect(() => { const k = (e: KeyboardEvent) => { if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
     if (e.key === 'ArrowRight') decide(true); else if (e.key === 'ArrowLeft') decide(false); else if (e.key === ' ' || e.key === 'Enter') { if (!drawn) { e.preventDefault(); draw(); } } else if (e.key.toLowerCase() === 'z') undo(); };
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); });
-  const onDown = (e: React.PointerEvent) => { start.current = e.clientX; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
-  const onMove = (e: React.PointerEvent) => { if (start.current !== null) setDx(e.clientX - start.current); };
-  const onUp = () => { if (start.current === null) return; start.current = null; if (dx > 110) decide(true); else if (dx < -110) decide(false); else setDx(0); };
+  const vel = useRef({ x: 0, t: 0, v: 0 });
+  const onDown = (e: React.PointerEvent) => { start.current = e.clientX; vel.current = { x: e.clientX, t: e.timeStamp, v: 0 }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
+  const onMove = (e: React.PointerEvent) => { if (start.current === null) return; const dt = Math.max(1, e.timeStamp - vel.current.t); vel.current = { x: e.clientX, t: e.timeStamp, v: .7 * ((e.clientX - vel.current.x) / dt) + .3 * vel.current.v }; setDx(e.clientX - start.current); };
+  const onUp = () => { if (start.current === null) return; start.current = null; const v = vel.current.v; if (dx > 110 || (dx > 30 && v > .6)) decide(true); else if (dx < -110 || (dx < -30 && v < -.6)) decide(false); else setDx(0); }; // a quick flick counts too
   const x = fly ? fly * 700 : dx;
 
   return <div className="panel deckpanel">
@@ -62,18 +63,18 @@ export default function Deck({ s, setS, act }: any) {
     <div className="table">
       <div className="pile"><div className="pile-label">Deck · {remaining.length}</div>
         <button className="stack" onClick={draw} disabled={!!drawn || !remaining.length} aria-label="Draw the top card" data-testid="deck">
-          {remaining.slice(0, 4).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ transform: `translate(${i * 3}px, ${-i * 3}px) rotate(${(i - 1.5) * 2}deg)` }}>
+          {remaining.slice(0, 4).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ ['--i' as any]: i, ['--r' as any]: `${[-5, 4, -2, 6][i]}deg` }}>
             <div className="minback"><Flower fb={traitFlower(t.label + 'back')} size={70} /></div></div>)}
           {!remaining.length && <div className="empty">All drawn</div>}
         </button></div>
       <div className="playarea">
         {cur ? <div className={`drawn ${flipped ? 'flipped' : ''}`} data-testid="drawn-card" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-          style={{ transform: `translateX(${x}px) rotate(${x / 14}deg)`, transition: start.current !== null ? 'none' : 'transform .32s ease-out', opacity: fly ? 0 : 1 }}>
+          style={{ transform: `translate(${x}px, ${fly ? -60 : Math.abs(x) * -.06}px) rotate(${x / (fly ? 9 : 14)}deg)`, transition: start.current !== null ? 'none' : 'transform .34s cubic-bezier(.3,.7,.4,1), opacity .34s', opacity: fly ? 0 : 1 }}>
           <div className="flipinner"><div className="cardface back" style={{ background: '#ffd6e7' }}><div className="backframe"><Flower fb={traitFlower(cur.label + 'back')} size={110} /></div></div>
             <div className="cardface front tfront"><TraitFace t={cur} />
               {dx > 40 && <div className="stamp keep">KEEP</div>}{dx < -40 && <div className="stamp toss">PASS</div>}</div></div>
         </div> : <div className={`slot ${remaining.length ? '' : 'done'}`} data-testid="draw-slot">{remaining.length
-          ? <><div className="slot-icon">🂠</div><b>Draw a card</b><span>Tap the deck or press <kbd>Space</kbd></span><span className="muted">{remaining.length} trait card{remaining.length === 1 ? '' : 's'} from your friends’ answers</span></>
+          ? <><div className="slot-icon"><span className="slot-card" /></div><b>Draw a card</b><span>Tap the deck or press <kbd>Space</kbd></span><span className="muted">{remaining.length} trait card{remaining.length === 1 ? '' : 's'} from your friends’ answers</span></>
           : <><div className="slot-icon">✿</div><b>All sorted</b><span>{hand.length >= 2 ? 'Now pick two kept cards to make a gift ↓' : 'Keep at least two cards to make a gift. Undo to rethink.'}</span></>}</div>}
         {cur && <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
           <button className="ghost" onClick={() => decide(false)} data-testid="discard">✕ Pass</button><button onClick={() => decide(true)} data-testid="keep">♥ Keep</button></div>}
