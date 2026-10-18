@@ -35,7 +35,7 @@ e2e/  Playwright full-flow test + screenshots
 - Bouquet states: `collecting → fusing → funding → purchased → revealed` (or `expired`).
 - Money is stored in integer cents. The funded total is always `SUM(ledger_events)` (hold − release); there is no stored counter. Ledger events are append-only.
 - Holds are idempotent (`idempotency_key` is unique). Checkout runs in a transaction with `SELECT … FOR UPDATE` and is idempotent, and it is tested against concurrent double-clicks and a race with the deadline sweep.
-- SIM Swap is checked before any hold ≥ $50 and before capture. Phone numbers ending in `9999` simulate a recent swap, and numbers ending in `0000` fail verification.
+- SIM Swap is checked before any hold ≥ $50 and before capture. With `NAC_RAPIDAPI_KEY` set it is a real Nokia Network as Code call (simulator numbers: `+99999991000` = swapped, `+99999991001` = clean; seeded Jon uses the clean one). Without a key, or on any NaC error, the mock answers silently: numbers ending in `9999` (and `+99999991000`) simulate a recent swap, and numbers ending in `0000` fail Number Verify. `/api/health` reports `networkChecks` (which check is live, and whether the last live SIM Swap call succeeded).
 - Mock Visa: any Luhn-valid card works (`4242 4242 4242 4242`), and `4000 0000 0000 0002` is declined.
 - Modals (pack opening, fusion reveal, Visa pay sheet) are portalled to `<body>` (`components/Overlay.tsx`). Panels use `backdrop-filter`, which would otherwise trap a `position:fixed` overlay inside the panel.
 - The backdrop fades in by animating its colour, never `opacity`, because children inherit opacity. The Visa sheet slides in using transform only, so it is fully opaque from the first frame.
@@ -101,14 +101,14 @@ Copy `.env.example` to `.env`, fill in the keys, then run `docker compose up -d 
 Wiring the keys in (about 2 minutes):
 1. `cp .env.example .env` (skip if `.env` exists; never commit it), then paste `GEMINI_API_KEY`, the `VISA_*` values and the `NAC_*` values.
 2. Copy the Visa PEM files into `./secrets/` and point `VISA_CERT_PATH`, `VISA_KEY_PATH` and `VISA_CA_PATH` at them.
-3. `docker compose up -d --build api && docker compose exec api npm run check:keys`. No line should still say `not set`; any failing probe is printed without the secret. Without keys it prints `Gemini not set → mock`, `Visa sandbox not set → MockVisaPayments`, `Nokia Network-as-Code not set → mock`.
+3. `docker compose up -d --build api && docker compose exec api npm run check:keys`. No line should still say `not set`; any failing probe is printed without the secret. Without keys it prints `Gemini not set → mock`, `Visa sandbox not set → MockVisaPayments`, `Nokia NaC (SIM Swap) FAIL · NAC_RAPIDAPI_KEY not set → MockNetwork`; with a working key it prints `Nokia NaC (SIM Swap) PASS` after one real call on the simulator number.
 4. `docker compose up -d --build` to restart the rest. If Gemini writes a card title that names no trait, the chips keep the plain count, then A–Z order.
 
 | key | what it turns on | without it |
 |---|---|---|
 | `GEMINI_API_KEY` (+ `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMINI_TTS_MODEL`, `GEMINI_TTS_VOICE`) | Gemini card titles, memory polish and gift blurbs; Gemini image card art; Gemini TTS reveal narrator. `check:keys` confirms the key and that all three models are available. | deterministic mock, SVG art, browser speech |
 | `VISA_USER_ID`, `VISA_PASSWORD`, `VISA_CERT_PATH`, `VISA_KEY_PATH`, `VISA_CA_PATH`, `VISA_BASE_URL` | `check:keys` verifies two-way TLS against Visa's sandbox `/vdp/helloworld`. Put the PEM files in `./secrets/`. | `MockVisaPayments` |
-| `NAC_API_KEY`, `NAC_BASE_URL`, `NAC_TEST_PHONE` | Nokia Network-as-Code CAMARA Number Verify and SIM Swap | `MockNetwork` |
+| `NAC_RAPIDAPI_KEY`, `NAC_BASE_URL`, `NAC_RAPIDAPI_HOST`, `NAC_TEST_PHONE` | Nokia Network as Code CAMARA SIM Swap check (live when the key is set; simulator numbers +99999991000 = swapped, +99999991001 = clean). Number Verification stays on the mock because it needs a device-side OAuth flow over mobile data | `MockNetwork` (also the silent fallback on any NaC error) |
 
 **Honest status:** holds and captures still run through `MockVisaPayments` even when the Visa credentials are set. Wiring a real sandbox authorization, capture and reversal API is the next step after the keys are verified.
 

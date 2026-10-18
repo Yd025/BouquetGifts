@@ -29,12 +29,13 @@ async function visa() {
   out.push(['Visa sandbox', res]);
 }
 async function nac() {
-  const k = process.env.NAC_API_KEY; if (!k) return out.push(['Nokia Network-as-Code', mask(k)]);
-  const base = process.env.NAC_BASE_URL ?? 'https://network-as-code.p-eu.rapidapi.com';
-  // Number Verify on Nokia's documented simulator number; any HTTP answer other than 401/403 means the key is accepted.
-  const r = await fetch(base + '/passthrough/camara/v1/sim-swap/sim-swap/v0/check', { method: 'POST', headers: { 'content-type': 'application/json', 'x-rapidapi-key': k, 'x-rapidapi-host': new URL(base).host },
-    body: JSON.stringify({ phoneNumber: process.env.NAC_TEST_PHONE ?? '+99999991000', maxAge: 240 }), signal: AbortSignal.timeout(8000) }).catch(e => ({ ok: false, status: e.message } as any));
-  out.push(['Nokia Network-as-Code', r.ok ? 'OK · SIM Swap check answered' : [401, 403].includes(r.status) ? `KEY REJECTED (${r.status})` : `reachable, HTTP ${r.status} (check NAC_TEST_PHONE / subscription)`]);
+  // Nokia Network as Code via RapidAPI: one real SIM Swap check on Nokia's simulator number. Prints PASS/FAIL only.
+  const k = process.env.NAC_RAPIDAPI_KEY || process.env.NAC_API_KEY; if (!k) return out.push(['Nokia NaC (SIM Swap)', 'FAIL · NAC_RAPIDAPI_KEY not set → MockNetwork']);
+  const { NacNetwork, SIM_SWAP_PATH, NAC_SIM_SWAPPED } = await import('../src/nac.js');
+  const nac = new NacNetwork(k, { timeoutMs: 8000 });
+  const r = await nac.post(SIM_SWAP_PATH, { phoneNumber: process.env.NAC_TEST_PHONE || NAC_SIM_SWAPPED, maxAge: 240 }).catch(e => ({ status: (e as Error).name === 'TimeoutError' ? 'timeout' : 'network/TLS error', json: null } as any));
+  const pass = r.status === 200 && typeof r.json?.swapped === 'boolean';
+  out.push(['Nokia NaC (SIM Swap)', pass ? 'PASS' : `FAIL (${typeof r.status === 'number' ? 'HTTP ' + r.status : r.status})`]);
 }
 await Promise.all([gemini(), visa(), nac()]);
 for (const [k, v] of out) console.log(`${k.padEnd(24)} ${v}`);

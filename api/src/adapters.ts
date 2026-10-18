@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { GeminiAi } from './gemini.js';
+import { NacNetwork } from './nac.js';
 import { MockAi, type Ai } from './ai.js';
 export { MockAi, GeminiAi }; export type { Ai };
 import { traitsFromAnswers, fuse as mockFuse, cardTitle as mockTitle, TraitAgg } from './domain.js';
@@ -34,26 +35,16 @@ export interface NetworkVerify { numberVerify(phone: string): Promise<boolean>; 
 export class MockNetwork implements NetworkVerify {
   provider = 'mock-camara'; swapped = new Set<string>();
   async numberVerify(phone: string) { return /^\+?\d{10,15}$/.test(phone.replace(/[\s()-]/g, '')) && !phone.endsWith('0000'); }
-  async simSwappedRecently(phone: string) { return phone.endsWith('9999') || this.swapped.has(phone); }
+  async simSwappedRecently(phone: string) { return phone.endsWith('9999') || phone.replace(/[\s()-]/g, '') === '+99999991000' || this.swapped.has(phone); } // mirrors Nokia's simulator number
   /** Demo only: simulate a SIM swap on this number. */
   markSwapped(phone: string, on = true) { on ? this.swapped.add(phone) : this.swapped.delete(phone); }
 }
-export class NacNetwork implements NetworkVerify {
-  provider = 'nokia-nac';
-  constructor(private key: string, private base = process.env.NAC_BASE_URL ?? 'https://network-as-code.p-eu.rapidapi.com') {}
-  private async post(path: string, body: any) {
-    const r = await fetch(this.base + path, { method: 'POST', headers: { 'content-type': 'application/json', 'x-rapidapi-key': this.key,
-      'x-rapidapi-host': new URL(this.base).host }, body: JSON.stringify(body) });
-    if (!r.ok) throw new Error('NaC ' + r.status); return r.json() as any;
-  }
-  async numberVerify(phone: string) { try { return !!(await this.post('/passthrough/camara/v1/number-verification/number-verification/v0/verify', { phoneNumber: phone })).devicePhoneNumberVerified; } catch { return new MockNetwork().numberVerify(phone); } }
-  async simSwappedRecently(phone: string, maxAgeHours = 240) { try { return !!(await this.post('/passthrough/camara/v1/sim-swap/sim-swap/v0/check', { phoneNumber: phone, maxAge: maxAgeHours })).swapped; } catch { return false; } }
-}
-
 /* ---------- AI: Google Gemini (api/src/gemini.ts) with the deterministic MockAi (api/src/ai.ts) as fallback ---------- */
+/** NAC_RAPIDAPI_KEY (NAC_API_KEY still accepted). Read from the environment only. */
+export const nacKey = () => process.env.NAC_RAPIDAPI_KEY || process.env.NAC_API_KEY || null;
 export function makeAdapters() {
   return { payments: new MockVisaPayments() as Payments,
-    network: process.env.NAC_API_KEY ? new NacNetwork(process.env.NAC_API_KEY) : new MockNetwork() as NetworkVerify,
+    network: nacKey() ? new NacNetwork(nacKey()!) as NetworkVerify : new MockNetwork() as NetworkVerify,
     ai: process.env.GEMINI_API_KEY ? new GeminiAi(process.env.GEMINI_API_KEY) : new MockAi() as Ai };
 }
 export { traitsFromAnswers };

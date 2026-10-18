@@ -9,3 +9,4 @@ realtime/.wrangler
 secrets/*.key
 secrets/*.pem
 test-results
+api/data/

@@ -25,7 +25,9 @@ services:
       VISA_CERT_PATH: ${VISA_CERT_PATH:-}
       VISA_KEY_PATH: ${VISA_KEY_PATH:-}
       VISA_CA_PATH: ${VISA_CA_PATH:-}
+      NAC_RAPIDAPI_KEY: ${NAC_RAPIDAPI_KEY:-}
       NAC_API_KEY: ${NAC_API_KEY:-}
+      NAC_RAPIDAPI_HOST: ${NAC_RAPIDAPI_HOST:-network-as-code.nokia.rapidapi.com}
       NAC_BASE_URL: ${NAC_BASE_URL:-https://network-as-code.p-eu.rapidapi.com}
       NAC_TEST_PHONE: ${NAC_TEST_PHONE:-}
       # Live room: API publishes to the Durable Object worker; browsers connect to PUBLIC_REALTIME_URL by WebSocket.

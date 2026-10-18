@@ -58,7 +58,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   app.get('/api/catalog/featured', (_q, r) => { const rec = D.RECIPES.find(x => productsFor(x.title).length >= 3);
     if (!rec) return r.json({ gift: null });
     r.json({ gift: { title: rec.title, traits: rec.traits, products: productsFor(rec.title).map(p => publicProduct(p)), tiers: rec.tiers.map(t => t.threshold_cents) } }); });
-  app.get('/api/health', (_q, r) => r.json({ ok: true, demo: !!(deps.demo ?? process.env.DEMO_MODE === '1'), turnstileSiteKey: turnstile.siteKey, storage: storage.provider, ai: ai.provider, network: network.provider, realtime: rt ? 'durable-object' : 'sse', now: clock.now() }));
+  app.get('/api/health', (_q, r) => r.json({ ok: true, demo: !!(deps.demo ?? process.env.DEMO_MODE === '1'), turnstileSiteKey: turnstile.siteKey, storage: storage.provider, ai: ai.provider, network: network.provider, networkChecks: (network as any).status ? { simSwap: (network as any).status.simSwap, numberVerify: (network as any).status.numberVerify, lastSimSwapOk: (network as any).status.lastSimSwap?.ok ?? null } : { simSwap: 'mock', numberVerify: 'mock', lastSimSwapOk: null }, realtime: rt ? 'durable-object' : 'sse', now: clock.now() }));
   app.post('/api/auth/signup', h(async (req, res) => {
     const b = z.object({ email: z.string().email(), password: z.string().min(8, 'Password must be at least 8 characters'), name: z.string().min(1) }).parse(req.body);
     const email = b.email.toLowerCase();
