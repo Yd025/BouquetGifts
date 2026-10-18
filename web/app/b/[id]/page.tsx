@@ -134,12 +134,12 @@ function Funding({ s, act, setS }: any) {
         <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save my spot</button></div>
       </div> : <>
         <TopUp s={s} setS={setS} />
-        <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null } });
+        <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null, condition: p.condition ? { tierId: p.condition.tierId, baseCents: p.capCents - p.condition.extraCents } : null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
         <label>My budget for this gift ($)</label>
         <div className="row"><input name="budgetMin" type="number" min={0} value={bud.min} onChange={e => setBud({ ...bud, min: Number(e.target.value) })} style={{ width: 110 }} /><span>to</span>
           <input name="budgetMax" type="number" min={1} value={bud.max} onChange={e => setBud({ ...bud, max: Number(e.target.value) })} style={{ width: 110 }} />
-          <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100) }, 'PATCH')} data-testid="save-budget">Save</button></div>
+          <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100), condition: null }, 'PATCH')} data-testid="save-budget">Save</button></div>
         <p className="muted" style={{ fontSize: 13 }}>Private to you. You’ve held {$(pledged)}, so {$(room)} is left in your budget.</p>
         <label>{pledged > 0 ? 'Add to your hold ($)' : 'Chip in ($)'}</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
         <div style={{ marginTop: 14 }}><button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more with Visa` : `Chip in ${$(Math.round(amt * 100))} with Visa`}</button></div>

@@ -17,7 +17,7 @@ const reply = (t: string) => ({ json: { candidates: [{ content: { parts: [{ text
 
 describe('natural-language chip-in (rules)', () => {
   it('reads soft amount, cap and payday from everyday phrasing', () => {
-    expect(parseChipInRules('I can do about $30, $40 max, and I get paid Friday', NOW)).toEqual({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' });
+    expect(parseChipInRules('I can do about $30, $40 max, and I get paid Friday', NOW)).toMatchObject({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' });
     expect(parseChipInRules('20 bucks', NOW)).toMatchObject({ softCents: 2000, capCents: 2000, payday: null });
     expect(parseChipInRules('maybe 25-35', NOW)).toMatchObject({ softCents: 2500, capCents: 3500 });
     expect(parseChipInRules('up to fifty dollars, probably thirty', NOW)).toMatchObject({ softCents: 3000, capCents: 5000 });
@@ -40,7 +40,7 @@ describe('natural-language chip-in (Gemini)', () => {
   it('asks for JSON and accepts amounts the person actually wrote', async () => {
     const { f, calls } = fakeGemini(() => reply(JSON.stringify({ softDollars: 30, capDollars: 40, payday: '2026-10-23', paydayPhrase: 'Friday' })));
     const d = await new GeminiAi('k', { fetch: f }).understandChipIn('thirty-ish is easy, $40 max, payday is Friday', NOW);
-    expect(d).toEqual({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' });
+    expect(d).toMatchObject({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' });
     expect(calls[0].body.generationConfig.responseMimeType).toBe('application/json');
     expect(calls[0].body.contents[0].parts[0].text).toContain('Today is Saturday 2026-10-17');
   });

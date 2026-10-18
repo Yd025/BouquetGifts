@@ -46,6 +46,8 @@ ALTER TABLE members ADD COLUMN IF NOT EXISTS payday DATE;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS card_token TEXT;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS card_last4 TEXT;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS topped_tier_id TEXT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS condition_tier_id TEXT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS condition_base_cents INT;
 `;
 export async function makeDb(url = process.env.DATABASE_URL): Promise<Db> {
   let db: Db;

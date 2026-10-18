@@ -208,10 +208,15 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
   app.patch('/api/bouquets/:id/budget', h(async req => {
     const uid = auth(req); const m = await requireMember(String(req.params.id), uid);
-    const b = z.object({ budgetMinCents: z.number().int().min(0), budgetMaxCents: z.number().int().min(100), payday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).parse(req.body);
+    const b = z.object({ budgetMinCents: z.number().int().min(0), budgetMaxCents: z.number().int().min(100), payday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      condition: z.object({ tierId: z.string(), baseCents: z.number().int().min(0) }).nullable().optional() }).parse(req.body);
     if (b.budgetMinCents > b.budgetMaxCents) fail(400, 'Minimum budget cannot exceed maximum');
     await db.query('UPDATE members SET budget_min_cents=$2, budget_max_cents=$3 WHERE id=$1', [m.id, b.budgetMinCents, b.budgetMaxCents]);
     if (b.payday !== undefined) await db.query('UPDATE members SET payday=$2 WHERE id=$1', [m.id, b.payday]); // optional, private: lets Bouquet schedule a top-up after payday
+    if (b.condition !== undefined) { // "or $40 if it gets us the Polaroid": the part above baseCents is only for that tier (or higher)
+      if (b.condition && !(await db.query('SELECT 1 FROM gift_tiers WHERE id=$1 AND bouquet_id=$2', [b.condition.tierId, m.bouquet_id])).length) fail(400, 'Unknown tier');
+      if (b.condition && b.condition.baseCents > b.budgetMaxCents) fail(400, 'The unconditional part cannot exceed your maximum');
+      await db.query('UPDATE members SET condition_tier_id=$2, condition_base_cents=$3 WHERE id=$1', [m.id, b.condition?.tierId ?? null, b.condition?.baseCents ?? null]); }
     notify(String(req.params.id), 'budget'); return state(String(req.params.id), uid);
   }));
 
@@ -389,13 +394,16 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
     const { text } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500) }).parse(req.body);
-    const now = clock.now(); const fromAi = await ai.understandChipIn(text, now);
-    const draft = fromAi ?? B.parseChipInRules(text, now);
+    const now = clock.now(); const fromAi = await ai.understandChipIn(text, now); const ruled = B.parseChipInRules(text, now);
+    // A conditional extra ("or $40 if it gets us the Polaroid") is read by the rules so the money is exact; Gemini may still supply the payday.
+    const draft = ruled?.conditional ? { ...ruled, payday: ruled.payday ?? fromAi?.payday ?? null, paydayPhrase: ruled.paydayPhrase ?? fromAi?.paydayPhrase ?? null } : fromAi ?? ruled;
     if (!draft) fail(422, 'I couldn’t find an amount. Try something like “about $30, $40 max”.');
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bq.id]); const { held } = await fundedCents(bq.id); const nt = D.nextTier(tiers, held);
-    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null });
-    return { heard: text, plan, source: fromAi ? 'gemini' : 'rules' };
+    const ct = draft!.conditional ? B.matchTier(draft!.conditional.phrase, tiers, nt) : null;
+    const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: Math.max(0, ct.threshold_cents - held) } : null;
+    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier });
+    return { heard: text, plan, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
   }));
   // 2) Plain-language payment explainer: the rules compute every figure for *this* person; Gemini may only reword it (every $ kept, none added).
   app.get('/api/bouquets/:id/explain', h(async req => {
@@ -439,9 +447,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const bq = await getBouquet(bid); if (bq.status !== 'funding' || deadlinePassed(bq)) return { ask: null, reason: 'Funding is closed' };
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bid]); const { held } = await fundedCents(bid); const nt = D.nextTier(tiers, held);
     if (!nt) return { ask: null, reason: 'Every tier is already funded' };
-    const people = await db.query(`SELECT m.id, m.budget_max_cents, m.payday, m.card_token, m.topped_tier_id, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status='held') AS held
+    const people = await db.query(`SELECT m.id, m.budget_max_cents, m.payday, m.card_token, m.topped_tier_id, m.condition_base_cents, (SELECT level FROM gift_tiers g WHERE g.id=m.condition_tier_id) AS cond_level, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status='held') AS held
       FROM members m WHERE m.bouquet_id=$1 AND m.card_token IS NOT NULL`, [bid]);
-    const plan = B.planTopUps(nt.threshold_cents - held, people.map((p: any) => ({ id: p.id, headroomCents: p.budget_max_cents - Number(p.held), payday: p.payday ? new Date(p.payday).toISOString().slice(0, 10) : null, alreadyAsked: p.topped_tier_id === nt.id })), clock.now());
+    const plan = B.planTopUps(nt.threshold_cents - held, people.map((p: any) => ({ id: p.id, headroomCents: Math.max(0, (p.cond_level != null && Number(p.cond_level) > nt.level ? Number(p.condition_base_cents) : p.budget_max_cents) - Number(p.held)), payday: p.payday ? new Date(p.payday).toISOString().slice(0, 10) : null, alreadyAsked: p.topped_tier_id === nt.id })), clock.now());
     if (!plan) return { ask: null, reason: 'Not reachable within everyone’s caps yet' };
     const mine = plan.get(me.id); if (!mine) return { ask: null, reason: 'No top-up needed from you' };
     const tierTitle = nt.title.replace(/^\+ /, '');

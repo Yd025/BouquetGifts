@@ -9,8 +9,12 @@ const WORDS: Record<string, number> = { five: 5, ten: 10, fifteen: 15, twenty: 2
 const CAP_BEFORE = /(max(imum)?|at most|up to|upto|cap(ped)?( at)?|no more than|stretch( to)?|ceiling|limit|hard stop|top out at)\s*(of\s*)?(is\s*)?$/i;
 const CAP_AFTER = /^\s*(max(imum)?|tops|at most|absolute max|hard cap|is my (max|limit|cap)|cap|ceiling|limit)\b/i;
 
-export type ChipInDraft = { softCents: number; capCents: number; payday: string | null; paydayPhrase: string | null };
+/** "or $40 if it gets us the Polaroid": an extra the person offers only for one specific upgrade. */
+export type ChipInCondition = { cents: number; phrase: string };
+export type ChipInDraft = { softCents: number; capCents: number; payday: string | null; paydayPhrase: string | null; conditional?: ChipInCondition | null };
 export type ChipInPlan = ChipInDraft & { holdNowCents: number; warnings: string[]; summary: string;
+  /** The conditional extra, resolved to a real tier: kept for a top-up only when the group is going for that tier (or held now if it unlocks it now). */
+  condition: { cents: number; extraCents: number; tierId: string; tierTitle: string; unlocksNow: boolean } | null;
   /** Payday-aware: the rest of the cap Bouquet will offer as a one-tap top-up on payday, if the group still needs it. */
   scheduledTopUp: { cents: number; on: string; phrase: string } | null };
 
@@ -53,9 +57,36 @@ export function paydayIn(text: string, now: Date): { date: string; phrase: strin
   return null;
 }
 
+const COND_VERB = String.raw`(?:gets?|got|unlocks?|means?|lets?|covers?|reach(?:es)?|buys?|pays? for|makes?)`;
+const COND_LEAD = String.raw`if\s+(?:it|that|this|we|the group|you guys|y'?all)?\s*(?:can|could|will|would)?\s*` + COND_VERB + String.raw`?\s*(?:us|them|her|him|maya)?\s*(?:get|reach|unlock|afford|grab)?\s*`;
+const THING = String.raw`((?:the|a|an)\s+)?([a-z0-9][a-z0-9' &-]{1,40}?)`;
+const STOP = String.raw`(?=$|[,.;!?]|\s+(?:and|but|i|i'm|i'll|my|payday|paid|tops?|max)\b)`;
+/** "$30, or $40 if it gets us the Polaroid" / "if we can get the turntable I'll do $60" → { cents, phrase }. */
+export function conditionalIn(text: string): (ChipInCondition & { at: number; end: number }) | null {
+  const after = new RegExp(String.raw`(\$\s*\d{1,5}(?:\.\d{1,2})?|\b\d{1,5}(?:\s*(?:dollars|bucks))?)\s*(?:total\s*)?` + COND_LEAD + THING + STOP, 'i').exec(text);
+  const before = new RegExp(COND_LEAD.replace(/^if/, String.raw`\bif`) + THING + String.raw`\s*,?\s*(?:then\s*)?(?:i'?ll|i\s+(?:can|could|would)|i'?d|make it|count me (?:in )?for|go(?: up)? to)\s*(?:do|go|give|put in|chip in)?\s*(?:up to\s*)?(\$\s*\d{1,5}(?:\.\d{1,2})?|\d{1,5}(?:\s*(?:dollars|bucks))?)`, 'i').exec(text);
+  const m = after ?? before; if (!m) return null;
+  const amt = after ? m[1] : m[3]; const phrase = (after ? m[3] : m[2]).trim().replace(/\s+(too|as well)$/i, '');
+  const cents = Math.round(Number(amt.replace(/[^\d.]/g, '')) * 100); if (!cents || !phrase) return null;
+  return { cents, phrase, at: m.index, end: m.index + m[0].length };
+}
+/** Which tier a phrase like "the Polaroid" or "the next tier" means (word overlap with the tier title/items). */
+export function matchTier<T extends { title: string; level: number; items?: string[] }>(phrase: string, tiers: T[], next: T | null): T | null {
+  if (/\b(next|upgrade|bigger|better|nicer)\b/i.test(phrase) && next) return next;
+  const words = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length >= 3 && !['the', 'and', 'with', 'for', 'set', 'kit', 'one'].includes(w));
+  const want = words(phrase); if (!want.length) return null;
+  let best: T | null = null, score = 0;
+  for (const t of tiers) { const have = new Set(words([t.title, ...(t.items ?? [])].join(' ')));
+    const n = want.filter(w => have.has(w) || [...have].some(h => h.startsWith(w) || w.startsWith(h))).length;
+    if (n > score || (n === score && best && t.level < best.level)) { best = t; score = n; } }
+  return score ? best : null;
+}
+
 /** Rule-based understanding of "I can do about $30, $40 max, and I get paid Friday". Null when no amount was said. */
 export function parseChipInRules(text: string, now: Date): ChipInDraft | null {
-  const amts = amountsIn(text); if (!amts.length) return null;
+  const cond = conditionalIn(text);
+  let amts = amountsIn(text).filter(a => !cond || !(a.at >= cond.at && a.at < cond.end && a.cents === cond.cents));
+  if (!amts.length) { if (!cond) return null; amts = amountsIn(text); } // only a conditional amount was said: read it as their amount
   const range = /(\$?\s*\d+)\s*(?:-|–|to)\s*(\$?\s*\d+)/.exec(text);
   let soft: number, cap: number;
   const caps = amts.filter(a => a.cap), softs = amts.filter(a => !a.cap);
@@ -63,17 +94,30 @@ export function parseChipInRules(text: string, now: Date): ChipInDraft | null {
   else { cap = caps.length ? Math.max(...caps.map(a => a.cents)) : Math.max(...amts.map(a => a.cents)); soft = softs.length ? softs[0].cents : cap; }
   if (soft > cap) [soft, cap] = [cap, soft];
   const p = paydayIn(text, now);
-  return { softCents: soft, capCents: cap, payday: p?.date ?? null, paydayPhrase: p?.phrase ?? null };
+  const conditional = cond && cond.cents > cap && amts.every(a => a.cents !== cond.cents) ? { cents: cond.cents, phrase: cond.phrase } : null;
+  return { softCents: soft, capCents: cap, payday: p?.date ?? null, paydayPhrase: p?.phrase ?? null, conditional };
 }
 
 /** Numbers a Gemini answer may use: only amounts the person actually wrote (guards against invented money). */
 export function groundedAmount(cents: number, text: string) { return amountsIn(text).some(a => a.cents === cents); }
 
 /** Turn an understood draft into what we'll do: the hold amount (never above budget room), warnings, and a read-back sentence. */
-export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt: string; nextTierGapCents: number | null; nextTierTitle?: string | null }): ChipInPlan {
-  const capCents = Math.max(100, Math.min(d.capCents, 1_000_000)); const softCents = Math.max(100, Math.min(d.softCents, capCents));
-  const room = Math.max(0, capCents - ctx.pledgedCents); const holdNowCents = Math.min(softCents, room);
+export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt: string; nextTierGapCents: number | null; nextTierTitle?: string | null;
+  /** The tier the conditional phrase matched (if any), and how far the group is from it right now. */
+  conditionTier?: { id: string; title: string; isNext: boolean; gapCents: number } | null }): ChipInPlan {
+  let capCents = Math.max(100, Math.min(d.capCents, 1_000_000)); const softCents = Math.max(100, Math.min(d.softCents, capCents));
   const warnings: string[] = []; const buyBy = new Date(ctx.buyByAt);
+  let condition: ChipInPlan['condition'] = null;
+  if (d.conditional && !ctx.conditionTier) warnings.push(`I couldn’t match “${d.conditional.phrase}” to one of this gift’s tiers, so the extra ${money(d.conditional.cents - capCents)} isn’t planned. Try naming the upgrade as it appears on the tier list.`);
+  if (d.conditional && ctx.conditionTier && d.conditional.cents > capCents) {
+    const extra = d.conditional.cents - capCents; const t = ctx.conditionTier;
+    // Holding the extra right now only makes sense if it actually finishes that tier now; otherwise it waits for a targeted top-up.
+    const unlocksNow = t.isNext && t.gapCents > 0 && Math.max(0, d.conditional.cents - ctx.pledgedCents) >= t.gapCents;
+    condition = { cents: d.conditional.cents, extraCents: extra, tierId: t.id, tierTitle: t.title, unlocksNow };
+    capCents = d.conditional.cents;
+  }
+  const room = Math.max(0, capCents - ctx.pledgedCents);
+  const holdNowCents = condition?.unlocksNow ? Math.min(room, Math.max(softCents, ctx.conditionTier!.gapCents)) : Math.min(softCents, condition ? Math.max(0, d.capCents - ctx.pledgedCents) : room);
   const byDay = buyBy.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   if (d.payday && new Date(d.payday + 'T23:59:59Z').getTime() > buyBy.getTime())
     warnings.push(`Your payday (${d.paydayPhrase ?? d.payday}) is after the buy-by date (${byDay}). A hold isn’t a charge, but checkout can happen before you’re paid, so only hold what you’re comfortable with today.`);
@@ -81,13 +125,17 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle) warnings.push(`Nice: ${money(holdNowCents)} alone unlocks ${ctx.nextTierTitle}.`);
   const later = Math.max(0, room - holdNowCents);
   const beforeDeadline = !!d.payday && new Date(d.payday + 'T00:00:00Z').getTime() <= buyBy.getTime();
-  const scheduledTopUp = d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
-  const summary = scheduledTopUp
+  const scheduledTopUp = !condition && d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
+  const summary = condition?.unlocksNow
+    ? `Hold ${money(holdNowCents)} now: that unlocks ${condition.tierTitle} right away, which is exactly what your ${money(condition.cents)} was for.`
+    : condition
+      ? `Hold ${money(holdNowCents)} now. Your extra ${money(condition.extraCents)} is kept only for ${condition.tierTitle}: Bouquet offers it as a one-tap top-up${d.payday && beforeDeadline ? ` (from payday, ${d.paydayPhrase ?? d.payday})` : ''} if the group is going for that tier, never for anything else.`
+      : scheduledTopUp
     ? `Hold ${money(holdNowCents)} now, and the other ${money(later)} waits for payday (${scheduledTopUp.phrase}).`
     : capCents > softCents
       ? `Hold ${money(holdNowCents)} now. Your private cap is ${money(capCents)}, so Bouquet can suggest a top-up later if the group is close.`
       : `Hold ${money(holdNowCents)}, and that’s your limit.`;
-  return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, holdNowCents, warnings, summary, scheduledTopUp };
+  return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, conditional: d.conditional ?? null, holdNowCents, warnings, summary, scheduledTopUp, condition };
 }
 
 /** Every "$12" / "$12.50" figure in a text. An AI rewording must keep exactly these, and add none. */
