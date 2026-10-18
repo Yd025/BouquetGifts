@@ -396,19 +396,25 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
     let hold; try { hold = await payments.hold({ amountCents, ...pay, idempotencyKey }); }
     catch (e) { if (e instanceof PaymentError) fail(402, e.message); throw e; }
-    await db.tx(async q => {
+    const created = await db.tx(async q => {
       const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
+      // A double tap sends the same key twice. The request that loses the race sees the winner's row here and returns it as-is.
+      const [prior] = await q('SELECT member_id, hold_id FROM contributions WHERE idempotency_key=$1', [idempotencyKey]);
+      if (prior) { if (prior.hold_id !== hold!.holdId) await payments.release(hold!.holdId); if (prior.member_id !== m.id) fail(409, 'Idempotency key reuse'); return false; }
       if (cur.status !== 'funding') { await payments.release(hold!.holdId); fail(409, 'Funding just closed'); }
       // Re-check the cap under a row lock: parallel holds from one friend can't jointly exceed their budget.
       const [mm] = await q('SELECT budget_max_cents FROM members WHERE id=$1 FOR UPDATE', [m.id]);
       const [{ s: heldNow }] = await q(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
       if (Number(heldNow) + amountCents > mm.budget_max_cents) { await payments.release(hold!.holdId); fail(400, `That would exceed your budget of $${(mm.budget_max_cents / 100).toFixed(2)}`); }
       const cid = id('ctb');
-      await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7)`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey]);
+      const ins = await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey]);
+      if (!ins.length) return false; // belt and braces: never a 500 on a duplicate key
       await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'hold',$3)`, [bq.id, cid, amountCents]);
       await q('UPDATE members SET card_token=$2, card_last4=$3 WHERE id=$1', [m.id, hold!.token, hold!.last4]); // token only, never the card number
+      return true;
     });
-    notify(bq.id, 'contribution');
+    if (created) notify(bq.id, 'contribution');
+    return created;
   }
   app.post('/api/bouquets/:id/contributions', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
@@ -422,8 +428,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (Number(s) + b.amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
     if (b.amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
     await human(req);
-    await placeHold(bq, m, b.amountCents, { cardNumber: b.cardNumber }, b.idempotencyKey);
-    res.status(201); return state(bq.id, uid);
+    const created = await placeHold(bq, m, b.amountCents, { cardNumber: b.cardNumber }, b.idempotencyKey);
+    res.status(created ? 201 : 200); return state(bq.id, uid);
   }));
 
   /* ---------- AI between people and payments ---------- */

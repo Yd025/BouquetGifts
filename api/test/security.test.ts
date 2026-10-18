@@ -22,3 +22,15 @@ describe('demo shortcuts cannot touch other people’s gifts', { timeout: 60000 
     expect((await friends[1].get(`/api/bouquets/${b.id}`)).body.me.payday).toBeNull();
   });
 });
+
+describe('double tap on the pay sheet', { timeout: 60000 }, () => {
+  it('two concurrent requests with the same key make exactly one hold and no 500', async () => {
+    const { friends, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    const send = () => friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 3000, cardNumber: VISA, idempotencyKey: `dbl-${b.id}` });
+    const [a, c] = await Promise.all([send(), send()]);
+    for (const r of [a, c]) expect([200, 201]).toContain(r.status);
+    expect([a.status, c.status]).toContain(201);
+    const st = (await friends[0].get(`/api/bouquets/${b.id}`)).body;
+    expect(st.me.contributions.filter((x: any) => x.status === 'held').length).toBe(1); expect(st.me.receipt.heldCents).toBe(3000);
+  });
+});
