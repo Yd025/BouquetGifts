@@ -49,6 +49,7 @@ e2e/  Playwright full-flow test + screenshots
   - `POST bouquets/:id/chip-in/understand {text}`: plain words become `{softCents, capCents, payday, holdNowCents, warnings, summary}`. Gemini runs in JSON mode, and any amount the person didn't write is rejected. Nothing is held; the UI saves the budget and opens the Visa sheet prefilled.
   - `GET bouquets/:id/explain`: a per-person explanation of the checkout preview or the final charge. Gemini's wording is shown only if its `$` figures exactly match the rule text.
   - `GET bouquets/:id/concierge`: during the deck stage, ranks gifts by kept cards, votes and the group's combined budget caps. It returns the reachable tier and the next upgrade price, never the budget sum.
+  - `GET bouquets/:id/topup` / `POST bouquets/:id/topup/accept {cents, idempotencyKey}`: the gap to the next tier is split across friends' private headroom (people who can pay now first, then people who already topped up, then payday friends). Each friend gets only their own ask, and accepting re-uses their saved mock-Visa token. A stale amount gets a 409. `PATCH budget` accepts an optional `payday`.
   - Each response carries `source: "gemini" | "rules"`, and the UI labels it.
 
 ### API (all under `/api`)
