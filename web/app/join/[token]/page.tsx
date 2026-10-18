@@ -58,7 +58,7 @@ function ChipInFirst({ inv, token, me }: { inv: any; token: string; me: any }) {
     <h1 style={{ marginBottom: 4 }}>Chip in on {inv.recipientName}’s gift</h1>
     <p className="muted" style={{ margin: '0 0 10px' }}>{g.title} · organized by {inv.organizer}</p>
     {g.photoUrl && <img src={g.photoUrl} alt={g.title} className="cf-photo" />}
-    <p className="cf-meta" data-testid="cf-meta"><b>{$(g.topCents)}</b> for the whole gift{g.tiers.length > 1 ? ` · ${$(g.startCents)} gets it started` : ''}<br />{g.holders ? <b>{g.holders} {g.holders === 1 ? 'friend has' : 'friends have'} chipped in</b> : <b>Be the first to chip in</b>} · open until {by}</p>
+    <p className="cf-meta" data-testid="cf-meta"><b>{$(g.topCents)}</b> for the whole gift{g.tiers.length > 1 ? ` · ${$(g.startCents)} unlocks the first item, shared between friends` : ''}<br />{g.holders ? <b>{g.holders} {g.holders === 1 ? 'friend has' : 'friends have'} chipped in</b> : <b>Be the first to chip in</b>} · open until {by}</p>
     <ChipInAI endpoint={`/join/${token}/chip-in/understand`} onConfirm={async (p: any) => { setAmt(p.holdNowCents / 100); setCap(p.capCents); setTimeout(() => formRef.current?.querySelector<HTMLInputElement>('input[name=displayName]')?.focus(), 50); }} />
     <form onSubmit={submit} ref={formRef}>
       <label>Or pick an amount</label>
