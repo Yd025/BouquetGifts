@@ -103,7 +103,7 @@ export function explainRules(f: ExplainFacts): string {
   if (f.status === 'purchased' || f.status === 'revealed') {
     if (!f.myHeldCents) return `The group bought ${f.gift} for ${f.recipient} (tier ${f.tierLevel} of ${f.tiersCount}, ${money(f.chargeCents ?? 0)}). You didn’t place a hold, so you paid nothing.`;
     const back = f.myHeldCents - f.myChargeCents;
-    return `You paid ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold.${back > 0 ? ` The other ${money(back)} went back to your card and was never charged.` : ''} Why: the group’s holds fully covered tier ${f.tierLevel} (${f.tierTitle}), which costs ${money(f.chargeCents ?? 0)}, so that is all Visa captured, split in proportion to what each of the ${f.holders} friends held.`;
+    return `You paid ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold.${back > 0 ? ` The other ${money(back)} went back to your card and was never charged.` : ''} Why: tier ${f.tierLevel} (${f.tierTitle}) cost ${money(f.chargeCents ?? 0)} in total and the group’s holds covered it, so Visa captured exactly ${money(f.chargeCents ?? 0)}, split in proportion to what each of the ${f.holders} friends held.`;
   }
   if (f.status === 'expired') return `The buy-by date passed before checkout, so every hold was released. Nobody was charged${f.myHeldCents ? `, including your ${money(f.myHeldCents)} hold` : ''}.`;
   if (f.tierLevel === null) {
@@ -112,7 +112,9 @@ export function explainRules(f: ExplainFacts): string {
   }
   const back = f.myHeldCents - f.myChargeCents;
   const mine = f.myHeldCents ? `If ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
-  const why = `Why tier ${f.tierLevel}: the ${f.holders === 1 ? 'one hold covers' : `${f.holders} holds cover`} it fully (${money(f.chargeCents ?? 0)} of ${money(f.heldCents)} held)${f.nextTierGapCents ? `, and ${f.nextTierTitle} needs ${money(f.nextTierGapCents)} more` : ', and it is the top tier'}.`;
+  // Wording matters as much as maths here: always "costs X, group holds Y (Y ≥ X)", then what is captured and what is released.
+  const charge = f.chargeCents ?? 0, spare = f.heldCents - charge;
+  const why = `Why: tier ${f.tierLevel} (${f.tierTitle}) costs ${money(charge)} in total and the group holds ${money(f.heldCents)}, so it is fully funded. Visa would capture exactly ${money(charge)}, split in proportion to each hold${spare > 0 ? `, and release the other ${money(spare)}` : ', using every hold in full'}.${f.nextTierGapCents ? ` ${f.nextTierTitle} would need ${money(f.nextTierGapCents)} more in holds.` : ' That is the top tier.'}`;
   return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
 }
 
