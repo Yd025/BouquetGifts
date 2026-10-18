@@ -3,7 +3,7 @@ import { MockAi } from '../src/adapters.js';
 import { conditionalIn, parseChipInRules, matchTier, matchTiers, planChipIn } from '../src/bridge.js';
 import { fundingBouquet } from './helpers.js';
 
-const NOW = new Date('2026-10-17T20:00:00Z'); const VISA = '4242424242424242'; const BUY_BY = '2026-10-25T00:00:00Z';
+const NOW = new Date('2026-10-17T20:00:00Z'); const TOK = 'tok_test_visa_4242'; const BUY_BY = '2026-10-25T00:00:00Z';
 const TIERS = [{ id: 't1', title: 'Pour-over kit', level: 1 }, { id: 't2', title: '+ Polaroid 600 camera', level: 2 }, { id: 't3', title: '+ Vinyl turntable', level: 3 }];
 
 describe('conditional amounts ("or $40 if it gets us the Polaroid")', () => {
@@ -56,12 +56,12 @@ describe('conditional chip-in end to end', { timeout: 30000 }, () => {
     expect(u.plan.holdNowCents).toBe(base); expect(u.plan.capCents).toBe(base + extra);
     expect((await f.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: u.plan.softCents, budgetMaxCents: u.plan.capCents, condition: { tierId: 'nope', baseCents: base } })).status).toBe(400);
     expect((await f.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: u.plan.softCents, budgetMaxCents: u.plan.capCents, condition: { tierId: u.plan.condition.tierId, baseCents: base } })).status).toBe(200);
-    expect((await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: base, cardNumber: VISA, idempotencyKey: 'cd-0-' + b.id })).status).toBe(201);
+    expect((await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: base, cardToken: TOK, last4: '4242', idempotencyKey: 'cd-0-' + b.id })).status).toBe(201);
     // Next tier is tier 2 (below the condition): the extra is off-limits, and nobody else can cover the gap → no ask
     expect((await f.get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull();
     // Friend 2 funds tier 2 on their own; now the group is going for tier 3, so the conditional extra is in play
     const g = friends[1]; await g.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: t3 });
-    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: t2 - base, cardNumber: VISA, idempotencyKey: 'cd-1-' + b.id })).status).toBe(201);
+    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: t2 - base, cardToken: TOK, last4: '4242', idempotencyKey: 'cd-1-' + b.id })).status).toBe(201);
     const ask = (await f.get(`/api/bouquets/${b.id}/topup`)).body.ask; expect(ask).not.toBeNull();
     expect(ask.cents).toBeLessThanOrEqual(extra); expect(ask.tierPriceCents).toBe(t3);
   });

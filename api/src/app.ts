@@ -12,6 +12,9 @@ import { seedDemoBouquet } from './seed.js';
 import { coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
 import * as D from './domain.js';
 import * as B from './bridge.js';
+import { CARD_TOKEN } from './adapters.js';
+/** Only a browser-made token and the last 4 digits are accepted; a full card number is rejected (.strict()). */
+const cardFields = { cardToken: z.string().regex(CARD_TOKEN), last4: z.string().regex(/^\d{4}$/) };
 const money = B.money;
 
 export type Clock = { now(): Date; offsetMs: number };
@@ -210,7 +213,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     await human(req);
     const b = z.object({ displayName: z.string().min(1), phone: z.string().min(7), budgetMinCents: z.number().int().min(0).default(0), budgetMaxCents: z.number().int().min(100).default(5000),
       // optional one-screen chip-in: join and place the hold in one step (one human check), as a guest; an account is optional afterwards
-      hold: z.object({ amountCents: z.number().int().min(100), cardNumber: z.string(), idempotencyKey: z.string().min(8) }).optional() }).parse(req.body);
+      hold: z.object({ amountCents: z.number().int().min(100), ...cardFields, idempotencyKey: z.string().min(8) }).strict().optional() }).parse(req.body);
     let uid = userOf(req);
     if (b.budgetMinCents > b.budgetMaxCents) fail(400, 'Minimum budget cannot exceed maximum');
     const [bq] = await db.query('SELECT * FROM bouquets WHERE invite_token=$1', [String(req.params.token)]); if (!bq) fail(404, 'This invite link is not valid');
@@ -221,7 +224,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       const dup = (await db.query('SELECT member_id FROM contributions WHERE idempotency_key=$1', [b.hold.idempotencyKey]))[0];
       if (dup) { if (dup.member_id !== memberId) fail(409, 'Idempotency key reuse'); return; }
       if (b.budgetMaxCents > m.budget_max_cents) await db.query('UPDATE members SET budget_max_cents=$2 WHERE id=$1', [memberId, b.budgetMaxCents]), m.budget_max_cents = b.budgetMaxCents;
-      await placeHold(bq, m, b.hold.amountCents, { cardNumber: b.hold.cardNumber }, b.hold.idempotencyKey); };
+      await placeHold(bq, m, b.hold.amountCents, { token: b.hold.cardToken, last4: b.hold.last4 }, b.hold.idempotencyKey); };
     if (uid) { const existing = await memberOf(bq.id, uid); if (existing) { await holdFor(existing.id); return state(bq.id, uid); } }
     const verified = await network.numberVerify(b.phone);
     if (!verified) fail(422, 'We could not verify that phone number with the network');
@@ -389,7 +392,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
 
   /* ---------- contributions (card holds) ---------- */
   /** One code path for every hold: budget cap, SIM-swap check, mock Visa authorization (card or saved token), ledger. */
-  async function placeHold(bq: any, m: any, amountCents: number, pay: { cardNumber?: string; token?: string }, idempotencyKey: string) {
+  async function placeHold(bq: any, m: any, amountCents: number, pay: { token: string; last4: string }, idempotencyKey: string) {
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
     if (deadlinePassed(bq)) fail(409, 'The buy-by deadline has passed');
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
@@ -419,7 +422,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }
   app.post('/api/bouquets/:id/contributions', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
-    const b = z.object({ amountCents: z.number().int().min(100), cardNumber: z.string(), idempotencyKey: z.string().min(8) }).parse(req.body);
+    const b = z.object({ amountCents: z.number().int().min(100), ...cardFields, idempotencyKey: z.string().min(8) }).strict().parse(req.body);
     const dup = (await db.query('SELECT * FROM contributions WHERE idempotency_key=$1', [b.idempotencyKey]))[0];
     if (dup) { if (dup.member_id !== m.id) fail(409, 'Idempotency key reuse'); return state(bq.id, uid); }
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
@@ -429,7 +432,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (Number(s) + b.amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
     if (b.amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
     await human(req);
-    const created = await placeHold(bq, m, b.amountCents, { cardNumber: b.cardNumber }, b.idempotencyKey);
+    const created = await placeHold(bq, m, b.amountCents, { token: b.cardToken, last4: b.last4 }, b.idempotencyKey);
     res.status(created ? 201 : 200); return state(bq.id, uid);
   }));
 
@@ -533,7 +536,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (r.ask.cents !== cents) fail(409, 'The group changed, so your top-up was recalculated. Please check the new amount.');
     // One tap re-uses a saved card, so always run the carrier SIM Swap check first, whatever the amount (account-takeover guard).
     if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently, so one-tap top-ups are paused for your safety. Re-verify your phone to continue.');
-    await placeHold(bq, m, cents, { token: m.card_token }, idempotencyKey);
+    await placeHold(bq, m, cents, { token: m.card_token, last4: m.card_last4 }, idempotencyKey);
     await db.query('UPDATE members SET topped_tier_id=$2 WHERE id=$1', [m.id, r.tierId]);
     res.status(201); return state(bq.id, uid);
   }));

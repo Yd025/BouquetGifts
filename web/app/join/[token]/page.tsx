@@ -1,4 +1,5 @@
 'use client';
+import { tokenizeCard } from '../../../lib/tokenize';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -46,7 +47,7 @@ function ChipInFirst({ inv, token, me }: { inv: any; token: string; me: any }) {
   const by = new Date(inv.buyByAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const cents = Math.round(amt * 100);
   const submit = async (e: any) => { e.preventDefault(); setErr(''); setBusy(true);
-    try { const s = await api(`/join/${token}`, { body: { displayName: f.displayName, phone: f.phone, budgetMaxCents: cents, hold: { amountCents: cents, cardNumber: f.card.replace(/\s/g, ''), idempotencyKey: crypto.randomUUID() } }, human });
+    try { const s = await api(`/join/${token}`, { body: { displayName: f.displayName, phone: f.phone, budgetMaxCents: cents, hold: { amountCents: cents, ...tokenizeCard(f.card), idempotencyKey: crypto.randomUUID() } }, human });
       r.push(`/b/${s.bouquet.id}?held=${cents}`); }
     catch (x: any) { setErr(x.message); } finally { setBusy(false); } };
   return <div className="panel narrow pop chipfirst" style={{ maxWidth: 520 }} data-testid="chip-first">

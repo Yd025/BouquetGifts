@@ -3,7 +3,7 @@ import { MockAi } from '../src/adapters.js';
 import { planTopUps } from '../src/bridge.js';
 import { fundingBouquet } from './helpers.js';
 
-const NOW = new Date('2026-10-17T20:00:00Z'); const VISA = '4242424242424242';
+const NOW = new Date('2026-10-17T20:00:00Z'); const TOK = 'tok_test_visa_4242';
 describe('top-up planner', () => {
   it('splits the gap across private headroom, whole dollars, never above a cap, and sums to at least the gap', () => {
     for (let k = 0; k < 200; k++) {
@@ -42,8 +42,8 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     for (const [i, f] of friends.entries()) await f.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: t2 });
     expect((await friends[0].get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull(); // no saved card yet → no one-tap ask
     const a0 = Math.ceil(t1 / 2), a1 = t1 - a0;
-    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a0, cardNumber: VISA, idempotencyKey: 'tu-0-' + b.id });
-    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a1, cardNumber: VISA, idempotencyKey: 'tu-1-' + b.id });
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a0, cardToken: TOK, last4: '4242', idempotencyKey: 'tu-0-' + b.id });
+    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a1, cardToken: TOK, last4: '4242', idempotencyKey: 'tu-1-' + b.id });
     const r0 = (await friends[0].get(`/api/bouquets/${b.id}/topup`)).body, r1 = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body;
     expect(r0.ask.cents + r1.ask.cents).toBeGreaterThanOrEqual(t2 - t1); expect(r0.ask.tierPriceCents).toBe(t2); expect(r0.ask.last4).toBe('4242');
     expect(Object.keys(r0.ask).sort()).toEqual(['availableAt', 'cents', 'friends', 'last4', 'message', 'tierPriceCents', 'tierTitle']); // only my own ask: no one else's amount, cap or id
@@ -70,7 +70,7 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     const [t1, t2] = ch.tiers.map((t: any) => t.thresholdCents);
     const payday = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
     await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: t2 + 5000, payday });
-    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: t1, cardNumber: VISA, idempotencyKey: 'pd-' + b.id });
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: t1, cardToken: TOK, last4: '4242', idempotencyKey: 'pd-' + b.id });
     const r = (await friends[0].get(`/api/bouquets/${b.id}/topup`)).body; expect(r.ask.availableAt).toBe(payday); expect(r.ask.message).toMatch(/On your payday/);
     expect((await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r.ask.cents, idempotencyKey: 'pd-a-' + b.id })).status).toBe(409);
     ctx.clock.offsetMs = 3 * 864e5 + 3600e3; // payday arrives
@@ -86,8 +86,8 @@ describe("top-up 'I'm done'", { timeout: 30000 }, () => {
     const [t1, t2] = ch.tiers.map((t: any) => t.thresholdCents);
     for (const f of friends) await f.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: t2 });
     const a0 = Math.ceil(t1 / 2), a1 = t1 - a0;
-    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a0, cardNumber: VISA, idempotencyKey: 'dn-0-' + b.id });
-    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a1, cardNumber: VISA, idempotencyKey: 'dn-1-' + b.id });
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a0, cardToken: TOK, last4: '4242', idempotencyKey: 'dn-0-' + b.id });
+    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a1, cardToken: TOK, last4: '4242', idempotencyKey: 'dn-1-' + b.id });
     expect((await friends[0].get(`/api/bouquets/${b.id}/topup`)).body.ask).not.toBeNull();
     expect((await friends[0].post(`/api/bouquets/${b.id}/topup/done`)).status).toBe(200);
     expect((await friends[0].get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull();

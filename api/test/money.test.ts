@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { MockAi } from '../src/adapters.js';
 import { fundingBouquet } from './helpers.js';
-const VISA = '4242424242424242';
+const TOK = 'tok_test_visa_4242';
 
 describe('one money source per person', { timeout: 60000 }, () => {
   it('after buying: charged + back = held for everyone, the charges add up to the funded price, and the receipt matches the room', async () => {
     const { org, friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose();
     const people = [org, ...friends]; const amounts = [3000, 5000, 7000];
-    for (const [i, p] of people.entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardNumber: VISA, idempotencyKey: `m-${i}-${b.id}` })).status).toBe(201);
+    for (const [i, p] of people.entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardToken: TOK, last4: '4242', idempotencyKey: `m-${i}-${b.id}` })).status).toBe(201);
     expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
     let charged = 0;
     for (const [i, p] of people.entries()) {
@@ -25,8 +25,8 @@ describe('one money source per person', { timeout: 60000 }, () => {
   it('with only two people holding, nobody sees an exact share before buying, only "at most your hold"', async () => {
     const { friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose(); const price = ch.tiers[0].thresholdCents;
     const a = Math.ceil(price / 2) + 500, c = Math.ceil(price / 2) + 1500;
-    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a, cardNumber: VISA, idempotencyKey: `t0-${b.id}` })).status).toBe(201);
-    expect((await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: c, cardNumber: VISA, idempotencyKey: `t1-${b.id}` })).status).toBe(201);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a, cardToken: TOK, last4: '4242', idempotencyKey: `t0-${b.id}` })).status).toBe(201);
+    expect((await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: c, cardToken: TOK, last4: '4242', idempotencyKey: `t1-${b.id}` })).status).toBe(201);
     for (const [f, held] of [[friends[0], a], [friends[1], c]] as const) {
       const co = (await f.get(`/api/bouquets/${b.id}`)).body.totals.checkout;
       expect(co.atMost).toBe(true); expect(co.myChargeCents).toBeNull(); expect(co.myHeldCents).toBe(held);
@@ -39,7 +39,7 @@ describe('one money source per person', { timeout: 60000 }, () => {
 describe('paying the store', { timeout: 60000 }, () => {
   it('issues single-use virtual cards that add up to exactly the charged total, records them in the ledger, and only once', async () => {
     const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi()); await choose();
-    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardNumber: VISA, idempotencyKey: `v-${i}-${b.id}` })).status).toBe(201);
+    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardToken: TOK, last4: '4242', idempotencyKey: `v-${i}-${b.id}` })).status).toBe(201);
     const st = (await org.post(`/api/bouquets/${b.id}/lock`)).body;
     const cards = st.bouquet.vcards; expect(cards.length).toBeGreaterThan(0);
     expect(cards.reduce((a: number, c: any) => a + c.amountCents, 0)).toBe(st.bouquet.capturedCents);
@@ -55,7 +55,7 @@ describe('a capture that keeps failing', { timeout: 60000 }, () => {
     const { MockVisaPayments } = await import('../src/adapters.js');
     class Broken extends MockVisaPayments { tries = 0; async capture() { this.tries++; throw new Error('processor down'); } }
     const visa = new Broken(); const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: visa }); await choose();
-    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardNumber: VISA, idempotencyKey: `x-${i}-${b.id}` })).status).toBe(201);
+    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardToken: TOK, last4: '4242', idempotencyKey: `x-${i}-${b.id}` })).status).toBe(201);
     expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
     expect((await friends[0].get(`/api/bouquets/${b.id}`)).body.me.contributions.some((c: any) => c.status === 'capture_pending')).toBe(true);
     await ctx.sweep(); await ctx.sweep();

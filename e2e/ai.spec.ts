@@ -48,7 +48,7 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
 
   // 3) Explainer before checkout (tier 1 funded by Priya + Jon)
   const st = await ok(f1.get(`/api/bouquets/${b.id}`)); const t1 = st.tiers[0].thresholdCents;
-  await ok(f1.post(`/api/bouquets/${b.id}/contributions`, { headers: HUMAN, data: { amountCents: Math.max(100, t1), cardNumber: '4242424242424242', idempotencyKey: `ai-${uniq}` } }));
+  await ok(f1.post(`/api/bouquets/${b.id}/contributions`, { headers: HUMAN, data: { amountCents: Math.max(100, t1), cardToken: 'tok_e2e_visa_4242', last4: '4242', idempotencyKey: `ai-${uniq}` } }));
   await jon.reload(); await jon.getByTestId('explain-pay').click();
   await expect(jon.getByTestId('explain-text')).toContainText(/you pay at most your \$30 hold/i);
   await expect(jon.getByTestId('explain-source')).toBeVisible();

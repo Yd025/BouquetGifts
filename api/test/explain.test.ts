@@ -4,7 +4,7 @@ import { GeminiAi } from '../src/gemini.js';
 import { keepsFigures, explainRules, figures } from '../src/bridge.js';
 import { fundingBouquet } from './helpers.js';
 
-const VISA = '4242424242424242';
+const TOK = 'tok_test_visa_4242';
 const reply = (t: string) => (async () => ({ ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: t }] } }] }) })) as unknown as typeof fetch;
 
 describe('payment explainer (rules)', () => {
@@ -41,8 +41,8 @@ describe('GET /explain', { timeout: 30000 }, () => {
     const before = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body;
     expect(before.source).toBe('rules'); expect(before.text).toContain('Nothing is charged yet');
     const a = Math.ceil(t1 * 0.6), c = Math.ceil(t1 * 0.6); // together over tier 1, so some of each hold is released
-    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a, cardNumber: VISA, idempotencyKey: 'ex-a-' + b.id });
-    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: c, cardNumber: VISA, idempotencyKey: 'ex-c-' + b.id });
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a, cardToken: TOK, last4: '4242', idempotencyKey: 'ex-a-' + b.id });
+    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: c, cardToken: TOK, last4: '4242', idempotencyKey: 'ex-c-' + b.id });
     const st = (await friends[0].get(`/api/bouquets/${b.id}`)).body; const co = st.totals.checkout;
     const pre = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body;
     const $ = (x: number) => '$' + (x / 100).toFixed(x % 100 ? 2 : 0);

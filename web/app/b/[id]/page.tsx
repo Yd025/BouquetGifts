@@ -1,4 +1,5 @@
 'use client';
+import { tokenizeCard } from '../../../lib/tokenize';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, $, countdown } from '../../../lib/api';
@@ -121,7 +122,7 @@ function Funding({ s, act, setS }: any) {
   // One idempotency key per opening of the Visa sheet: a double tap or a network retry can't place two holds.
   const payKey = useRef(''); useEffect(() => { if (sheet) payKey.current = crypto.randomUUID(); }, [sheet]);
   const pay = async (card: string, human: string | null) => { setErr('');
-    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: payKey.current || crypto.randomUUID() }, human })); return true; }
+    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), ...tokenizeCard(card), idempotencyKey: payKey.current || crypto.randomUUID() }, human })); return true; }
     catch (e: any) { setErr(e.message); return true; } };
   // Latch the late card: once shown it stays mounted until the friend finishes or skips, so a realtime refresh
   // (which flips hasCard the moment the card is saved) can't yank the minted-card reveal mid-animation.
@@ -205,11 +206,11 @@ function DemoDrawer({ s, reload }: any) {
   return <div className="drawer"><button className="ghost fab" onClick={() => setOpen(!open)} data-testid="demo-toggle" aria-label="Demo tools" title="Demo tools" aria-expanded={open}><span aria-hidden="true">🎬</span><span className="fablbl"> Demo tools {open ? '▾' : '▸'}</span></button>
     {open && <div className="panel" style={{ marginTop: 8 }}>
       <div className="row">
-        <button className="ghost" disabled={b.status !== 'funding'} onClick={() => run(async () => { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 500, cardNumber: '4000 0000 0000 0002', idempotencyKey: crypto.randomUUID() } }); return 'Hold placed'; })} data-testid="demo-decline">Try a declined card</button>
+        <button className="ghost" disabled={b.status !== 'funding'} onClick={() => run(async () => { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 500, ...tokenizeCard('4000 0000 0000 0002'), idempotencyKey: crypto.randomUUID() } }); return 'Hold placed'; })} data-testid="demo-decline">Try a declined card</button>
         {b.isOrganizer && <button className="ghost" disabled={!['collecting', 'fusing', 'funding'].includes(b.status)} onClick={() => run(async () => { const r = await api('/dev/deadline', { body: { bouquetId: b.id } }); return `Moved this gift’s deadline to now. ${r.expired ? 'It ran out of time and every hold came off.' : ''}`; })} data-testid="demo-ff">Skip past the deadline</button>}
         {s.me.payday && <button className="ghost" data-testid="demo-payday" onClick={() => run(async () => { const r = await api('/dev/payday', { body: { bouquetId: b.id } }); return `Payday set to today (${r.payday}). Any payday top-up is now one tap.`; })}>Jump to my payday</button>}
         <button className="ghost" disabled={b.status !== 'funding'} data-testid="demo-simswap" onClick={() => run(async () => { await api('/dev/simswap', { body: { bouquetId: b.id } });
-          try { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 6000, cardNumber: '4242424242424242', idempotencyKey: crypto.randomUUID() } }); return 'Hold went through (no phone on file?)'; }
+          try { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 6000, ...tokenizeCard('4242424242424242'), idempotencyKey: crypto.randomUUID() } }); return 'Hold went through (no phone on file?)'; }
           finally { await api('/dev/simswap', { body: { bouquetId: b.id, on: false } }); } })}>Try a stolen phone number</button>
         {b.isOrganizer && <button className="ghost" data-testid="demo-reset" onClick={() => run(async () => { const r = await api('/dev/reset-demo', { body: {} }); window.location.href = `/b/${r.bouquetId}`; return 'Fresh demo bouquet ready'; })}>Reset demo</button>}
       </div>

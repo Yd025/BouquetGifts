@@ -6,7 +6,7 @@ import { GeminiAi } from '../src/gemini.js';
 import { parseChipInRules, planChipIn, amountsIn } from '../src/bridge.js';
 
 const NOW = new Date('2026-10-17T20:00:00Z'); // a Saturday
-const VISA = '4242424242424242';
+const TOK = 'tok_test_visa_4242';
 function fakeGemini(reply: (body: any) => { status?: number; json?: any }) {
   const calls: any[] = [];
   const f = (async (url: string, init: any) => { const body = JSON.parse(init.body); calls.push({ url, body }); const r = reply(body); const status = r.status ?? 200;
@@ -70,7 +70,7 @@ describe('POST /chip-in/understand', { timeout: 30000 }, () => {
     // confirm = save budget, then the normal Visa hold
     expect((await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 3000, budgetMaxCents: 4000, payday: r.body.plan.payday })).body.me.payday).toBe(r.body.plan.payday);
     expect((await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 3000, budgetMaxCents: 4000, payday: 'friday' })).status).toBe(400);
-    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 3000, cardNumber: VISA, idempotencyKey: 'nl-' + b.id })).status).toBe(201);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 3000, cardToken: TOK, last4: '4242', idempotencyKey: 'nl-' + b.id })).status).toBe(201);
     const again = (await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '$20 more, $40 max overall' })).body.plan;
     expect(again.holdNowCents).toBe(1000); expect(again.warnings.join(' ')).toMatch(/only \$10 more fits/); // only $10 left under the $40 cap
     expect((await request(ctx.app).post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '$5' })).status).toBe(401);

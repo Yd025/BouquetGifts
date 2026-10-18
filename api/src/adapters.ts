@@ -6,25 +6,23 @@ export { MockAi, GeminiAi }; export type { Ai };
 import { traitsFromAnswers, fuse as mockFuse, cardTitle as mockTitle, TraitAgg } from './domain.js';
 
 /* ---------- Payments (mock Visa sandbox; swap for a real processor) ---------- */
-export interface Payments { hold(a: { amountCents: number; cardNumber?: string; token?: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string; token: string }>;
+/** The browser tokenizes the card (tok_… + last4); a card number never reaches this server. */
+export const CARD_TOKEN = /^v?tok_[A-Za-z0-9_]{12,}$/; // vtok_ = saved before browser tokenization
+export interface Payments { hold(a: { amountCents: number; token: string; last4: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string; token: string }>;
   capture(holdId: string, amountCents: number): Promise<void>; release(holdId: string): Promise<void>;
   /** Single-use virtual card locked to one merchant for an exact amount (Visa virtual card / Intelligent Commerce in production). */
   issueVirtualCard?(a: { amountCents: number; merchant: string; idempotencyKey: string }): Promise<{ cardId: string; last4: string }> }
 export class MockVisaPayments implements Payments {
   holds = new Map<string, { amount: number; state: string }>(); byKey = new Map<string, string>();
-  /** Mock token vault (stand-in for a Visa network token / Click to Pay stored credential): we keep a token, never the card number. */
-  private vault = new Map<string, string>();
-  async hold({ amountCents, cardNumber, token, idempotencyKey }: { amountCents: number; cardNumber?: string; token?: string; idempotencyKey: string }) {
-    const digits = token ? this.vault.get(token) ?? '' : String(cardNumber ?? '').replace(/\D/g, '');
-    if (token && !digits) throw new PaymentError('Saved card is no longer available, please re-enter it');
-    if (digits.length < 13 || !luhn(digits)) throw new PaymentError('Card number is invalid');
-    if (digits.endsWith('0002')) throw new PaymentError('Card declined (insufficient funds)');
-    const tok = 'vtok_' + crypto.createHash('sha256').update('bouquet-vault|' + digits).digest('hex').slice(0, 20); this.vault.set(tok, digits);
+  /** Sandbox: accepts only a browser-made token plus last4 (like a network token). The 0002 test card declines. */
+  async hold({ amountCents, token, last4, idempotencyKey }: { amountCents: number; token: string; last4: string; idempotencyKey: string }) {
+    if (!CARD_TOKEN.test(String(token)) || !/^\d{4}$/.test(String(last4))) throw new PaymentError('Card could not be read, please re-enter it');
+    if (last4 === '0002') throw new PaymentError('Card declined (insufficient funds)');
     const existing = this.byKey.get(idempotencyKey);
-    if (existing) return { holdId: existing, last4: digits.slice(-4), token: tok };
+    if (existing) return { holdId: existing, last4, token };
     const holdId = 'hold_' + crypto.randomBytes(8).toString('hex');
     this.holds.set(holdId, { amount: amountCents, state: 'held' }); this.byKey.set(idempotencyKey, holdId);
-    return { holdId, last4: digits.slice(-4), token: tok };
+    return { holdId, last4, token };
   }
   async capture(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h) { if (amountCents > h.amount) throw new PaymentError('over-capture'); h.state = 'captured'; } }
   async release(holdId: string) { const h = this.holds.get(holdId); if (h) h.state = 'released'; }
@@ -36,7 +34,6 @@ export class MockVisaPayments implements Payments {
   }
 }
 export class PaymentError extends Error {}
-function luhn(d: string) { let s = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } s += n; } return s % 10 === 0; }
 
 /* ---------- T-Mobile network APIs (CAMARA via Nokia Network-as-Code style) ---------- */
 export interface NetworkVerify { numberVerify(phone: string): Promise<boolean>; simSwappedRecently(phone: string, maxAgeHours?: number): Promise<boolean>; provider: string }

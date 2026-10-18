@@ -9,7 +9,7 @@ import os from 'node:os'; import path from 'node:path';
 import { drawQuestions, QUESTIONS, RECIPES } from '../src/domain.js';
 import { traitProducts } from '../src/catalog.js';
 
-const VISA = '4242424242424242';
+const TOK = 'tok_test_visa_4242';
 let app: any, ctx: any, payments: MockVisaPayments;
 // MockAi plus a switchable fake narrator, so the TTS cache and the browser fallback can both be tested offline.
 class TestAi extends MockAi { voiceOn = false; spoken: string[] = [];
@@ -78,13 +78,13 @@ describe('bouquet lifecycle', () => {
     const ch = (await org.post(`/api/bouquets/${b.id}/choose`)).body; expect(ch.bouquet.chosenCandidateId).toBe(kit.id); expect(ch.tiers).toHaveLength(3);
     const t = ch.tiers.map((x: any) => x.thresholdCents);
     // budgets enforced
-    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 10001, cardNumber: VISA, idempotencyKey: 'k-over-000' })).status).toBe(400);
-    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: '4000000000000002', idempotencyKey: 'k-decl-000' })).status).toBe(402);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 10001, cardToken: TOK, last4: '4242', idempotencyKey: 'k-over-000' })).status).toBe(400);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardToken: 'tok_decline_test_0002', last4: '0002', idempotencyKey: 'k-decl-000' })).status).toBe(402);
     expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(409); // not funded
     const amounts = [5000, 4000, 4500]; // 13500 → tier 2 (12000)
-    for (const [i, f] of friends.entries()) expect((await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardNumber: VISA, idempotencyKey: `k-${b.id}-${i}` })).status).toBe(201);
+    for (const [i, f] of friends.entries()) expect((await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardToken: TOK, last4: '4242', idempotencyKey: `k-${b.id}-${i}` })).status).toBe(201);
     // idempotent retry does not double-count
-    const re = await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 5000, cardNumber: VISA, idempotencyKey: `k-${b.id}-0` });
+    const re = await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 5000, cardToken: TOK, last4: '4242', idempotencyKey: `k-${b.id}-0` });
     expect(re.body.totals.fundedCents).toBe(13500); const exp = [...ch.tiers].reverse().find((x: any) => x.thresholdCents <= 13500); expect(re.body.totals.currentTier).toBe(exp.id);
     const [l1, l2] = await Promise.all([org.post(`/api/bouquets/${b.id}/lock`), org.post(`/api/bouquets/${b.id}/lock`)]); // concurrent checkout
     expect(l1.status).toBe(200); expect(l2.status).toBe(200);
@@ -114,7 +114,7 @@ describe('bouquet lifecycle', () => {
     for (const f of friends) await f.post(`/api/bouquets/${b.id}/vote`).send({ candidateId: pick.id });
     const ch = (await org.post(`/api/bouquets/${b.id}/choose`)).body; expect(ch.totals.checkout).toBeNull(); // nothing funded yet
     const top = ch.tiers[ch.tiers.length - 1].thresholdCents; const amounts = [Math.ceil(top / 2), Math.ceil(top / 3), Math.ceil(top / 3)]; // over the top tier
-    for (const [i, f] of friends.entries()) { const r = await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardNumber: VISA, idempotencyKey: `pv-${b.id}-${i}` }); expect(r.body.error ?? r.status).toBe(201); }
+    for (const [i, f] of friends.entries()) { const r = await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: amounts[i], cardToken: TOK, last4: '4242', idempotencyKey: `pv-${b.id}-${i}` }); expect(r.body.error ?? r.status).toBe(201); }
     const held = amounts.reduce((a, x) => a + x, 0); const views = await Promise.all(friends.map(f => f.get(`/api/bouquets/${b.id}`).then((r: any) => r.body)));
     for (const v of views) { expect(v.totals.checkout).toMatchObject({ chargeCents: top, releaseCents: held - top, holders: 3, tierLevel: ch.tiers.length }); }
     expect(views.reduce((a, v) => a + v.totals.checkout.myChargeCents, 0)).toBe(top); // shares add up to exactly the top tier
@@ -135,7 +135,7 @@ describe('bouquet lifecycle', () => {
     const { org, b, friends } = await setup(2, 20000);
     for (const f of friends) await answerAll(f, b.id, 1);
     await org.post(`/api/bouquets/${b.id}/fuse`); await org.post(`/api/bouquets/${b.id}/choose`);
-    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1500, cardNumber: VISA, idempotencyKey: `d-${b.id}` });
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1500, cardToken: TOK, last4: '4242', idempotencyKey: `d-${b.id}` });
     ctx.clock.offsetMs = 8 * 864e5;
     const [, lk] = await Promise.all([ctx.sweep(), org.post(`/api/bouquets/${b.id}/lock`)]);
     expect(lk.status).toBe(409);
@@ -148,8 +148,8 @@ describe('bouquet lifecycle', () => {
     const sw = await signup('Swap'); await sw.post(`/api/join/${b.inviteToken}`).send({ displayName: 'S', phone: '+12065559999', budgetMaxCents: 9000 });
     for (const f of friends) await answerAll(f, b.id, 2);
     await org.post(`/api/bouquets/${b.id}/fuse`); await org.post(`/api/bouquets/${b.id}/choose`);
-    expect((await sw.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardNumber: VISA, idempotencyKey: `s-${b.id}` })).status).toBe(423);
-    expect((await sw.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 2000, cardNumber: VISA, idempotencyKey: `s2-${b.id}` })).status).toBe(201);
+    expect((await sw.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardToken: TOK, last4: '4242', idempotencyKey: `s-${b.id}` })).status).toBe(423);
+    expect((await sw.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 2000, cardToken: TOK, last4: '4242', idempotencyKey: `s2-${b.id}` })).status).toBe(201);
   });
   it('question draw is seeded per member', () => expect(drawQuestions('x')).toEqual(drawQuestions('x')));
 });
@@ -212,9 +212,9 @@ describe('guest join, lazy account, organizer-only invite, art, compliments, sim
     expect(fused.candidates.some((c: any) => c.kind === 'safe')).toBe(true); expect(fused.candidates[0].citedCardIds.length).toBeGreaterThan(0);
     await org.post(`/api/bouquets/${b.id}/choose`);
     // no signup wall before the hold: a guest can chip in, and saving an account afterwards is optional
-    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: VISA, idempotencyKey: 'guest-key-1' })).status).toBe(201);
+    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardToken: TOK, last4: '4242', idempotencyKey: 'guest-key-1' })).status).toBe(201);
     expect((await g.post('/api/auth/claim').send({ email: `guesty${Math.random()}@x.io`, password: 'password1' })).status).toBe(200);
-    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: VISA, idempotencyKey: 'guest-key-1' })).status).toBe(200); // idempotent replay
+    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardToken: TOK, last4: '4242', idempotencyKey: 'guest-key-1' })).status).toBe(200); // idempotent replay
     // demo SIM swap blocks big holds for that friend
     await g.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: 20000 });
     expect((await g.post('/api/dev/simswap').send({ bouquetId: b.id })).status).toBe(200);
@@ -226,12 +226,12 @@ describe('guest join, lazy account, organizer-only invite, art, compliments, sim
     expect((await g.post('/api/dev/reset-demo').send({})).status).toBe(403);
     expect((await request(app).post('/api/dev/sweep')).status).toBe(401);
     expect((await org.get(`/api/bouquets/${b.id}`)).body.bouquet.status).toBe('funding');
-    const blocked = await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardNumber: VISA, idempotencyKey: 'guest-key-2' });
+    const blocked = await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardToken: TOK, last4: '4242', idempotencyKey: 'guest-key-2' });
     expect(blocked.status).toBe(423); expect(blocked.body.error).toMatch(/SIM/);
     await g.post('/api/dev/simswap').send({ bouquetId: b.id, on: false });
     // tier 1 is now a real product, so fund whatever it actually costs (guest already holds $10)
     const tier1 = Math.min(...(await org.get(`/api/bouquets/${b.id}`)).body.tiers.map((t: any) => t.thresholdCents));
-    expect((await f2.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: Math.max(5000, tier1 - 1000), cardNumber: VISA, idempotencyKey: 'real-key-1' })).status).toBe(201);
+    expect((await f2.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: Math.max(5000, tier1 - 1000), cardToken: TOK, last4: '4242', idempotencyKey: 'real-key-1' })).status).toBe(201);
     const l = (await org.post(`/api/bouquets/${b.id}/lock`)).body;
     const rv = (await request(app).get(`/api/reveal/${l.bouquet.revealToken}`)).body;
     expect(rv.cards[0].compliments[0]).toMatch(/^You/); expect(rv.gift.compliments.length).toBeGreaterThan(0);
