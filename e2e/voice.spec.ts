@@ -8,7 +8,7 @@ async function user(name: string) { const r = await pwRequest.newContext({ baseU
 const ok = async (p: Promise<any>) => { const r = await p; expect(r.status(), await r.text()).toBeLessThan(300); return r.json(); };
 
 test('say it out loud: mic → transcript → conditional read-back → hold only the unconditional part', async ({ browser }) => {
-  const org = await user('Olive'); const f0 = await user('Jon');
+  const org = await user('Adelin'); const f0 = await user('Jon');
   const b = (await ok(org.post('/api/bouquets', { data: { recipientName: 'Maya', occasion: 'Birthday', neededBy: new Date(Date.now() + 10 * 864e5).toISOString(), shipBufferDays: 3 } }))).bouquet;
   for (const f of [f0, org] as APIRequestContext[]) {
     if (f === f0) await ok(f.post(`/api/join/${b.inviteToken}`, { headers: HUMAN, data: { displayName: 'Jon', phone: '+12065550111', budgetMaxCents: 50000 } }));

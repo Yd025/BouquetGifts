@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { api, $ } from '../lib/api';
 /** "Just say it": a friend types how they want to chip in; Gemini turns it into a soft amount, a private cap and a payday, read back for confirmation before any Visa hold. */
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (plan: any) => Promise<void> }) {
+export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { bid?: string; onConfirm: (plan: any) => Promise<void>; endpoint?: string; confirmLabel?: string }) {
   const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [r, setR] = useState<any>(null); const [err, setErr] = useState('');
-  const understand = async (t = text, conditionTierId?: string) => { setErr(''); setBusy(true); try { setR(await api(`/bouquets/${bid}/chip-in/understand`, { body: { text: t, conditionTierId } })); } catch (e: any) { setErr(e.message); setR(null); } finally { setBusy(false); } };
+  const understand = async (t = text, conditionTierId?: string) => { setErr(''); setBusy(true); try { setR(await api(endpoint ?? `/bouquets/${bid}/chip-in/understand`, { body: { text: t, conditionTierId } })); } catch (e: any) { setErr(e.message); setR(null); } finally { setBusy(false); } };
   // 🎙 Say it out loud: the browser's own speech recognition (Web Speech API, free, on-device or browser-provided) fills the box, then we read it back.
   const [canMic, setCanMic] = useState(false); const [listening, setListening] = useState(false); const rec = useRef<any>(null);
   useEffect(() => { setCanMic(!!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)); }, []);
@@ -20,7 +20,7 @@ export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (
   };
   const p = r?.plan; const payday = p?.payday ? new Date(p.payday + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : null;
   return <div className="aibox" data-testid="chipin-ai">
-    <label>Or just say it</label>
+    <label className="sayit">Just say it <span className="chip aitag" title="Read by AI, then you confirm">AI</span></label>
     <textarea name="chipinText" data-testid="chipin-text" rows={2} style={{ width: '100%', resize: 'vertical' }} maxLength={500}
       placeholder="e.g. “$30, or $40 if we get the Polaroid” or “$30 now, $40 max, I get paid Friday”" value={text}
       onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); understand(); } }} />

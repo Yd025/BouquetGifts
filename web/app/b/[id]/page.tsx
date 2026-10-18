@@ -112,6 +112,12 @@ function Funding({ s, act, setS }: any) {
   const room = Math.max(0, s.me.budgetMaxCents - pledged);
   const [amt, setAmt] = useState(20); const [sheet, setSheet] = useState(false); const [err, setErr] = useState(''); const [pop, setPop] = useState<string | null>(null);
   const [bud, setBud] = useState({ min: s.me.budgetMinCents / 100, max: s.me.budgetMaxCents / 100 }); const [claim, setClaim] = useState({ email: '', password: '' });
+  const [manual, setManual] = useState(false); const [wd, setWd] = useState(0); // wd: remount the asks after a withdraw so nothing stale shows
+  // The "you're in" moment: from the invite (?held=) or right after paying here. Top-up asks stay quiet for 24h after you chip in.
+  const [justIn, setJustIn] = useState(0); const [quiet, setQuiet] = useState(false);
+  useEffect(() => { const h = Number(new URLSearchParams(location.search).get('held') ?? 0); if (h > 0) { setJustIn(h); localStorage.setItem(`bq-in-${b.id}`, String(Date.now())); }
+    setQuiet(Date.now() - Number(localStorage.getItem(`bq-in-${b.id}`) ?? 0) < 864e5); }, [b.id]);
+  const last4 = s.me.contributions.filter((c: any) => c.status === 'held').slice(-1)[0]?.card_last4;
   const next = s.tiers.find((t: any) => t.id === s.totals.nextTier); const cand = s.candidates.find((c: any) => c.id === b.chosenCandidateId);
   const prevTier = useRef<string | null>(s.totals.currentTier); const prevTotal = useRef<number>(total);
   useEffect(() => { const cur = s.totals.currentTier;
@@ -122,13 +128,14 @@ function Funding({ s, act, setS }: any) {
   // One idempotency key per opening of the Visa sheet: a double tap or a network retry can't place two holds.
   const payKey = useRef(''); useEffect(() => { if (sheet) payKey.current = crypto.randomUUID(); }, [sheet]);
   const pay = async (card: string, human: string | null) => { setErr('');
-    try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), ...tokenizeCard(card), idempotencyKey: payKey.current || crypto.randomUUID() }, human })); return true; }
+    try { const cents = Math.round(amt * 100); setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: cents, ...tokenizeCard(card), idempotencyKey: payKey.current || crypto.randomUUID() }, human }));
+      setJustIn(cents); setQuiet(true); localStorage.setItem(`bq-in-${b.id}`, String(Date.now())); return true; }
     catch (e: any) { setErr(e.message); return true; } };
   // Latch the late card: once shown it stays mounted until the friend finishes or skips, so a realtime refresh
   // (which flips hasCard the moment the card is saved) can't yank the minted-card reveal mid-animation.
   const [late, setLate] = useState<'off' | 'on' | 'done'>('off');
   useEffect(() => { if (late === 'off' && b.status === 'funding' && !s.me.hasCard && s.me.role !== 'organizer') setLate('on'); }, [late, b.status, s.me.hasCard, s.me.role]);
-  return <>{late === 'on' && b.status === 'funding' && <LateCard s={s} setS={setS} onDone={() => setLate('done')} />}<div className={b.status === 'funding' ? 'grid2' : 'solo'}>
+  return <>{late === 'on' && b.status === 'funding' && <LateCard s={s} setS={setS} onDone={() => setLate('done')} />}<div className={b.status === 'funding' ? `grid2${!pledged && !b.isOrganizer ? ' chipfirst' : ''}` : 'solo'}>
     {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}<span className="uconfetti" aria-hidden>{Array.from({ length: 16 }, (_, i) => <i key={i} style={{ ['--a' as any]: `${i * 22.5}deg`, ['--c' as any]: ['#f7a1c4', '#c3a6ff', '#f6c34a', '#9fd3ae'][i % 4], ['--d' as any]: `${70 + (i % 3) * 30}px` }} />)}</span></div>}
     <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
       {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
@@ -139,37 +146,39 @@ function Funding({ s, act, setS }: any) {
       <div data-testid="funded">{b.status === 'funding' && s.totals.blurred ? <span data-testid="funded-private">{s.totals.currentTier ? <><b>{s.tiers.find((t: any) => t.id === s.totals.currentTier)?.level} of {s.tiers.length}</b> unlocked</> : <b>Not unlocked yet</b>} · With two people in, the total stays private.</span> : b.status === 'funding' && total >= top ? <><b>{$(shown)}</b> in · fully funded</> : b.status === 'funding' ? <><b>{$(shown)}</b> of {$(top)}</> : b.status === 'expired' ? <>{b.cancelled ? 'Cancelled' : 'Time ran out'} · every hold was released, nobody was charged</> : <><b>{$(total)}</b> paid · {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length} in the box</>}</div>
       {next && b.status === 'funding' && <p className="muted">{s.totals.blurred ? 'Next up:' : `${$(next.thresholdCents - total)} more adds`} <b>{clean(next.title)}</b></p>}
       {co && <div className="goal" data-testid="checkout-preview">{co.releaseCents === null
-        ? <><b>Ready to buy.</b> Buying now costs {$(co.chargeCents)}, shared by both of you in proportion to what you put in. Anything extra goes back to your cards.</>
-        : <><b>{total >= top ? 'Fully funded.' : 'Ready to buy.'}</b> Buying now costs {$(co.chargeCents)}, shared by {co.holders === 1 ? 'the one person in' : `${co.holders} friends`} in proportion to what each put in.{co.releaseCents > 0 && <> The extra {$(co.releaseCents)} goes back to their cards.</>}</>}</div>}
-      {co && <div className="muted" style={{ fontSize: 12, marginTop: 6 }} data-testid="fee-line">Bouquet fee: <b>$0</b> for now. Later: 4% of the final price ({$(Math.round(co.chargeCents * 0.04))} here), shown before anyone pays.</div>}
+        ? (b.isOrganizer ? <><b>Ready to buy.</b> Buying now costs {$(co.chargeCents)}, split in proportion to each hold. Anything extra goes back to people’s cards.</>
+          : <><b>The first {co.tierLevel > 1 ? `${co.tierLevel} items are` : 'item is'} covered.</b> When {s.members.find((m: any) => m.role === 'organizer')?.displayName ?? 'the organizer'} buys, you pay your fair share, never more than your hold.</>)
+        : <><b>{total >= top ? 'Fully funded.' : b.isOrganizer ? 'Ready to buy.' : 'Covered so far.'}</b> {b.isOrganizer ? 'Buying now costs' : 'If it’s bought now, it costs'} {$(co.chargeCents)}, shared by {co.holders === 1 ? 'the one person in' : `${co.holders} friends`} in proportion to what each put in.{co.releaseCents > 0 && <> The extra {$(co.releaseCents)} goes back to their cards.</>}</>}</div>}
       <div className="tiers" style={{ marginTop: 14, textAlign: 'left' }}>{s.tiers.map((t: any) => <div key={t.id} className={`tier ${t.unlocked ? 'unlocked' : ''}`} data-testid="tier">
         {t.product ? <img className="tierimg" src={t.product.photoUrl} alt={t.product.name} data-testid="tier-photo" /> : <span className="tierimg ph">🎁</span>}
         <div className="grow"><b>{clean(t.title)}</b>{t.product && <div className="tiermeta"><a href={t.product.url} target="_blank" rel="noreferrer">{t.product.name}</a> · {t.product.store} · {$(t.product.priceCents)}</div>}</div>
         <span className="thr"><b>{$(t.product?.priceCents ?? (t.thresholdCents - (s.tiers[s.tiers.indexOf(t) - 1]?.thresholdCents ?? 0)))}</b><small>unlocks at {$(t.thresholdCents)}</small></span></div>)}</div>
     </div>
     {b.status === 'funding' && <div className="panel"><h2>Chip in</h2>
-      {s.me.isGuest ? <div data-testid="claim">
-        <p>Add an email and password so you can change your hold later.</p>
-        <label>Email</label><input name="claimEmail" type="email" value={claim.email} onChange={e => setClaim({ ...claim, email: e.target.value })} />
-        <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
-        <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save my spot</button></div>
-      </div> : <>
-        <TopUp s={s} setS={setS} />
-        <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null, condition: p.condition ? { tierId: p.condition.tierId, baseCents: p.capCents - p.condition.extraCents } : null } });
+      {justIn > 0 && <div className="youin pop" data-testid="you-in"><b>✓ You’re in for {$(justIn)}</b>{last4 ? <> · •••• {last4}</> : ''} · hold only, released {short(b.buyByAt)} if it isn’t bought<button className="ghost sm x" aria-label="Dismiss" onClick={() => setJustIn(0)}>✕</button></div>}
+      {!quiet && <TopUp key={'t' + wd} s={s} setS={setS} />}
+      <ChipInAI key={'c' + wd} bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null, condition: p.condition ? { tierId: p.condition.tierId, baseCents: p.capCents - p.condition.extraCents } : null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
+      <button className="linkish" data-testid="enter-amounts" aria-expanded={manual} onClick={() => setManual(!manual)}>{manual ? 'Hide amounts' : 'Enter amounts instead'}</button>
+      <div hidden={!manual} data-testid="manual">
         <label>My limit ($)</label>
         <div className="row"><input name="budgetMin" type="number" min={0} value={bud.min} onChange={e => setBud({ ...bud, min: Number(e.target.value) })} style={{ width: 110 }} /><span>to</span>
           <input name="budgetMax" type="number" min={1} value={bud.max} onChange={e => setBud({ ...bud, max: Number(e.target.value) })} style={{ width: 110 }} />
           <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100), condition: null }, 'PATCH')} data-testid="save-budget">Save</button></div>
         <p className="muted" style={{ fontSize: 13 }}>Only you see this. You’ve put in {$(pledged)}, {$(room)} to go.</p>
         <label>{pledged > 0 ? 'Add to your hold ($)' : 'Chip in ($)'}</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
-        <div style={{ marginTop: 14 }}><button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more` : `Chip in ${$(Math.round(amt * 100))}`}</button>
-          {pledged > 0 && <button className="ghost sm" style={{ marginLeft: 8 }} data-testid="withdraw" onClick={async () => { if (!confirm(`Take back your ${$(pledged)}? The hold comes off your card and nothing is charged.`)) return; setErr('');
-            try { setS(await api(`/bouquets/${b.id}/contributions/withdraw`, { body: {} })); } catch (e: any) { setErr(e.message); } }}>Take my money back</button>}</div>
-        {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Card •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {({ held: 'on hold', captured: 'paid', released: 'returned', capture_pending: 'paying…', release_pending: 'returning…' } as any)[c.status] ?? c.status}</span></div>)}</div>}
-      </>}
+        <div style={{ marginTop: 14 }}>{pledged > 0 && room <= 0 ? <span className="muted" data-testid="at-limit">You’re at your limit. Raise it above to add more.</span>
+          : <button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more` : `Chip in ${$(Math.round(amt * 100))}`}</button>}</div>
+      </div>
+      <div style={{ marginTop: 10 }}>{pledged > 0 && <button className="ghost sm" data-testid="withdraw" onClick={async () => { if (!confirm(`Take back your ${$(pledged)}? The hold comes off your card and nothing is charged.`)) return; setErr('');
+            try { setS(await api(`/bouquets/${b.id}/contributions/withdraw`, { body: {} })); setWd(x => x + 1); setJustIn(0); } catch (e: any) { setErr(e.message); } }}>Take my money back</button>}</div>
+      {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Card •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {({ held: 'on hold', captured: 'paid', released: 'returned', capture_pending: 'paying…', release_pending: 'returning…' } as any)[c.status] ?? c.status}</span></div>)}</div>}
+      {s.me.isGuest && pledged > 0 && <details className="claimbox" data-testid="claim"><summary>Get a receipt and change it later (optional)</summary>
+        <label>Email</label><input name="claimEmail" type="email" value={claim.email} onChange={e => setClaim({ ...claim, email: e.target.value })} />
+        <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
+        <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save</button></div></details>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">{err}</div>}
-      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). Until 3 friends are in, the exact split stays private until it’s bought.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
+      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). Until 3 friends are in, the exact split stays private.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
       {!s.me.isGuest && <ExplainPay bid={b.id} />}
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
         <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · {s.totals.blurred ? 'amounts stay private until 3+ friends are in' : 'nobody sees anyone’s amount'}</div>

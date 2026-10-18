@@ -1,6 +1,7 @@
 'use client';
+import ChipInAI from '../../../components/ChipInAI';
 import { tokenizeCard } from '../../../lib/tokenize';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, countdown, $ } from '../../../lib/api';
@@ -41,13 +42,15 @@ export default function Join({ params }: { params: { token: string } }) {
 /** Funding is open: one screen, money first. Gift, price, how many are in, a quick amount, name + number + card, one Visa hold. No account needed. */
 function ChipInFirst({ inv, token, me }: { inv: any; token: string; me: any }) {
   const r = useRouter(); const g = inv.gift;
-  const [amt, setAmt] = useState(25); const [f, setF] = useState({ displayName: me?.name ?? '', phone: me?.phone ?? '', card: '4242 4242 4242 4242' });
+  // Presets start at a fair first share of what gets the gift going, and end at $40.
+  const first = Math.min(30, Math.max(10, Math.ceil((g.startCents || 3000) / 300))); const presets = [...new Set([first, Math.round((first + 40) / 2), 40])];
+  const [amt, setAmt] = useState(first); const [cap, setCap] = useState(0); const formRef = useRef<HTMLFormElement>(null); const [f, setF] = useState({ displayName: me?.name ?? '', phone: me?.phone ?? '', card: '4242 4242 4242 4242' });
   const [human, setHuman] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   useEffect(() => { if (me) setF(x => ({ ...x, displayName: x.displayName || me.name, phone: x.phone || (me.phone ?? '') })); }, [me]);
   const by = new Date(inv.buyByAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const cents = Math.round(amt * 100);
   const submit = async (e: any) => { e.preventDefault(); setErr(''); setBusy(true);
-    try { const s = await api(`/join/${token}`, { body: { displayName: f.displayName, phone: f.phone, budgetMaxCents: cents, hold: { amountCents: cents, ...tokenizeCard(f.card), idempotencyKey: crypto.randomUUID() } }, human });
+    try { const s = await api(`/join/${token}`, { body: { displayName: f.displayName, phone: f.phone, budgetMaxCents: Math.max(cents, cap), hold: { amountCents: cents, ...tokenizeCard(f.card), idempotencyKey: crypto.randomUUID() } }, human });
       r.push(`/b/${s.bouquet.id}?held=${cents}`); }
     catch (x: any) { setErr(x.message); } finally { setBusy(false); } };
   return <div className="panel narrow pop chipfirst" style={{ maxWidth: 520 }} data-testid="chip-first">
@@ -55,13 +58,14 @@ function ChipInFirst({ inv, token, me }: { inv: any; token: string; me: any }) {
     <p className="muted" style={{ margin: '0 0 10px' }}>{g.title} · organized by {inv.organizer}</p>
     {g.photoUrl && <img src={g.photoUrl} alt={g.title} className="cf-photo" />}
     <p className="cf-meta" data-testid="cf-meta"><b>{$(g.topCents)}</b> for the whole gift{g.tiers.length > 1 ? ` · ${$(g.startCents)} gets it started` : ''}<br />{g.holders ? <b>{g.holders} {g.holders === 1 ? 'friend has' : 'friends have'} chipped in</b> : <b>Be the first to chip in</b>} · open until {by}</p>
-    <form onSubmit={submit}>
-      <label>Chip in</label>
-      <div className="cf-amts" role="group" aria-label="Amount">{[15, 25, 40].map(v => <button type="button" key={v} className={amt === v ? 'on' : 'ghost'} onClick={() => setAmt(v)} data-testid={`cf-amt-${v}`}>${v}</button>)}
+    <ChipInAI endpoint={`/join/${token}/chip-in/understand`} onConfirm={async (p: any) => { setAmt(p.holdNowCents / 100); setCap(p.capCents); setTimeout(() => formRef.current?.querySelector<HTMLInputElement>('input[name=displayName]')?.focus(), 50); }} />
+    <form onSubmit={submit} ref={formRef}>
+      <label>Or pick an amount</label>
+      <div className="cf-amts" role="group" aria-label="Amount">{presets.map(v => <button type="button" key={v} className={amt === v ? 'on' : 'ghost'} onClick={() => setAmt(v)} data-testid={`cf-amt-${v}`}>${v}</button>)}
         <input name="amount" type="number" min={1} inputMode="decimal" aria-label="Other amount" value={amt} onChange={e => setAmt(Math.max(1, Number(e.target.value) || 0))} data-testid="cf-amount" /></div>
       <label>Your name</label><input name="displayName" required autoComplete="name" value={f.displayName} onChange={e => setF({ ...f, displayName: e.target.value })} />
       <label>Mobile number</label><input name="phone" required type="tel" autoComplete="tel" placeholder="+1 206 555 0101" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} />
-      <label>Card</label><input name="card" required inputMode="numeric" autoComplete="cc-number" value={f.card} onChange={e => setF({ ...f, card: e.target.value })} />
+      <label>Card <span className="muted" style={{ fontWeight: 400 }}>· Test card (demo)</span></label><input name="card" required inputMode="numeric" autoComplete="cc-number" value={f.card} onChange={e => setF({ ...f, card: e.target.value })} />
       <Turnstile onToken={setHuman} />
       {err && <div className="err" role="alert">{err}</div>}
       <button type="submit" disabled={busy || human === null || cents < 100} className="cf-go" data-testid="cf-hold">{busy ? 'Holding…' : `Chip in ${$(cents)}`}</button>

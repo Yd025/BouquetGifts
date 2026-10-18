@@ -9,7 +9,7 @@ async function user(name: string) { const r = await pwRequest.newContext({ baseU
 const ok = async (p: Promise<any>) => { const r = await p; expect(r.status(), await r.text()).toBeLessThan(300); return r.json(); };
 
 test('AI bridges people and payment: concierge, chip-in in plain words, payment explainer', async ({ browser }) => {
-  const org = await user('Olive'); const f0 = await user('Jon'); const f1 = await user('Priya');
+  const org = await user('Adelin'); const f0 = await user('Jon'); const f1 = await user('Priya');
   const b = (await ok(org.post('/api/bouquets', { data: { recipientName: 'Maya', occasion: 'Birthday', neededBy: new Date(Date.now() + 10 * 864e5).toISOString(), shipBufferDays: 3 } }))).bouquet;
   for (const [i, f] of ([f0, f1] as APIRequestContext[]).entries()) {
     await ok(f.post(`/api/join/${b.inviteToken}`, { headers: HUMAN, data: { displayName: i ? 'Priya' : 'Jon', phone: '+1206555010' + i, budgetMaxCents: 50000 } }));
@@ -39,7 +39,7 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   await jon.waitForTimeout(700); await jon.getByTestId('chipin-ai').screenshot({ path: SHOTS + '16b-ai-chipin.png' });
   await jon.getByTestId('chipin-confirm').click(); await expect(jon.getByTestId('pay-sheet')).toBeVisible();
   await expect(jon.getByTestId('pay-confirm')).toHaveText('Hold $30', { timeout: 15000 });
-  await jon.getByTestId('pay-confirm').click(); await expect(jon.getByText(/•••• 4242/)).toBeVisible();
+  await jon.getByTestId('pay-confirm').click(); await expect(jon.getByText('Card •••• 4242', { exact: true }).first()).toBeVisible(); await expect(jon.getByTestId('you-in')).toContainText('You’re in for');
   await expect(jon.locator('input[name=budgetMax]')).toHaveValue('40'); // the spoken cap became the private budget
   // an over-cap ask is trimmed to what fits, before any money moves
   await jon.getByTestId('chipin-text').fill('$25, $40 max'); await jon.getByTestId('chipin-understand').click();

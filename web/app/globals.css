@@ -422,3 +422,21 @@ html[data-auto] .route-in { animation: none; } html[data-auto] [data-reveal] { o
 /* Money reads unambiguously: lining, tabular figures in the sans face (a serif 3 was being read as a 5). */
 h1, h2, h3, .step b { font-variant-numeric: lining-nums; }
 .rl b, .rbgrid b, .thr b, [data-testid="my-charge"], [data-testid="funded"] b, [data-testid="my-receipt"] b, [data-testid="my-share"] b, .vcards b, .receipt b, .condbig b { font-family: Inter, system-ui, sans-serif; font-variant-numeric: lining-nums tabular-nums; }
+/* chip-in: AI first, amounts on request, a clear "you're in" moment */
+.sayit { display: flex; align-items: center; gap: 8px; font-weight: 700; } .chip.aitag { font-size: 10px; padding: 1px 7px; letter-spacing: .06em; background: linear-gradient(135deg, #ef7aa9, #c58cf2); color: #fff; border: 0; }
+.linkish { background: none; border: 0; padding: 10px 0; min-height: 44px; color: var(--rose); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; box-shadow: none; }
+.linkish:hover { background: none; transform: none; }
+.youin { position: relative; margin: 0 0 12px; padding: 12px 40px 12px 14px; border-radius: 14px; background: #eafaf0; border: 1.5px solid #9fdcb5; color: #1d5b35; font-size: 14px; text-align: left; }
+.youin .x { position: absolute; top: 4px; right: 4px; min-width: 44px; min-height: 44px; padding: 0; color: #1d5b35; }
+.claimbox { margin-top: 14px; padding: 10px 12px; border: 1px dashed #f0d3e0; border-radius: 12px; } .claimbox summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.tap { min-width: 44px; min-height: 44px; }
+@media (max-width: 800px) { .grid2.chipfirst > .panel:last-child { order: -1; } }
+.copy input { font-size: 16px; } .chipfirst .aibox { margin: 6px 0 4px; }
+/* deck gating: face-down ideas with match bars, turned over on the first fusion */
+.cand.facedown { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; background: repeating-linear-gradient(45deg, #ffe3ef 0 10px, #fff0f6 10px 20px); border: 1.5px dashed #f0b8cf; min-height: 180px; justify-content: center; }
+.fdback { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: #fff8; }
+.matchbar { width: 80%; height: 8px; border-radius: 99px; background: #fff; overflow: hidden; box-shadow: inset 0 0 0 1px #f0d3e0; } .matchbar > div { height: 100%; background: linear-gradient(90deg, #ef7aa9, #c58cf2); transition: width .5s cubic-bezier(.3,.7,.4,1); }
+.cands.reveal > .cand { animation: ideaFlip .7s cubic-bezier(.3,.7,.4,1) both; } .cands.reveal > .cand:nth-child(2) { animation-delay: .08s; } .cands.reveal > .cand:nth-child(3) { animation-delay: .16s; } .cands.reveal > .cand:nth-child(n+4) { animation-delay: .24s; }
+@keyframes ideaFlip { from { transform: perspective(800px) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cands.reveal > .cand { animation: none; } .matchbar > div { transition: none; } }
+html[data-auto] .cands.reveal > .cand { animation: none; }

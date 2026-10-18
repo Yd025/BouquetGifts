@@ -10,7 +10,7 @@ export default function PaySheet({ amountCents, recipient, onClose, onPay }: { a
   const masked = digits.length > 4 ? '•••• '.repeat(Math.ceil((digits.length - 4) / 4)).trim() + ' ' + digits.slice(-4) : digits;
   const [show, setShow] = useState(false);
   return <Overlay onClick={onClose}><div className="paysheet" onClick={e => e.stopPropagation()} data-testid="pay-sheet" role="dialog" aria-label="Chip in">
-    <div className="row"><b className="grow">For {recipient}’s gift</b><button className="ghost sm" onClick={onClose} aria-label="Close">✕</button></div>
+    <div className="row"><b className="grow">For {recipient}’s gift</b><button className="ghost sm tap" onClick={onClose} aria-label="Close">✕</button></div>
     <div className="payamt">{$(amountCents)}</div><div className="muted" style={{ marginTop: -6, textAlign: 'center' }}>a hold, not a charge</div>
     <div className="visacard"><div className="row"><span className="chipgold" /><span className="grow" /><b className="visa">{digits.startsWith('4') ? 'VISA' : digits.startsWith('5') ? 'MC' : ''}</b></div>
       <input aria-label="Card number" data-testid="card-input" className="cardnum" value={show ? digits.replace(/(\d{4})(?=\d)/g, '$1 ') : masked} onFocus={() => setShow(true)} onBlur={() => setShow(false)}
@@ -21,5 +21,6 @@ export default function PaySheet({ amountCents, recipient, onClose, onPay }: { a
     <button style={{ width: '100%' }} disabled={busy || human === null || digits.length < 13} data-testid="pay-confirm"
       onClick={async () => { setBusy(true); const ok = await onPay(digits, human); setBusy(false); if (ok) onClose(); }}>{busy ? 'Holding…' : human === null ? 'Checking…' : `Hold ${$(amountCents)}`}</button>
     <p className="muted" style={{ fontSize: 12, textAlign: 'center', margin: 0 }}>You only pay your share if the gift is bought. If not, the hold disappears.</p>
+    <p className="muted" style={{ fontSize: 11, textAlign: 'center', margin: '4px 0 0' }} data-testid="fee-line">Bouquet fee: $0 during the beta. Later: 4% of the final price, shown here before you pay.</p>
   </div></Overlay>;
 }

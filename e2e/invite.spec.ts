@@ -7,7 +7,7 @@ async function user(name: string) { const r = await pwRequest.newContext({ baseU
 const ok = async (p: Promise<any>) => { const r = await p; expect(r.status(), await r.text()).toBeLessThan(300); return r.json(); };
 
 test('invite → one screen → $40 hold as a guest on a 390px phone → optional card after', async ({ browser }) => {
-  const org = await user('Olive'); const f0 = await user('Jon');
+  const org = await user('Adelin'); const f0 = await user('Jon');
   const b = (await ok(org.post('/api/bouquets', { data: { recipientName: 'Maya', occasion: 'Birthday', neededBy: new Date(Date.now() + 10 * 864e5).toISOString(), shipBufferDays: 3 } }))).bouquet;
   for (const f of [f0, org] as APIRequestContext[]) {
     if (f === f0) await ok(f.post(`/api/join/${b.inviteToken}`, { headers: HUMAN, data: { displayName: 'Jon', phone: '+12065550141', budgetMaxCents: 50000 } }));
@@ -19,10 +19,13 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await p.goto(`/join/${b.inviteToken}`);
   await expect(p.getByTestId('chip-first')).toBeVisible(); await expect(p.getByRole('heading', { level: 1 })).toContainText('Chip in on Maya’s gift');
   await expect(p.getByTestId('cf-meta')).toContainText(/\$\d+ for the whole gift.*Be the first to chip in.*open until/);
+  // "Just say it" is the primary input on the invite too: read back, then it fills the amount
+  await p.getByTestId('chipin-text').fill('$30, $40 max'); await p.getByTestId('chipin-understand').click();
+  await expect(p.getByTestId('chipin-soft')).toHaveText('$30'); await p.getByTestId('chipin-confirm').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Chip in $30');
   await p.getByTestId('cf-amt-40').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Chip in $40');
   await expect(p.getByTestId('cf-fine')).toContainText('never more than $40');
   await p.fill('input[name=displayName]', 'Priya'); await p.fill('input[name=phone]', '+12065550199');
-  for (const sel of ['input[name=displayName]', 'input[name=phone]', 'input[name=card]', '[data-testid=cf-amount]']) // no iOS zoom on focus
+  for (const sel of ['input[name=displayName]', 'input[name=phone]', 'input[name=card]', '[data-testid=cf-amount]', '[data-testid=chipin-text]']) // no iOS zoom on focus
     expect(await p.locator(sel).evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
   for (const sel of ['[data-testid=cf-amt-40]', '[data-testid=cf-hold]']) expect((await p.locator(sel).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
