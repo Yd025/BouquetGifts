@@ -47,7 +47,7 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     const r0 = (await friends[0].get(`/api/bouquets/${b.id}/topup`)).body, r1 = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body;
     expect(r0.ask.cents + r1.ask.cents).toBeGreaterThanOrEqual(t2 - t1); expect(r0.ask.tierPriceCents).toBe(t2); expect(r0.ask.last4).toBe('4242');
     expect(Object.keys(r0.ask).sort()).toEqual(['availableAt', 'cents', 'friends', 'last4', 'message', 'tierPriceCents', 'tierTitle']); // only my own ask: no one else's amount, cap or id
-    expect(r0.ask.message).toContain(`Top up $`); expect(r0.source).toBe('rules');
+    expect(r0.ask.message).toMatch(/^\$\d+ more unlocks /); expect(r0.source).toBe('rules');
     expect((await org.get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull(); // organizer never held: not asked
     // stale amount is refused, then the right one goes through with no card number (token)
     expect((await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents + 100, idempotencyKey: 'acc-x-' + b.id })).status).toBe(409);

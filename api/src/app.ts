@@ -500,8 +500,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const r: any = await topUpFor(bid, m); if (!r.ask) return { ask: null, reason: r.reason, source: 'rules' };
     const a = r.ask; const recipient = (await getBouquet(bid)).recipient_name;
     const rules = a.availableAt
-      ? `On your payday you could top up ${money(a.cents)} so ${recipient}’s gift reaches ${a.tierTitle} (${money(a.tierPriceCents)} total).`
-      : `Top up ${money(a.cents)} and ${recipient}’s gift unlocks ${a.tierTitle} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ` The rest is split fairly across ${a.friends - 1} other friend${a.friends > 2 ? 's' : ''}, each within what they said they could do.` : ''}`;
+      ? `On your payday, ${money(a.cents)} more gets ${recipient}’s gift to ${a.tierTitle} (${money(a.tierPriceCents)} total).`
+      : `${money(a.cents)} more unlocks ${a.tierTitle} for ${recipient} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ' The rest is split fairly, each friend within their own limit.' : ''}`;
     const w = await ai.reword('explain', rules);
     return { ask: { ...a, message: w ?? rules }, source: w ? 'gemini' : 'rules' };
   }));
