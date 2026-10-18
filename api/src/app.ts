@@ -547,7 +547,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }
   async function lock(bid: string) {
     const members = await db.query(`SELECT DISTINCT m.phone, m.display_name FROM members m JOIN contributions c ON c.member_id=m.id WHERE m.bouquet_id=$1 AND c.status='held'`, [bid]);
-    for (const m of members) if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, `${m.display_name}'s SIM changed recently; ask them to re-verify before checkout`);
+    for (const m of members) if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, `${m.display_name}’s phone number moved to a new SIM recently. Ask them to confirm it’s them before buying.`);
     const r = await db.tx(async q => {
       const [b] = await q('SELECT * FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);
       if (b.status === 'purchased' || b.status === 'revealed') return { already: true };

@@ -18,10 +18,10 @@ describe('payment explainer (rules)', () => {
   it('says what each state means for this person', () => {
     const base = { recipient: 'Maya', gift: 'Trail Kit', organizer: 'Olivia', buyBy: '2026-10-24T20:00:00Z', tiersCount: 3, isOrganizer: false, nextTierTitle: null, nextTierGapCents: null, firstTierGapCents: null } as any;
     expect(explainRules({ ...base, status: 'funding', holders: 0, heldCents: 0, myHeldCents: 0, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null, firstTierGapCents: 4500 }))
-      .toMatch(/Nothing is charged yet\. The first tier of Trail Kit needs \$45 more/);
+      .toMatch(/Nothing is charged yet\. The first item of Trail Kit needs \$45 more/);
     const f = explainRules({ ...base, status: 'funding', holders: 2, heldCents: 9000, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500, nextTierTitle: 'Map', nextTierGapCents: 3000 });
     expect(f).toMatch(/if Olivia checks out now, you pay \$41\.67 of your \$50 hold and \$8\.33 goes back/); expect(f).toMatch(/Map would need \$30 more/);
-    expect(f).toContain('tier 1 (Mug) costs $75 in total and the group holds $90, so it is fully funded'); expect(f).toContain('capture exactly $75'); expect(f).toContain('release the other $15');
+    expect(f).toContain('the first item (Mug) costs $75 in total and the group holds $90, so that is fully funded'); expect(f).toContain('charged exactly $75'); expect(f).toContain('the other $15 is released');
     expect(explainRules({ ...base, status: 'purchased', holders: 2, heldCents: 0, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500 })).toMatch(/You paid \$41\.67 of your \$50 hold\. The other \$8\.33 went back/);
     expect(explainRules({ ...base, status: 'expired', holders: 0, heldCents: 0, myHeldCents: 1500, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null })).toMatch(/Nobody was charged, including your \$15 hold/);
   });
@@ -50,12 +50,12 @@ describe('GET /explain', { timeout: 30000 }, () => {
     // "fully funded" really means held ≥ tier price, and the text says it in that order
     // only two holders: a holder never sees the exact group total (they could back out the other's amount)
     expect(st.totals.blurred).toBe(true); expect(co.releaseCents).toBeNull(); expect(st.totals.heldCents).toBe(co.chargeCents);
-    expect(pre.text).not.toContain('the group holds'); expect(pre.text).toContain('group total stays private'); expect(pre.text).toContain(`costs ${$(co.chargeCents)} in total and it is fully funded`);
+    expect(pre.text).not.toContain('the group holds'); expect(pre.text).toContain('group total stays private'); expect(pre.text).toContain(`${$(co.chargeCents)} in total and that is fully funded`);
     // the organizer (not holding) sees the full reconciliation
     const ost = (await org.get(`/api/bouquets/${b.id}`)).body; const opre = (await org.get(`/api/bouquets/${b.id}/explain`)).body;
     expect(ost.totals.blurred).toBe(false); expect(ost.totals.heldCents).toBe(a + c);
-    expect(co.chargeCents).toBeLessThanOrEqual(ost.totals.heldCents); expect(opre.text).toContain(`costs ${$(co.chargeCents)} in total and the group holds ${$(ost.totals.heldCents)}, so it is fully funded`);
-    if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`release the other ${$(ost.totals.heldCents - co.chargeCents)}`);
+    expect(co.chargeCents).toBeLessThanOrEqual(ost.totals.heldCents); expect(opre.text).toContain(`costs ${$(co.chargeCents)} in total and the group holds ${$(ost.totals.heldCents)}, so that is fully funded`);
+    if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`the other ${$(ost.totals.heldCents - co.chargeCents)} is released`);
     // every per-person share adds up to exactly the amount that will be captured
     const shares = await Promise.all([friends[0], friends[1], org].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.totals.checkout.myChargeCents));
     expect(shares.reduce((p: number, x: number) => p + x, 0)).toBe(co.chargeCents); expect(pre.text).toContain('if Org checks out now'); void org;
@@ -67,7 +67,7 @@ describe('GET /explain', { timeout: 30000 }, () => {
     expect(pre.receipt).toMatchObject({ mode: 'preview', chargedCents: co.myChargeCents, releasedCents: co.myHeldCents - co.myChargeCents });
     const caps = await Promise.all([friends[0], friends[1]].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.me.contributions.reduce((p: number, k: any) => p + (k.captured_cents ?? 0), 0)));
     const cap = (await org.get(`/api/bouquets/${b.id}`)).body.bouquet.capturedCents;
-    expect(caps.reduce((p: number, x: number) => p + x, 0)).toBe(cap); expect(cap).toBe(co.chargeCents); expect(after.text).toContain(`captured exactly ${$(cap)}`);
+    expect(caps.reduce((p: number, x: number) => p + x, 0)).toBe(cap); expect(cap).toBe(co.chargeCents); expect(after.text).toContain(`charged exactly ${$(cap)}`);
     const orgView = (await org.get(`/api/bouquets/${b.id}/explain`)).body.text; expect(orgView).toMatch(/You didn’t place a hold, so you paid nothing/);
   });
   it('shows Gemini wording only when it keeps every figure', async () => {

@@ -32,7 +32,7 @@ describe('natural-language chip-in (rules)', () => {
     expect(ok.holdNowCents).toBe(3000); expect(ok.summary).toBe('Hold $30 now, and the other $10 waits for payday (Friday).');
     expect(ok.scheduledTopUp).toEqual({ cents: 1000, on: '2026-10-23', phrase: 'Friday' }); expect(late.scheduledTopUp).toBeNull(); // payday after the deadline: no schedule
     const noPay = planChipIn({ softCents: 3000, capCents: 4000, payday: null, paydayPhrase: null }, { pledgedCents: 0, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: null });
-    expect(noPay.scheduledTopUp).toBeNull(); expect(noPay.summary).toMatch(/Your private cap is \$40/); // payday is optional expect(ok.warnings.join(' ')).toMatch(/unlocks Mug/);
+    expect(noPay.scheduledTopUp).toBeNull(); expect(noPay.summary).toMatch(/Your limit is \$40/); // payday is optional expect(ok.warnings.join(' ')).toMatch(/unlocks Mug/);
   });
 });
 

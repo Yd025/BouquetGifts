@@ -115,7 +115,7 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   let capCents = Math.max(100, Math.min(d.capCents, 1_000_000)); const softCents = Math.max(100, Math.min(d.softCents, capCents));
   const warnings: string[] = []; const buyBy = new Date(ctx.buyByAt);
   let condition: ChipInPlan['condition'] = null;
-  if (d.conditional && !ctx.conditionTier && !ctx.ambiguous) warnings.push(`I couldn’t match “${d.conditional.phrase}” to one of this gift’s tiers, so the extra ${money(d.conditional.cents - capCents)} isn’t planned. Try naming the upgrade as it appears on the tier list.`);
+  if (d.conditional && !ctx.conditionTier && !ctx.ambiguous) warnings.push(`I couldn’t match “${d.conditional.phrase}” to one of this gift’s items, so the extra ${money(d.conditional.cents - capCents)} isn’t planned. Try naming the upgrade as it appears on the tier list.`);
   if (d.conditional && ctx.conditionTier && d.conditional.cents > capCents) {
     const extra = d.conditional.cents - capCents; const t = ctx.conditionTier;
     // Holding the extra right now only makes sense if it actually finishes that tier now; otherwise it waits for a targeted top-up.
@@ -128,8 +128,8 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   const byDay = buyBy.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   if (d.payday && new Date(d.payday + 'T23:59:59Z').getTime() > buyBy.getTime())
     warnings.push(`Your payday (${d.paydayPhrase ?? d.payday}) is after the buy-by date (${byDay}). A hold isn’t a charge, but checkout can happen before you’re paid, so only hold what you’re comfortable with today.`);
-  if (ctx.pledgedCents > 0 && room < softCents) warnings.push(room === 0 ? `You already hold ${money(ctx.pledgedCents)}, which is your whole ${money(capCents)} cap.` : `You already hold ${money(ctx.pledgedCents)}, so only ${money(room)} more fits under your ${money(capCents)} cap.`);
-  if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle && !condition?.unlocksNow) warnings.push(`Nice: with the group’s holds, your ${money(holdNowCents)} unlocks ${ctx.nextTierTitle}.`);
+  if (ctx.pledgedCents > 0 && room < softCents) warnings.push(room === 0 ? `You already hold ${money(ctx.pledgedCents)}, which is your whole ${money(capCents)} limit.` : `You already hold ${money(ctx.pledgedCents)}, so only ${money(room)} more fits under your ${money(capCents)} cap.`);
+  if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle && !condition?.unlocksNow) warnings.push(`With everyone else’s holds, your ${money(holdNowCents)} unlocks ${ctx.nextTierTitle}.`);
   const later = Math.max(0, room - holdNowCents);
   const beforeDeadline = !!d.payday && new Date(d.payday + 'T00:00:00Z').getTime() <= buyBy.getTime();
   const scheduledTopUp = !condition && d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
@@ -140,7 +140,7 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
       : scheduledTopUp
     ? `Hold ${money(holdNowCents)} now, and the other ${money(later)} waits for payday (${scheduledTopUp.phrase}).`
     : capCents > softCents
-      ? `Hold ${money(holdNowCents)} now. Your private cap is ${money(capCents)}, so Bouquet can suggest a top-up later if the group is close.`
+      ? `Hold ${money(holdNowCents)} now. Your limit is ${money(capCents)} (only you see it), so we can suggest a top-up later if the group is close.`
       : `Hold ${money(holdNowCents)}, and that’s your limit.`;
   return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, conditional: d.conditional ?? null, holdNowCents, warnings, summary, scheduledTopUp, condition };
 }
@@ -161,32 +161,33 @@ export type ExplainFacts = {
 };
 /** The 3-line receipt (charged · released · why) a person can read in three seconds; the prose sits behind "Why?". */
 export function receipt(f: ExplainFacts): { mode: 'paid' | 'preview' | 'pending' | 'expired'; chargedCents: number; releasedCents: number; why: string } {
-  const tier = f.tierLevel !== null ? `tier ${f.tierLevel} of ${f.tiersCount} (${f.tierTitle}), ${money(f.chargeCents ?? 0)} in total` : '';
+  const tier = f.tierLevel !== null ? `${f.tierLevel} of ${f.tiersCount} items, up to ${f.tierTitle} (${money(f.chargeCents ?? 0)} total)` : '';
   if (f.status === 'purchased' || f.status === 'revealed') return { mode: 'paid', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `Bought ${tier}, split in proportion to each hold.` };
   if (f.status === 'expired') return { mode: 'expired', chargedCents: 0, releasedCents: f.myHeldCents, why: 'The buy-by date passed before checkout, so every hold was released.' };
-  if (f.tierLevel === null) return { mode: 'pending', chargedCents: 0, releasedCents: 0, why: 'The first tier isn’t funded yet, so nothing can be charged.' };
-  return { mode: 'preview', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `If checked out now: ${tier} is fully funded, split in proportion to each hold.` };
+  if (f.tierLevel === null) return { mode: 'pending', chargedCents: 0, releasedCents: 0, why: 'The first item isn’t funded yet, so nothing can be charged.' };
+  return { mode: 'preview', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `If bought now: ${tier}, fully funded and split in proportion to each hold.` };
 }
+const firstN = (n: number | null, title: string | null) => n === 1 ? `the first item (${title}) costs` : `the first ${n} items (up to ${title}) cost`;
 export function explainRules(f: ExplainFacts): string {
   const by = new Date(f.buyBy).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const who = f.isOrganizer ? 'you check out' : `${f.organizer} checks out`;
   if (f.status === 'purchased' || f.status === 'revealed') {
-    if (!f.myHeldCents) return `The group bought ${f.gift} for ${f.recipient} (tier ${f.tierLevel} of ${f.tiersCount}, ${money(f.chargeCents ?? 0)}). You didn’t place a hold, so you paid nothing.`;
+    if (!f.myHeldCents) return `The group bought ${f.gift} for ${f.recipient} (${f.tierLevel} of ${f.tiersCount} items, ${money(f.chargeCents ?? 0)}). You didn’t place a hold, so you paid nothing.`;
     const back = f.myHeldCents - f.myChargeCents;
-    return `You paid ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold.${back > 0 ? ` The other ${money(back)} went back to your card and was never charged.` : ''} Why: tier ${f.tierLevel} (${f.tierTitle}) cost ${money(f.chargeCents ?? 0)} in total and the group’s holds covered it, so Visa captured exactly ${money(f.chargeCents ?? 0)}, split in proportion to what each of the ${f.holders} friends held.`;
+    return `You paid ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold.${back > 0 ? ` The other ${money(back)} went back to your card and was never charged.` : ''} Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(f.chargeCents ?? 0)} in total and the group’s holds covered it, so the cards were charged exactly ${money(f.chargeCents ?? 0)}, split in proportion to what each of the ${f.holders} friends held.`;
   }
   if (f.status === 'expired') return `The buy-by date passed before checkout, so every hold was released. Nobody was charged${f.myHeldCents ? `, including your ${money(f.myHeldCents)} hold` : ''}.`;
   if (f.tierLevel === null) {
     const gap = f.firstTierGapCents ?? 0;
-    if (f.groupHidden) return `Nothing is charged yet. The first tier of ${f.gift} needs more holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
-    return `Nothing is charged yet. The first tier of ${f.gift} needs ${money(gap)} more in holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
+    if (f.groupHidden) return `Nothing is charged yet. The first item of ${f.gift} needs more holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
+    return `Nothing is charged yet. The first item of ${f.gift} needs ${money(gap)} more in holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
   }
   const back = f.myHeldCents - f.myChargeCents;
   const mine = f.myHeldCents ? `For ${f.recipient}’s gift: if ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
   // Wording matters as much as maths here: always "costs X, group holds Y (Y ≥ X)", then what is captured and what is released.
   const charge = f.chargeCents ?? 0, spare = f.heldCents - charge;
-  if (f.groupHidden) return `${mine} Why: tier ${f.tierLevel} (${f.tierTitle}) costs ${money(charge)} in total and it is fully funded, so Visa would capture exactly ${money(charge)}, split in proportion to each hold, and release anything above that. (Only two friends are holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That is the top tier.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;
-  const why = `Why: tier ${f.tierLevel} (${f.tierTitle}) costs ${money(charge)} in total and the group holds ${money(f.heldCents)}, so it is fully funded. Visa would capture exactly ${money(charge)}, split in proportion to each hold${spare > 0 ? `, and release the other ${money(spare)}` : ', using every hold in full'}.${f.nextTierGapCents ? ` ${f.nextTierTitle} would need ${money(f.nextTierGapCents)} more in holds.` : ' That is the top tier.'}`;
+  if (f.groupHidden) return `${mine} Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and that is fully funded, so the cards would be charged exactly ${money(charge)}, split in proportion to each hold, and anything above that is released. (Only two friends are holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That’s everything on the list.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;
+  const why = `Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and the group holds ${money(f.heldCents)}, so that is fully funded. The cards would be charged exactly ${money(charge)}, split in proportion to each hold${spare > 0 ? `, and the other ${money(spare)} is released` : ', using every hold in full'}.${f.nextTierGapCents ? ` ${f.nextTierTitle} would need ${money(f.nextTierGapCents)} more in holds.` : ' That’s everything on the list.'}`;
   return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
 }
 
