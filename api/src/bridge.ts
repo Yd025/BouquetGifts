@@ -232,9 +232,9 @@ export function conciergeRules(x: ConciergeIn, limit = 3): ConciergePick[] {
   const used = new Set<string>();
   const criteria: [string, (q: typeof shown[0]) => number, (s: typeof shown[0]) => string][] = [
     ['all', q => q.c.contributors.length, s => s.c.contributors.length === holders && holders > 1 ? `The only pick that draws on all ${holders} friends’ cards.` : `Draws on the most friends’ cards (${s.c.contributors.length} of ${holders}).`],
-    ['full', q => (q.reach && q.reach.thresholdCents === q.top ? 1 : 0), s => `The only one your budget covers in full today (${money(s.top)}).`],
-    ['rare', q => (q.c.rare ? 1 : 0), () => `The only rare fusion: 2+ friends named both of its traits on their own.`],
-    ['kept', q => q.keeps, s => `Its traits were kept most in the deck (×${s.keeps}).`],
+    ['full', q => (q.reach && q.reach.thresholdCents === q.top ? 1 : 0), s => `The only one your group’s limits cover in full today (${money(s.top)}).`],
+    ['rare', q => (q.c.rare ? 1 : 0), () => `The only rare find: at least two friends named both of these on their own.`],
+    ['kept', q => q.keeps, s => `Its cards were kept most in the deck (×${s.keeps}).`],
     ['cheap', q => -q.start, s => `Lowest starting price (${money(s.start)}), so it’s funded soonest.`],
     ['votes', q => q.c.votes, s => `Most votes so far (${s.c.votes}).`],
   ];

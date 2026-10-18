@@ -14,7 +14,7 @@ describe('gift concierge (rules)', () => {
     expect(picks.map(p => p.candidateId)).toEqual(['b', 'c', 'a']);
     expect(new Set(picks.map(p => p.standout)).size).toBe(3);
     expect(picks.find(p => p.candidateId === 'c')!.standout).toBe('The only pick that draws on all 3 friends’ cards.');
-    expect(picks.find(p => p.candidateId === 'a')!.standout).toBe('The only one your budget covers in full today ($90).');
+    expect(picks.find(p => p.candidateId === 'a')!.standout).toBe('The only one your group’s limits cover in full today ($90).');
     expect(picks[0].why).toContain('Uses Jon and Ana’s cards (not Sam’s)'); expect(picks[1].why).toContain('Uses Jon, Ana and Sam’s cards');
     expect(picks[0].budget).toEqual({ coversCents: 12000, items: 2, totalCents: 18000, items_total: 3, full: false }); expect(picks[0].nextUpgrade).toEqual({ title: 'Stove', priceCents: 18000 });
     for (const p of picks) expect(JSON.stringify(p)).not.toContain('13000');
