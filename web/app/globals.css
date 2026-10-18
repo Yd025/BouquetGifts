@@ -267,3 +267,10 @@ input,select,textarea{font-size:16px}
 .receipt .rl.why span:first-child{font-weight:700;min-width:36px}
 .whyprose{margin-top:8px;font-size:14px}
 .whyprose summary{cursor:pointer;color:#c2457f;font-weight:600}
+.badge.soft{background:#f4f1f3;color:#6b5a63;border-color:#e6dde2}
+/* phones: the minted card shrinks to fit and "Add to the bouquet" stays on screen */
+@media (max-width:600px),(max-height:760px){
+  .mintstage{max-height:calc(100dvh - 24px);overflow:auto;padding:8px 0 4px}
+  .mintstage .pop{width:min(220px,58vw)!important}
+  .mintstage [data-testid=mint-done]{position:sticky;bottom:8px;z-index:3;min-height:48px;box-shadow:0 6px 18px #c2457f40}
+}

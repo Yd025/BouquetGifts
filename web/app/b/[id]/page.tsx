@@ -116,7 +116,11 @@ function Funding({ s, act, setS }: any) {
   const pay = async (card: string, human: string | null) => { setErr('');
     try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: crypto.randomUUID() }, human })); return true; }
     catch (e: any) { setErr(e.message); return true; } };
-  return <>{b.status === 'funding' && !s.me.hasCard && s.me.role !== 'organizer' && <LateCard s={s} setS={setS} />}<div className={b.status === 'funding' ? 'grid2' : 'solo'}>
+  // Latch the late card: once shown it stays mounted until the friend finishes or skips, so a realtime refresh
+  // (which flips hasCard the moment the card is saved) can't yank the minted-card reveal mid-animation.
+  const [late, setLate] = useState<'off' | 'on' | 'done'>('off');
+  useEffect(() => { if (late === 'off' && b.status === 'funding' && !s.me.hasCard && s.me.role !== 'organizer') setLate('on'); }, [late, b.status, s.me.hasCard, s.me.role]);
+  return <>{late === 'on' && b.status === 'funding' && <LateCard s={s} setS={setS} onDone={() => setLate('done')} />}<div className={b.status === 'funding' ? 'grid2' : 'solo'}>
     {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}</div>}
     <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
       {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
@@ -202,10 +206,9 @@ function DemoDrawer({ s, reload }: any) {
 }
 
 /** After the money ask: add a card about the recipient (it goes in the reveal). Skippable, and collapsed until tapped. */
-function LateCard({ s, setS }: { s: any; setS: (x: any) => void }) {
-  const [open, setOpen] = useState(false); const [skip, setSkip] = useState(false);
-  if (skip) return null;
-  return <div className="panel latecard" data-testid="late-card">{open ? <Questionnaire s={s} setS={setS} onMint={() => {}} />
+function LateCard({ s, setS, onDone }: { s: any; setS: (x: any) => void; onDone: () => void }) {
+  const [open, setOpen] = useState(false); const setSkip = (_: boolean) => onDone();
+  return <div className="panel latecard" data-testid="late-card">{open ? <Questionnaire s={s} setS={(x: any) => { setS(x); onDone(); }} onMint={() => {}} />
     : <div className="row"><div className="grow"><b>Add something for {s.bouquet.recipientName}</b> <span className="muted">(30 seconds)</span><div className="muted" style={{ fontSize: 13 }}>A few taps and a memory. It goes in the reveal with everyone’s cards.</div></div>
       <button onClick={() => setOpen(true)} data-testid="late-card-open">Add my card</button><button className="ghost" onClick={() => setSkip(true)} data-testid="late-card-skip">Skip</button></div>}</div>;
 }

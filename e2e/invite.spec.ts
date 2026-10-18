@@ -31,6 +31,15 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await expect(p).toHaveURL(new RegExp(`/b/${b.id}`)); await expect(p.getByTestId('late-card')).toBeVisible();
   const st = await (await ctx.request.get(`/api/bouquets/${b.id}`)).json();
   expect(st.me.isGuest).toBe(true); expect(st.me.contributions).toMatchObject([{ amount_cents: 4000, status: 'held' }]);
-  await p.getByTestId('late-card-skip').click(); await expect(p.getByTestId('late-card')).toHaveCount(0);
+  // the optional card after the money ask: mint it on the phone; the minted card must not cover "Add to the bouquet"
+  await p.getByTestId('late-card-open').click();
+  await expect(p.getByTestId('q-card')).toBeVisible();
+  while (!(await p.getByTestId('q-memory').isVisible())) { await p.getByTestId('q-opt').first().click(); await p.waitForTimeout(400); }
+  await p.getByTestId('mint-card').click(); await expect(p.getByTestId('mint-done')).toBeVisible({ timeout: 5000 }); await p.waitForTimeout(500);
+  await expect(p.getByTestId('mint-done')).toBeInViewport();
+  const done = (await p.getByTestId('mint-done').boundingBox())!; const card = (await p.getByTestId('minted-card').boundingBox())!;
+  expect(await p.evaluate(([x, y]) => (document.elementFromPoint(x, y) as HTMLElement)?.closest('[data-testid=mint-done]') !== null, [done.x + done.width / 2, done.y + done.height / 2])).toBe(true);
+  void card; await p.screenshot({ path: '../screenshots/08c-card-minted-mobile.png' });
+  await p.getByTestId('mint-done').click(); await expect(p.getByTestId('late-card')).toHaveCount(0);
   expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
