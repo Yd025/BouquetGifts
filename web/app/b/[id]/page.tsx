@@ -7,7 +7,7 @@ import { Bloom, Flower, GrowVine, TraitCard } from '../../../components/Art';
 import { useCountUp } from '../../../components/Motion';
 import Deck from '../../../components/Deck';
 import Questionnaire from '../../../components/Questionnaire';
-import PaySheet from '../../../components/PaySheet';
+import PaySheet, { SimBlock } from '../../../components/PaySheet';
 import GiftStrip from '../../../components/GiftStrip';
 import ChipInAI from '../../../components/ChipInAI';
 import ExplainPay from '../../../components/ExplainPay';
@@ -225,7 +225,7 @@ function DemoDrawer({ s, reload }: any) {
         {b.isOrganizer && <button className="ghost" data-testid="demo-reset" onClick={() => run(async () => { const r = await api('/dev/reset-demo', { body: {} }); window.location.href = `/b/${r.bouquetId}`; return 'Fresh demo bouquet ready'; })}>Reset demo</button>}
       </div>
       <p className="muted" style={{ fontSize: 13 }}>“Try a stolen phone number” marks your number as recently moved to a new SIM and tries a $60 hold. The phone safety check blocks it, then the mark is cleared.</p>
-      {msg && <div className={msg.ok ? 'ok' : 'err'} role="status" data-testid="demo-msg">{msg.ok ? '✓ ' : ''}{msg.t}</div>}</div>}</div>;
+      {msg && (!msg.ok && /SIM/.test(msg.t) ? <div data-testid="demo-msg"><SimBlock /></div> : <div className={msg.ok ? 'ok' : 'err'} role="status" data-testid="demo-msg">{msg.ok ? '✓ ' : ''}{msg.t}</div>)}</div>}</div>;
 }
 
 /** After the money ask: add a card about the recipient (it goes in the reveal). Skippable, and collapsed until tapped. */
