@@ -516,10 +516,29 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     res.status(201); return state(bq.id, uid);
   }));
   /* ---------- lock: capture at highest funded tier, release the rest ---------- */
+  /** Settle pending holds with the processor, outside any DB transaction (no row locks held across a network call).
+   *  Each row moves pending → final with a guarded UPDATE, so a retry (or a second caller) never writes the ledger twice.
+   *  A processor error leaves the row pending; the next lock/sweep/withdraw call retries it. */
+  async function settlePending(bid: string) {
+    const rows = await db.query(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status IN ('capture_pending','release_pending') ORDER BY id`, [bid]);
+    let failed = 0;
+    for (const hd of rows) {
+      try { if (hd.status === 'capture_pending') await payments.capture(hd.hold_id, hd.captured_cents); else await payments.release(hd.hold_id); }
+      catch (e) { failed++; console.error('settle failed, will retry', hd.id, (e as Error).message); continue; }
+      await db.tx(async q => {
+        const fin = hd.status === 'capture_pending' ? 'captured' : 'released';
+        const done = await q(`UPDATE contributions SET status=$3 WHERE id=$1 AND status=$2 RETURNING id`, [hd.id, hd.status, fin]); if (!done.length) return;
+        const cap = fin === 'captured' ? hd.captured_cents : 0;
+        if (cap > 0) await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'capture',$3)`, [bid, hd.id, cap]);
+        if (hd.amount_cents - cap > 0) await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents - cap]);
+      });
+    }
+    return { failed };
+  }
   async function lock(bid: string) {
     const members = await db.query(`SELECT DISTINCT m.phone, m.display_name FROM members m JOIN contributions c ON c.member_id=m.id WHERE m.bouquet_id=$1 AND c.status='held'`, [bid]);
     for (const m of members) if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, `${m.display_name}'s SIM changed recently; ask them to re-verify before checkout`);
-    return db.tx(async q => {
+    const r = await db.tx(async q => {
       const [b] = await q('SELECT * FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);
       if (b.status === 'purchased' || b.status === 'revealed') return { already: true };
       if (b.status !== 'funding') fail(409, 'Not in funding stage');
@@ -529,17 +548,13 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       const tier = D.highestFundedTier(tiers, held); if (!tier) fail(409, 'Not funded yet — the first tier is not reached');
       const holds = await q(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status='held' ORDER BY id FOR UPDATE`, [bid]);
       const alloc = D.allocateCapture(holds, tier.threshold_cents);
-      for (const hd of holds) {
-        const amt = alloc.get(hd.id) ?? 0;
-        if (amt > 0) { await payments.capture(hd.hold_id, amt);
-          await q(`UPDATE contributions SET status='captured', captured_cents=$2 WHERE id=$1`, [hd.id, amt]);
-          await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'capture',$3)`, [bid, hd.id, amt]); }
-        else { await payments.release(hd.hold_id); await q(`UPDATE contributions SET status='released' WHERE id=$1`, [hd.id]); }
-        if (hd.amount_cents - amt > 0) await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents - amt]);
-      }
+      for (const hd of holds) { const amt = alloc.get(hd.id) ?? 0;
+        await q(`UPDATE contributions SET status=$2, captured_cents=$3 WHERE id=$1`, [hd.id, amt > 0 ? 'capture_pending' : 'release_pending', amt]); }
       await q(`UPDATE bouquets SET status='purchased', captured_tier_id=$2, captured_cents=$3 WHERE id=$1`, [bid, tier.id, tier.threshold_cents]);
       return { already: false };
     });
+    await settlePending(bid); // also retries anything left pending by an earlier processor error
+    return r;
   }
   app.post('/api/bouquets/:id/lock', h(async req => {
     const uid = auth(req); await requireOrganizer(String(req.params.id), uid);
@@ -553,12 +568,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       await db.tx(async q => {
         const [b] = await q('SELECT * FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);
         if (!['collecting', 'fusing', 'funding'].includes(b.status)) return;
-        for (const hd of await q(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status='held' FOR UPDATE`, [bid])) {
-          await payments.release(hd.hold_id); await q(`UPDATE contributions SET status='released' WHERE id=$1`, [hd.id]);
-          await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents]);
-        }
+        await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE bouquet_id=$1 AND status='held'`, [bid]);
         await q(`UPDATE bouquets SET status='expired' WHERE id=$1`, [bid]);
       });
+      await settlePending(bid);
       notify(bid, 'expired');
     }
     return due.length;
@@ -651,11 +664,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       const uid = auth(req); if (uid !== 'usr_demo') fail(403, 'Only the demo organizer can reset the demo');
       clock.offsetMs = 0;
       for (const { id: bid } of await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND recipient_name='Maya' AND status NOT IN ('expired')`, [uid])) {
-        await db.tx(async q => {
-          for (const hd of await q(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status='held' FOR UPDATE`, [bid])) {
-            await payments.release(hd.hold_id); await q(`UPDATE contributions SET status='released' WHERE id=$1`, [hd.id]);
-            await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents]); }
+        await db.tx(async q => { await q('SELECT id FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);
+          await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE bouquet_id=$1 AND status='held'`, [bid]);
           await q(`UPDATE bouquets SET status='expired' WHERE id=$1`, [bid]); });
+        await settlePending(bid);
         notify(bid, 'expired');
       }
       const id = await seedDemoBouquet(`http://127.0.0.1:${req.socket.localPort}`, deps.internalToken ?? '');
