@@ -460,11 +460,17 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bq.id]); const { held } = await fundedCents(bq.id); const nt = D.nextTier(tiers, held);
     // "the Record" can mean two tiers: never guess, offer a one-tap choice (the person's pick comes back as conditionTierId)
     const matches = draft!.conditional ? (conditionTierId ? tiers.filter((t: any) => t.id === conditionTierId) : B.matchTiers(draft!.conditional.phrase, tiers, nt)) : [];
-    const ct = matches.length === 1 ? matches[0] : null;
-    const choices = matches.length > 1 ? matches.map((t: any) => ({ tierId: t.id, title: t.title.replace(/^\+ /, ''), priceCents: t.threshold_cents })) : null;
+    // A look-alike ("Polaroid" when the gift has a 35mm camera) is never mapped silently: one tap "Did you mean the 35mm camera?"
+    const lookalike = !conditionTierId && matches.length === 1 && !/\b(next|upgrade|bigger|better|nicer)\b/i.test(draft!.conditional!.phrase) && !B.namesDirectly(draft!.conditional!.phrase, matches[0]);
+    const ct = matches.length === 1 && !lookalike ? matches[0] : null;
+    const choices = matches.length > 1 || lookalike ? matches.map((t: any) => ({ tierId: t.id, title: t.title.replace(/^\+ /, ''), priceCents: t.threshold_cents })) : null;
     const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: hideGap ? null : Math.max(0, ct.threshold_cents - held) } : null;
     const plan = B.planChipIn(draft!, { pledgedCents, buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt && !hideGap ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
-    return { heard: text, plan, choices, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
+    // More than the whole gift ("$1,000" on a $125 gift): offer a likely typo and the full amount instead of planning it.
+    const top = tiers.reduce((a: number, t: any) => Math.max(a, t.threshold_cents), 0);
+    const over = top > 0 && Math.max(draft!.capCents, draft!.conditional?.cents ?? 0) > top ? Math.max(draft!.capCents, draft!.conditional?.cents ?? 0) : 0;
+    const suggest = over ? [...new Set([Math.floor(over / 1000) * 100 <= top && over / 10 >= 100 ? Math.round(over / 10) : 0, top].filter(c => c >= 100 && c <= top))] : null;
+    return { heard: text, plan, choices, lookalike, overCents: over || null, suggest, giftTotalCents: top, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
   }
   app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);

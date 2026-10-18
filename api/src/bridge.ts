@@ -85,6 +85,12 @@ export function matchTiers<T extends { title: string; level: number; items?: str
   const top = Math.max(0, ...scored.map(x => x.n));
   return scored.filter(x => x.n === top).sort((a, b) => a.t.level - b.t.level).map(x => x.t);
 }
+/** True when the phrase names something actually in that tier (not just a look-alike via synonyms, e.g. "Polaroid" for a 35mm camera). */
+export function namesDirectly(phrase: string, t: { title: string; items?: string[] }) {
+  const words = (x: string) => x.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length >= 3 && !['the', 'and', 'with', 'for', 'set', 'kit', 'one', 'get', 'too', 'if'].includes(w));
+  const have = words([t.title, ...(t.items ?? [])].join(' '));
+  return words(phrase).some(w => have.some(h => h === w || (w.length >= 4 && (h.startsWith(w) || w.startsWith(h)))));
+}
 /** The single tier a phrase means, or null when it matches none or several. */
 export function matchTier<T extends { title: string; level: number; items?: string[] }>(phrase: string, tiers: T[], next: T | null): T | null {
   const m = matchTiers(phrase, tiers, next); return m.length === 1 ? m[0] : null;

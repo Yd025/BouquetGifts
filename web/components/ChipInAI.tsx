@@ -30,7 +30,9 @@ export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { b
     {err && <div className="err" role="alert" data-testid="chipin-error">{err}</div>}
     {p && <div className="readback pop" data-testid="chipin-plan">
       <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard<span className="sronly" data-testid="chipin-source">{r.source === 'gemini' ? 'read by AI' : 'read by rules'}</span></div>
-      {r.choices && <div className="schedule" data-testid="chipin-choices"><b>Which one did you mean by “{p.conditional?.phrase}”?</b>
+      {r.overCents && <div className="schedule" data-testid="chipin-over"><b>That’s more than the whole gift ({$(r.giftTotalCents)}).</b> {r.suggest?.length ? 'Did you mean:' : ''}
+        <div className="row" style={{ marginTop: 6, flexWrap: 'wrap', gap: 6 }}>{(r.suggest ?? []).map((c: number) => <button key={c} className="ghost sm tap" data-testid="chipin-suggest" onClick={() => { const t = `$${c / 100}`; setText(t); understand(t); }}>{c === r.giftTotalCents ? `The whole gift, ${$(c)}` : $(c)}</button>)}</div></div>}
+      {r.choices && <div className="schedule" data-testid="chipin-choices"><b>{r.lookalike && r.choices.length === 1 ? `This gift doesn’t have “${p.conditional?.phrase}”. Did you mean the ${r.choices[0].title}?` : `Which one did you mean by “${p.conditional?.phrase}”?`}</b>
         <div className="row" style={{ marginTop: 6, flexWrap: 'wrap', gap: 6 }}>{r.choices.map((c: any) => <button key={c.tierId} className="ghost sm" data-testid="chipin-choice" onClick={() => understand(text, c.tierId)}>{c.title}</button>)}</div>
         <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Until you pick, only the {$(p.holdNowCents)} part is planned.</div></div>}
       {p.condition && <div className="condbig" data-testid="chipin-condition"><b>{$(p.holdNowCents)} now, up to <span data-testid="chipin-cap-cond">{$(p.capCents)}</span> for the {cap(p.condition.tierTitle)}</b>
@@ -44,7 +46,7 @@ export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { b
       {p.condition && <p className="sronly" data-testid="chipin-summary">{p.summary}</p>}
       {p.warnings.map((w: string) => <p key={w} className="muted" style={{ fontSize: 13, margin: '4px 0' }} data-testid="chipin-warning">ⓘ {w}</p>)}
       <div className="row" style={{ marginTop: 10 }}>
-        <button disabled={busy || p.holdNowCents < 100} data-testid="chipin-confirm" onClick={async () => { setBusy(true); try { await onConfirm(p); setR(null); setText(''); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }}>
+        <button disabled={busy || p.holdNowCents < 100 || !!r.overCents} data-testid="chipin-confirm" onClick={async () => { setBusy(true); try { await onConfirm(p); setR(null); setText(''); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }}>
           {p.holdNowCents >= 100 ? `Looks right: hold ${$(p.holdNowCents)}` : 'You’ve reached your limit'}</button>
         <button className="ghost" onClick={() => setR(null)}>Not quite</button></div>
       <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>Nothing is held until you confirm. Only you see your limit.</p>

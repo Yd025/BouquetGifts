@@ -103,3 +103,24 @@ describe('POST /join/:token/chip-in/understand', { timeout: 30000 }, () => {
     expect((await org.get(`/api/bouquets/${b.id}`)).body.totals.heldCents).toBe(0);
   });
 });
+
+describe('chip-in sanity on the real endpoint', { timeout: 60000 }, () => {
+  it('a look-alike item is asked about, not mapped; an amount above the whole gift offers a fix; payday from "paid Friday"', async () => {
+    const { fundingBouquet } = await import('./helpers.js'); const { MockAi } = await import('../src/adapters.js');
+    const { friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose();
+    const top = Math.max(...ch.tiers.map((t: any) => t.thresholdCents));
+    const big = (await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: `$${(top * 8) / 100} max` })).body;
+    expect(big.overCents).toBeGreaterThan(top); expect(big.suggest).toContain(top);
+    const pd = (await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '$20 now, $30 max, I get paid Friday' })).body;
+    expect(pd.plan.payday).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const zz = (await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '$20, or $30 if we get the zeppelin' })).body;
+    expect(zz.plan.condition).toBeNull(); // nothing silently mapped
+  });
+});
+describe('look-alikes', () => {
+  it('"Polaroid" matches a 35mm camera only as a look-alike (so the UI asks), the camera itself matches directly', async () => {
+    const { matchTiers, namesDirectly } = await import('../src/bridge.js');
+    const t = [{ id: 'a', title: 'Kodak Gold film', level: 1 }, { id: 'b', title: '+ Peanuts 35mm film camera', level: 2 }];
+    expect(matchTiers('the Polaroid', t, null).map(x => x.id)).toEqual(['b']); expect(namesDirectly('the Polaroid', t[1])).toBe(false); expect(namesDirectly('the camera', t[1])).toBe(true);
+  });
+});
