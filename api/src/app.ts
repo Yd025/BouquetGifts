@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Db } from './db.js';
 import { Payments, NetworkVerify, Ai, PaymentError, Turnstile, makeTurnstile } from './adapters.js';
 import { Storage, FsStorage, cardSvg } from './storage.js';
+import { seedDemoBouquet } from './seed.js';
 import { coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
 import * as D from './domain.js';
 import * as B from './bridge.js';
@@ -603,14 +604,32 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
 
   /* ---------- demo fake clock ---------- */
   if (deps.demo ?? process.env.DEMO_MODE === '1') {
-    app.post('/api/dev/clock', h(async req => { clock.offsetMs = Number(req.body?.offsetMs ?? 0); const n = await sweep(); return { now: clock.now(), offsetMs: clock.offsetMs, expired: n }; }));
+    // Demo-only time travel: signed-in members only, bounded to [0, 60 days] ahead, and undone by /api/dev/reset-demo.
+    app.post('/api/dev/clock', h(async req => {
+      const uid = auth(req); const b = z.object({ offsetMs: z.number().min(0).max(60 * 864e5), bouquetId: z.string() }).parse(req.body ?? {});
+      await requireMember(b.bouquetId, uid); clock.offsetMs = b.offsetMs; const n = await sweep(); return { now: clock.now(), offsetMs: clock.offsetMs, expired: n }; }));
     app.post('/api/dev/simswap', h(async req => {
       const uid = auth(req); const bid = z.object({ bouquetId: z.string(), on: z.boolean().default(true) }).parse(req.body);
       const m = await requireMember(bid.bouquetId, uid); if (!m.phone) fail(400, 'No phone on file');
       if (!(network as any).markSwapped) fail(400, 'Only available with the mock network');
       (network as any).markSwapped(m.phone, bid.on); return { phone: m.phone, swapped: bid.on };
     }));
-    app.post('/api/dev/sweep', h(async () => ({ expired: await sweep() })));
+    app.post('/api/dev/sweep', h(async req => { auth(req); return { expired: await sweep() }; }));
+    // Fresh demo: only the demo organizer. Releases every hold on the old demo bouquet(s), resets the clock, and seeds a new ready "Maya" bouquet.
+    app.post('/api/dev/reset-demo', h(async req => {
+      const uid = auth(req); if (uid !== 'usr_demo') fail(403, 'Only the demo organizer can reset the demo');
+      clock.offsetMs = 0;
+      for (const { id: bid } of await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND recipient_name='Maya' AND status NOT IN ('expired')`, [uid])) {
+        await db.tx(async q => {
+          for (const hd of await q(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status='held' FOR UPDATE`, [bid])) {
+            await payments.release(hd.hold_id); await q(`UPDATE contributions SET status='released' WHERE id=$1`, [hd.id]);
+            await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents]); }
+          await q(`UPDATE bouquets SET status='expired' WHERE id=$1`, [bid]); });
+        notify(bid, 'expired');
+      }
+      const id = await seedDemoBouquet(`http://127.0.0.1:${req.socket.localPort}`, deps.internalToken ?? '');
+      return { bouquetId: id };
+    }));
   }
 
   app.use((err: any, _req: Request, res: Response, _n: NextFunction) => {

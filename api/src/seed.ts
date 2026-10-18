@@ -20,14 +20,14 @@ export const DEMO_MEMORIES: Record<string, string> = {
   sam: 'Every road trip, I drive and you DJ. You have never once let me pick a song, and honestly you were right every time.',
 };
 /** Builds a ready-to-play demo bouquet through the public API so all business rules apply. Idempotent. */
-export async function seedDemoBouquet(base: string, internalToken = '') {
+export async function seedDemoBouquet(base: string, internalToken = ''): Promise<string> {
   const login = async (email: string) => { const r = await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: 'bouquet123' }) });
     return (r.headers.get('set-cookie') ?? '').split(';')[0]; };
   const call = async (cookie: string, path: string, body?: any) => { const r = await fetch(base + '/api' + path, { method: body ? 'POST' : 'GET', headers: { cookie, 'content-type': 'application/json', 'x-internal-seed': internalToken }, body: body ? JSON.stringify(body) : undefined });
     const j: any = await r.json(); if (!r.ok) throw new Error(path + ': ' + j.error); return j; };
   const org = await login('demo@bouquet.gift');
-  const existing = (await call(org, '/bouquets')).bouquets.find((b: any) => b.recipientName === 'Maya');
-  if (existing && existing.members >= 4) return;
+  const existing = (await call(org, '/bouquets')).bouquets.find((b: any) => b.recipientName === 'Maya' && b.status !== 'expired');
+  if (existing && existing.members >= 4) return existing.id;
   // Reuse (repair) a partially seeded demo bouquet instead of creating a duplicate.
   const b = existing ? (await call(org, `/bouquets/${existing.id}`)).bouquet : (await call(org, '/bouquets', { recipientName: 'Maya', occasion: 'Birthday', note: 'Maya turns 25! Demo bouquet: add your own card, then fuse.', neededBy: new Date(Date.now() + 14 * 864e5).toISOString(), shipBufferDays: 3, budgetMaxCents: 8000 })).bouquet;
   const picks: Record<string, string[]> = { jon: ['Sunrise Hiker', 'Coffee Snob'], priya: ['Film Shooter', 'Sunrise Hiker'], sam: ['Music Head', 'Film Shooter'] };
@@ -42,4 +42,5 @@ export async function seedDemoBouquet(base: string, internalToken = '') {
     await call(c, `/bouquets/${b.id}/cards`, { answers, story: DEMO_MEMORIES[who] });
   }
   console.log('Seeded demo bouquet for Maya:', b.id);
+  return b.id;
 }
