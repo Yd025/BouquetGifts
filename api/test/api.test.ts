@@ -197,7 +197,7 @@ describe('deck picks + hand fusion', () => {
 });
 
 describe('guest join, lazy account, organizer-only invite, art, compliments, sim swap', () => {
-  it('guest joins with name+phone only, must claim before a hold', async () => {
+  it('guest joins with name+phone only and can hold before saving an account', async () => {
     const { org, b } = await setup(0);
     const st = (await org.get(`/api/bouquets/${b.id}`)).body; expect(st.bouquet.inviteUrl).toBe(`https://bouquet.example/join/${b.inviteToken}`);
     const g = agent(); const j = await g.post(`/api/join/${b.inviteToken}`).send({ displayName: 'Guesty', phone: '+12065550123' });
@@ -211,9 +211,10 @@ describe('guest join, lazy account, organizer-only invite, art, compliments, sim
     const fused = (await org.post(`/api/bouquets/${b.id}/fuse`)).body; expect(fused.candidates.length).toBeGreaterThanOrEqual(3);
     expect(fused.candidates.some((c: any) => c.kind === 'safe')).toBe(true); expect(fused.candidates[0].citedCardIds.length).toBeGreaterThan(0);
     await org.post(`/api/bouquets/${b.id}/choose`);
-    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: VISA, idempotencyKey: 'guest-key-1' })).status).toBe(403);
-    expect((await g.post('/api/auth/claim').send({ email: `guesty${Math.random()}@x.io`, password: 'password1' })).status).toBe(200);
+    // no signup wall before the hold: a guest can chip in, and saving an account afterwards is optional
     expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: VISA, idempotencyKey: 'guest-key-1' })).status).toBe(201);
+    expect((await g.post('/api/auth/claim').send({ email: `guesty${Math.random()}@x.io`, password: 'password1' })).status).toBe(200);
+    expect((await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardNumber: VISA, idempotencyKey: 'guest-key-1' })).status).toBe(200); // idempotent replay
     // demo SIM swap blocks big holds for that friend
     await g.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: 20000 });
     expect((await g.post('/api/dev/simswap').send({ bouquetId: b.id })).status).toBe(200);

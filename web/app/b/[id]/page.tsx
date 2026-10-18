@@ -116,7 +116,7 @@ function Funding({ s, act, setS }: any) {
   const pay = async (card: string, human: string | null) => { setErr('');
     try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: crypto.randomUUID() }, human })); return true; }
     catch (e: any) { setErr(e.message); return true; } };
-  return <div className={b.status === 'funding' ? 'grid2' : 'solo'}>
+  return <>{b.status === 'funding' && !s.me.hasCard && s.me.role !== 'organizer' && <LateCard s={s} setS={setS} />}<div className={b.status === 'funding' ? 'grid2' : 'solo'}>
     {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}</div>}
     <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
       {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
@@ -166,7 +166,7 @@ function Funding({ s, act, setS }: any) {
         <button disabled={!s.totals.currentTier} onClick={() => act('/lock')} data-testid="checkout">Check out the bouquet</button></div>}
       {sheet && <PaySheet amountCents={Math.round(amt * 100)} recipient={b.recipientName} onClose={() => setSheet(false)} onPay={pay} />}
     </div>}
-  </div>;
+  </div></>;
 }
 
 function Purchased({ s }: any) {
@@ -199,4 +199,13 @@ function DemoDrawer({ s, reload }: any) {
       </div>
       <p className="muted" style={{ fontSize: 13 }}>“Simulate SIM-swapped friend” flags your own number as just swapped and tries a $60 hold. The <span className="badge">T-Mobile</span> SIM Swap check blocks it, then the flag is cleared.</p>
       {msg && <div className={msg.ok ? 'ok' : 'err'} role="status" data-testid="demo-msg">{msg.ok ? '✓ ' : '⛔ '}{msg.t}</div>}</div>}</div>;
+}
+
+/** After the money ask: add a card about the recipient (it goes in the reveal). Skippable, and collapsed until tapped. */
+function LateCard({ s, setS }: { s: any; setS: (x: any) => void }) {
+  const [open, setOpen] = useState(false); const [skip, setSkip] = useState(false);
+  if (skip) return null;
+  return <div className="panel latecard" data-testid="late-card">{open ? <Questionnaire s={s} setS={setS} onMint={() => {}} />
+    : <div className="row"><div className="grow"><b>Add something for {s.bouquet.recipientName}</b> <span className="muted">(30 seconds)</span><div className="muted" style={{ fontSize: 13 }}>A few taps and a memory. It goes in the reveal with everyone’s cards.</div></div>
+      <button onClick={() => setOpen(true)} data-testid="late-card-open">Add my card</button><button className="ghost" onClick={() => setSkip(true)} data-testid="late-card-skip">Skip</button></div>}</div>;
 }

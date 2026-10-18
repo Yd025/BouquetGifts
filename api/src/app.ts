@@ -188,16 +188,35 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (!b) fail(404, 'This invite link is not valid');
     const uid = userOf(req); const m = uid ? await memberOf(b.id, uid) : null;
     const [{ n }] = await db.query('SELECT COUNT(*)::int AS n FROM members WHERE bouquet_id=$1', [b.id]);
-    return { bouquetId: b.id, recipientName: b.recipient_name, occasion: b.occasion, organizer: b.organizer, buyByAt: b.buy_by_at, status: b.status, members: n, alreadyMember: !!m };
+    // Funding already open: the invite leads with the money ask (gift, price, how many are in), so a friend can chip in from one screen.
+    let gift = null;
+    if (b.status === 'funding' && b.chosen_candidate_id) {
+      const [c] = await db.query('SELECT * FROM candidates WHERE id=$1', [b.chosen_candidate_id]);
+      const tiers = await db.query('SELECT level,title,threshold_cents FROM gift_tiers WHERE bouquet_id=$1 ORDER BY level', [b.id]);
+      const [{ h: holders }] = await db.query(`SELECT COUNT(DISTINCT member_id)::int AS h FROM contributions WHERE bouquet_id=$1 AND status='held'`, [b.id]);
+      const p = c ? publicProduct(productAt(c.title, 1, c.trait_labels)) : null;
+      gift = { title: c?.title ?? 'the gift', photoUrl: p?.photoUrl ?? null, startCents: tiers[0]?.threshold_cents ?? 0, topCents: tiers[tiers.length - 1]?.threshold_cents ?? 0,
+        tiers: tiers.map((t: any) => ({ level: t.level, title: t.title.replace(/^\+ /, ''), thresholdCents: t.threshold_cents })), holders: Number(holders) };
+    }
+    return { bouquetId: b.id, recipientName: b.recipient_name, occasion: b.occasion, organizer: b.organizer, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days, status: b.status, members: n, alreadyMember: !!m, gift };
   }));
   app.post('/api/join/:token', h(async (req, res) => {
     await human(req);
-    const b = z.object({ displayName: z.string().min(1), phone: z.string().min(7), budgetMinCents: z.number().int().min(0).default(0), budgetMaxCents: z.number().int().min(100).default(5000) }).parse(req.body);
+    const b = z.object({ displayName: z.string().min(1), phone: z.string().min(7), budgetMinCents: z.number().int().min(0).default(0), budgetMaxCents: z.number().int().min(100).default(5000),
+      // optional one-screen chip-in: join and place the hold in one step (one human check), as a guest; an account is optional afterwards
+      hold: z.object({ amountCents: z.number().int().min(100), cardNumber: z.string(), idempotencyKey: z.string().min(8) }).optional() }).parse(req.body);
     let uid = userOf(req);
     if (b.budgetMinCents > b.budgetMaxCents) fail(400, 'Minimum budget cannot exceed maximum');
     const [bq] = await db.query('SELECT * FROM bouquets WHERE invite_token=$1', [String(req.params.token)]); if (!bq) fail(404, 'This invite link is not valid');
     if (!['collecting', 'fusing', 'funding'].includes(bq.status) || deadlinePassed(bq)) fail(409, 'This bouquet is closed to new friends');
-    if (uid) { const existing = await memberOf(bq.id, uid); if (existing) return state(bq.id, uid); }
+    const holdFor = async (memberId: string) => { if (!b.hold) return;
+      if (bq.status !== 'funding') fail(409, 'Chipping in opens once the group picks the gift');
+      const [m] = await db.query('SELECT * FROM members WHERE id=$1', [memberId]);
+      const dup = (await db.query('SELECT member_id FROM contributions WHERE idempotency_key=$1', [b.hold.idempotencyKey]))[0];
+      if (dup) { if (dup.member_id !== memberId) fail(409, 'Idempotency key reuse'); return; }
+      if (b.budgetMaxCents > m.budget_max_cents) await db.query('UPDATE members SET budget_max_cents=$2 WHERE id=$1', [memberId, b.budgetMaxCents]), m.budget_max_cents = b.budgetMaxCents;
+      await placeHold(bq, m, b.hold.amountCents, { cardNumber: b.hold.cardNumber }, b.hold.idempotencyKey); };
+    if (uid) { const existing = await memberOf(bq.id, uid); if (existing) { await holdFor(existing.id); return state(bq.id, uid); } }
     const verified = await network.numberVerify(b.phone);
     if (!verified) fail(422, 'We could not verify that phone number with the network');
     if (!uid) { // guest join: name + phone only; the account is completed lazily at the hold step
@@ -209,7 +228,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     await db.query('UPDATE users SET phone=$2, phone_verified_at=$3 WHERE id=$1', [uid, b.phone, clock.now().toISOString()]);
     await db.query('INSERT INTO members (id,bouquet_id,user_id,display_name,role,phone,network_verified,budget_min_cents,budget_max_cents,flower_back) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
       [mid, bq.id, uid, b.displayName, 'friend', b.phone, true, b.budgetMinCents, b.budgetMaxCents, JSON.stringify(D.flowerBack(mid))]);
-    notify(bq.id, 'member_joined'); return state(bq.id, uid!);
+    notify(bq.id, 'member_joined');
+    await holdFor(mid);
+    return state(bq.id, uid!);
   }));
   app.patch('/api/bouquets/:id/budget', h(async req => {
     const uid = auth(req); const m = await requireMember(String(req.params.id), uid);
@@ -232,7 +253,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
   app.post('/api/bouquets/:id/cards', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
-    if (bq.status !== 'collecting') fail(409, 'Cards are closed — the group already fused');
+    // Late joiners (after the money ask) can still add a card: it won't change the chosen gift, but it goes in the reveal.
+    if (!['collecting', 'fusing', 'funding'].includes(bq.status)) fail(409, 'Cards are closed — the gift was already bought');
     const b = z.object({ answers: z.record(z.string(), z.number().int().min(0).max(3)), story: z.string().max(400).optional() }).parse(req.body);
     const drawn = D.drawQuestions(m.id);
     for (const q of drawn) if (b.answers[q.id] === undefined) fail(400, `Please answer: ${q.prompt}`);
@@ -382,7 +404,6 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   app.post('/api/bouquets/:id/contributions', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     const b = z.object({ amountCents: z.number().int().min(100), cardNumber: z.string(), idempotencyKey: z.string().min(8) }).parse(req.body);
-    if ((await db.query('SELECT is_guest FROM users WHERE id=$1', [uid]))[0]?.is_guest) fail(403, 'Save your account (email + password) before placing a hold');
     const dup = (await db.query('SELECT * FROM contributions WHERE idempotency_key=$1', [b.idempotencyKey]))[0];
     if (dup) { if (dup.member_id !== m.id) fail(409, 'Idempotency key reuse'); return state(bq.id, uid); }
     if (bq.status !== 'funding') fail(409, 'Funding is not open');

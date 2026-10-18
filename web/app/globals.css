@@ -246,3 +246,14 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
 .rbgrid [data-testid=chipin-cap-cond]{display:block}
 .topup-group{margin-top:8px;font-size:14px}
 .sronly{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.chipfirst h1{font-size:24px;line-height:1.2}
+.cf-photo{width:100%;max-height:220px;object-fit:contain;border-radius:14px;background:#fff7fb;margin:8px 0}
+.cf-meta{font-size:15px;margin:4px 0 10px}
+.cf-amts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cf-amts button{min-height:44px;min-width:64px;font-size:16px}
+.cf-amts input{width:96px;min-height:44px}
+.cf-go{width:100%;min-height:48px;margin-top:14px;font-size:17px}
+.cf-fine{font-size:13px;margin-top:8px}
+/* phones: 16px inputs (no iOS zoom on focus) and 44px tap targets */
+input,select,textarea{font-size:16px}
+@media (max-width:600px){main button,main .btn,main a.btn{min-height:44px}}

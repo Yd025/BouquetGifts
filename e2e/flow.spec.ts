@@ -168,7 +168,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     await settle(f.getByTestId('pay-sheet')); await expectCrisp(f.getByTestId('pay-sheet'), f.getByTestId('pay-confirm')); // opaque, nothing stacked over the Hold button
     expect(await f.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden'); // page behind the modal is scroll-locked
     if (k === 0) await f.screenshot({ path: SHOTS + '10b-pay-sheet.png' });
-    await f.getByTestId('pay-confirm').click(); await expect(f.getByText(/•••• 4242/)).toBeVisible();
+    await f.getByTestId('pay-confirm').click(); await expect(f.getByText('Visa •••• 4242', { exact: true }).first()).toBeVisible();
     await expect(f.getByTestId('pay-sheet')).toHaveCount(0); expect(await f.evaluate(() => document.body.style.overflow)).toBe(''); // lock released on close
     await expect(f.getByTestId('hold')).toHaveText(`Add $${amounts[k]} more with Visa`); // a second hold reads as adding, not replacing
     if (await f.getByTestId('unlock-pop').waitFor({ timeout: 2500 }).then(() => true, () => false)) { pops++; if (pops === 1) await f.screenshot({ path: SHOTS + '10c-unlock-pop.png', fullPage: true, style: NOFAB }); }
