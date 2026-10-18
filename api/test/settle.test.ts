@@ -37,3 +37,16 @@ describe('withdraw my hold', { timeout: 30000 }, () => {
     expect((await friends[1].post(`/api/bouquets/${b.id}/contributions/withdraw`)).status).toBe(409); // too late: bought
   });
 });
+
+describe('organizer cancel', { timeout: 30000 }, () => {
+  it('releases every hold, marks the room cancelled, and only the organizer can do it', async () => {
+    const visa = new MockVisaPayments(); const { org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: visa }); await choose();
+    for (const [i, f] of friends.entries()) expect((await f.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1500, cardNumber: VISA, idempotencyKey: `c${i}-${b.id}` })).status).toBe(201);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/cancel`)).status).toBe(403);
+    const r = await org.post(`/api/bouquets/${b.id}/cancel`); expect(r.status).toBe(200);
+    expect(r.body.bouquet.status).toBe('expired'); expect(r.body.bouquet.cancelled).toBe(true); expect(r.body.totals.heldCents).toBe(0);
+    for (const f of friends) expect((await f.get(`/api/bouquets/${b.id}`)).body.me.contributions.every((c: any) => c.status === 'released')).toBe(true);
+    expect((await org.post(`/api/bouquets/${b.id}/cancel`)).status).toBe(409);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1500, cardNumber: VISA, idempotencyKey: `c9-${b.id}` })).status).toBe(409);
+  });
+});

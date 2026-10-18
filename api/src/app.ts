@@ -126,7 +126,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const shownTotal = blurred ? (D.highestFundedTier(tiers, total)?.threshold_cents ?? 0) : total;
     return {
       now: clock.now().toISOString(),
-      bouquet: { id: b.id, recipientName: b.recipient_name, occasion: b.occasion, note: b.note, status: b.status, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days,
+      bouquet: { id: b.id, recipientName: b.recipient_name, occasion: b.occasion, note: b.note, status: b.status, cancelled: !!b.cancelled_at, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days,
         inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null,
         chosenCandidateId: b.chosen_candidate_id, capturedTierId: b.captured_tier_id, capturedCents: b.captured_cents, isOrganizer: b.organizer_id === uid,
         deadlinePassed: deadlinePassed(b) },
@@ -568,6 +568,17 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       return rows.length; });
     await settlePending(bq.id); notify(bq.id, 'contribution');
     return { ...(await state(bq.id, uid)), withdrawn: n };
+  }));
+  // Organizer calls it off before checkout: every hold is released, nobody is charged, the room says so.
+  app.post('/api/bouquets/:id/cancel', h(async req => {
+    const uid = auth(req); const bq = await requireOrganizer(String(req.params.id), uid);
+    await db.tx(async q => {
+      const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
+      if (!['collecting', 'fusing', 'funding'].includes(cur.status)) fail(409, 'Only a bouquet that hasn’t been bought can be cancelled');
+      await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE bouquet_id=$1 AND status='held'`, [bq.id]);
+      await q(`UPDATE bouquets SET status='expired', cancelled_at=now() WHERE id=$1`, [bq.id]); });
+    await settlePending(bq.id); notify(bq.id, 'expired');
+    return state(bq.id, uid);
   }));
   app.post('/api/bouquets/:id/lock', h(async req => {
     const uid = auth(req); await requireOrganizer(String(req.params.id), uid);

@@ -52,7 +52,7 @@ export default function Room({ params }: { params: { id: string } }) {
         <div style={{ textAlign: 'right' }}>{['purchased', 'revealed'].includes(b.status)
           ? <><div className="deadline done" data-testid="countdown">{b.status === 'revealed' ? `✓ Opened by ${b.recipientName}` : '✓ Purchased in time'}</div>
             <div className="muted">Checked out ahead of the {new Date(b.buyByAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} buy-by date ({b.shipBufferDays} shipping days built in)</div></>
-          : <><div className="deadline" data-testid="countdown">{b.status === 'expired' ? 'Expired — all holds released' : countdown(b.buyByAt, s.now)}</div>
+          : <><div className="deadline" data-testid="countdown">{b.status === 'expired' ? (b.cancelled ? 'Cancelled by the organizer — all holds released, nobody charged' : 'Expired — all holds released') : countdown(b.buyByAt, s.now)}</div>
             <div className="muted">Buy by {new Date(b.buyByAt).toLocaleString()} · {b.shipBufferDays} shipping days</div></>}</div></div>
       <div className={'live' + (demoMode ? ' sronly' : '')} data-testid="live" data-mode={live.mode} title={live.mode === 'websocket' ? 'Live via Cloudflare Durable Object' : live.mode === 'sse' ? 'Live via server-sent events (fallback)' : 'Connecting…'}>
         <span className={'dot ' + live.mode} />{live.mode === 'websocket' ? `Live room${live.online.length ? ` · ${live.online.length} here now` : ''}` : live.mode === 'sse' ? 'Live (fallback)' : 'Connecting…'}</div>
@@ -60,7 +60,8 @@ export default function Room({ params }: { params: { id: string } }) {
       <div className="members">{s.members.map((m: any) => <div className="member" key={m.id}><Flower fb={m.flowerBack} size={28} />{m.displayName}{m.role === 'organizer' && ' ★'}
         {m.networkVerified && <span className="badge soft" title="Phone check passed">✓ phone</span>}{m.hasCard && <span className="chip">card</span>}</div>)}</div>
       {b.isOrganizer && ['collecting', 'fusing', 'funding'].includes(b.status) && <div style={{ marginTop: 16 }}><label>Invite friends with this link</label>
-        <div className="copy"><input readOnly value={invite} data-testid="invite-link" /><button className="ghost" onClick={() => navigator.clipboard?.writeText(invite)}>Copy</button></div></div>}
+        <div className="copy"><input readOnly value={invite} data-testid="invite-link" /><button className="ghost" onClick={() => navigator.clipboard?.writeText(invite)}>Copy</button></div>
+        <button className="ghost sm" style={{ marginTop: 10 }} data-testid="cancel-bouquet" onClick={() => { if (confirm('Cancel this bouquet? Every hold is released and nobody is charged. This can’t be undone.')) act('/cancel'); }}>Cancel bouquet</button></div>}
       {err && <div className="err" role="alert">{err}</div>}
     </div>
     {b.status === 'collecting' && <Collecting s={s} act={act} setS={setS} />}
