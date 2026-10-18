@@ -410,3 +410,9 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
 @media (hover: hover) { .opt:hover { border-color: var(--pink); transform: translateY(-1px); box-shadow: 0 6px 14px #e2588f1a; } }
 .opt.sel { animation: optPick .35s cubic-bezier(.3,1.8,.5,1); } @keyframes optPick { 50% { transform: scale(1.03); } }
 html[data-auto] .route-in { animation: none; } html[data-auto] [data-reveal] { opacity: 1; transform: none; transition: none; }
+/* ---------- dashboard: each gift as a little tag ---------- */
+.list a.item { color: var(--ink); border-radius: 22px 22px 22px 8px; padding: 14px 20px 14px 14px; }
+.list a.item .dashimg { width: 64px; height: 64px; padding: 5px 5px 12px; background: #fff; border-radius: 4px; box-shadow: 0 6px 14px #9b5a7a2e; transform: rotate(-4deg); transition: transform .35s cubic-bezier(.3,1.6,.5,1); object-fit: contain; }
+.list a.item:nth-child(2n) .dashimg { transform: rotate(3deg); }
+@media (hover: hover) { .list a.item:hover .dashimg { transform: rotate(0) scale(1.06); } }
+.list a.item b, .list a.item strong { font-family: Fraunces, Georgia, serif; font-size: 18px; }
