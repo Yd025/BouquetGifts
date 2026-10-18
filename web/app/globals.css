@@ -475,3 +475,7 @@ html[data-auto] .cands.reveal > .cand { animation: none; }
 .sayrow button{min-height:44px;min-width:44px;padding:0 12px}
 
 .condbig b span{font-size:inherit;display:inline}
+
+/* "You're in" pinned at the top of the room */
+#youin-slot .youin{margin:0 0 14px;position:relative}
+.presets button.on{background:var(--rose,#e2588f);color:#fff;border-color:transparent}

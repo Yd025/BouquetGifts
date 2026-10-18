@@ -1,4 +1,5 @@
 'use client';
+import { createPortal } from 'react-dom';
 import { tokenizeCard } from '../../../lib/tokenize';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -51,6 +52,7 @@ export default function Room({ params }: { params: { id: string } }) {
   const cardsDown = b.status === 'fusing' && !s.candidates?.some((c: any) => c.votes > 0); // friends' cards stay face down until the first gift is made
   const invite = b.inviteUrl ?? (typeof window !== 'undefined' && b.inviteToken ? `${location.origin}/join/${b.inviteToken}` : '');
   return <>
+    <div id="youin-slot" />
     {b.status === 'needs_attention' && <div className="panel holdnotice" role="alert" data-testid="needs-attention"><span><b>Checkout is paused.</b> A card payment didn’t go through, so the gift isn’t bought yet and no store has been paid. Nobody is charged more than their hold.</span></div>}
     <div className="panel">
       <div className="row"><div className="grow"><h1 data-testid="room-title">{b.recipientName}’s {String(b.occasion).toLowerCase()} gift</h1>
@@ -111,11 +113,16 @@ function Funding({ s, act, setS }: any) {
   const b = s.bouquet; const top = s.tiers[s.tiers.length - 1]?.thresholdCents ?? 1; const total = s.totals.fundedCents;
   const pledged = s.me.contributions.filter((c: any) => c.status === 'held').reduce((a: number, c: any) => a + c.amount_cents, 0);
   const room = Math.max(0, s.me.budgetMaxCents - pledged);
-  const [amt, setAmt] = useState(20); const [sheet, setSheet] = useState(false); const [err, setErr] = useState(''); const [pop, setPop] = useState<string | null>(null);
+  // Same default and presets as the invite page: the first preset is about a third of the first item, between $10 and $30.
+  const first = Math.min(30, Math.max(10, Math.ceil((s.tiers?.[0]?.thresholdCents || 3000) / 300))); const presets = [...new Set([first, Math.round((first + 40) / 2), 40])];
+  const [amt, setAmt] = useState(first); const [sheet, setSheet] = useState(false); const [err, setErr] = useState(''); const [pop, setPop] = useState<string | null>(null);
   const [bud, setBud] = useState({ min: s.me.budgetMinCents / 100, max: s.me.budgetMaxCents / 100 }); const [claim, setClaim] = useState({ email: '', password: '' });
   const [manual, setManual] = useState(false); const [wd, setWd] = useState(0); // wd: remount the asks after a withdraw so nothing stale shows
   // The "you're in" moment: from the invite (?held=) or right after paying here. Top-up asks stay quiet for 24h after you chip in.
   const [justIn, setJustIn] = useState(0); const [quiet, setQuiet] = useState(false);
+  // The confirmation sits at the very top of the room (above the stage bar), and we scroll up to it.
+  const [slot, setSlot] = useState<HTMLElement | null>(null); useEffect(() => setSlot(document.getElementById('youin-slot')), []);
+  useEffect(() => { if (justIn > 0) window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, [justIn]);
   useEffect(() => { const h = Number(new URLSearchParams(location.search).get('held') ?? 0); if (h > 0) { setJustIn(h); localStorage.setItem(`bq-in-${b.id}`, String(Date.now())); }
     setQuiet(Date.now() - Number(localStorage.getItem(`bq-in-${b.id}`) ?? 0) < 864e5); }, [b.id]);
   const last4 = s.me.contributions.filter((c: any) => c.status === 'held').slice(-1)[0]?.card_last4;
@@ -156,34 +163,38 @@ function Funding({ s, act, setS }: any) {
         <span className="thr"><b>{$(t.product?.priceCents ?? (t.thresholdCents - (s.tiers[s.tiers.indexOf(t) - 1]?.thresholdCents ?? 0)))}</b><small>unlocks at {$(t.thresholdCents)}</small></span></div>)}</div>
     </div>
     {b.status === 'funding' && <div className="panel"><h2>Chip in</h2>
-      {justIn > 0 && <div className="youin pop" data-testid="you-in"><b>✓ You’re in for {$(justIn)}</b>{last4 ? <> · •••• {last4}</> : ''} · hold only, released {short(b.buyByAt)} if it isn’t bought<button className="ghost sm x" aria-label="Dismiss" onClick={() => setJustIn(0)}>✕</button></div>}
+      {justIn > 0 && slot && createPortal(<div className="youin pop pinned" data-testid="you-in"><b>✓ You’re in for {$(justIn)}</b>{last4 ? <> · •••• {last4}</> : ''} · hold only, released {short(b.buyByAt)} if it isn’t bought<button className="ghost sm x" aria-label="Dismiss" onClick={() => setJustIn(0)}>✕</button></div>, slot)}
       {s.me.holdNotice && <div className="holdnotice" role="alert" data-testid="hold-notice"><span>{s.me.holdNotice}</span><button className="btn sm" onClick={() => { setManual(true); setSheet(true); }}>Hold again</button></div>}
       {!quiet && <TopUp key={'t' + wd} s={s} setS={setS} />}
       <ChipInAI key={'c' + wd} bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null, condition: p.condition ? { tierId: p.condition.tierId, baseCents: p.capCents - p.condition.extraCents } : null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
-      <button className="linkish" data-testid="enter-amounts" aria-expanded={manual} onClick={() => setManual(!manual)}>{manual ? 'Hide amounts' : 'Enter amounts instead'}</button>
+      {pledged === 0 && <div className="basicamt" data-testid="basic-amounts">
+        <div className="row presets" style={{ gap: 8, flexWrap: 'wrap' }}>{presets.map(v => <button key={v} className={`ghost tap ${amt === v ? 'on' : ''}`} onClick={() => setAmt(v)} data-testid="room-preset">${v}</button>)}
+          <input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} aria-label="Amount in dollars" style={{ width: 90, fontSize: 16 }} /></div>
+        <div style={{ marginTop: 10 }}><button className="tap" onClick={() => setSheet(true)} data-testid="hold">{`Chip in ${$(Math.round(amt * 100))}`}</button></div></div>}
+      <button className="linkish tap" data-testid="enter-amounts" aria-expanded={manual} onClick={() => setManual(!manual)}>{manual ? 'Hide' : 'Adjust'}</button>
       <div hidden={!manual} data-testid="manual">
         <label>My limit ($)</label>
         <div className="row"><input name="budgetMin" type="number" min={0} value={bud.min} onChange={e => setBud({ ...bud, min: Number(e.target.value) })} style={{ width: 110 }} /><span>to</span>
           <input name="budgetMax" type="number" min={1} value={bud.max} onChange={e => setBud({ ...bud, max: Number(e.target.value) })} style={{ width: 110 }} />
           <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100), condition: null }, 'PATCH')} data-testid="save-budget">Save</button></div>
         <p className="muted" style={{ fontSize: 13 }}>Only you see this. You’ve put in {$(pledged)}, {$(room)} to go.</p>
-        <label>{pledged > 0 ? 'Add to your hold ($)' : 'Chip in ($)'}</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
-        <div style={{ marginTop: 14 }}>{pledged > 0 && room <= 0 ? <span className="muted" data-testid="at-limit">You’re at your limit. Raise it above to add more.</span>
-          : <button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more` : `Chip in ${$(Math.round(amt * 100))}`}</button>}</div>
+        {pledged > 0 && <><label>Add to your hold ($)</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
+        <div style={{ marginTop: 14 }}>{room <= 0 ? <span className="muted" data-testid="at-limit">You’re at your limit. Raise it above to add more.</span>
+          : <button className="tap" onClick={() => setSheet(true)} data-testid="hold">{`Add ${$(Math.round(amt * 100))} more`}</button>}</div>
+        <div style={{ marginTop: 10 }}><button className="ghost sm" data-testid="withdraw" onClick={async () => { if (!confirm(`Take back your ${$(pledged)}? The hold comes off your card and nothing is charged.`)) return; setErr('');
+            try { setS(await api(`/bouquets/${b.id}/contributions/withdraw`, { body: {} })); setWd(x => x + 1); setJustIn(0); } catch (e: any) { setErr(e.message); } }}>Take my money back</button></div></>}
       </div>
-      <div style={{ marginTop: 10 }}>{pledged > 0 && <button className="ghost sm" data-testid="withdraw" onClick={async () => { if (!confirm(`Take back your ${$(pledged)}? The hold comes off your card and nothing is charged.`)) return; setErr('');
-            try { setS(await api(`/bouquets/${b.id}/contributions/withdraw`, { body: {} })); setWd(x => x + 1); setJustIn(0); } catch (e: any) { setErr(e.message); } }}>Take my money back</button>}</div>
       {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Card •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {({ held: 'on hold', captured: 'paid', released: 'returned', capture_pending: 'paying…', release_pending: 'returning…' } as any)[c.status] ?? c.status}</span></div>)}</div>}
       {s.me.isGuest && pledged > 0 && <details className="claimbox" data-testid="claim"><summary>Get a receipt and change it later (optional)</summary>
         <label>Email</label><input name="claimEmail" type="email" value={claim.email} onChange={e => setClaim({ ...claim, email: e.target.value })} />
         <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
         <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save</button></div></details>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">{err}</div>}
-      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). Until 3 friends are in, the exact split stays private.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
+      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). Nobody sees what anyone else gives.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
       {!s.me.isGuest && <ExplainPay bid={b.id} />}
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
-        <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · {s.totals.blurred ? 'amounts stay private until 3+ friends are in' : 'nobody sees anyone’s amount'}</div>
+        <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · Nobody sees what anyone else gives.</div>
         <div className="who">{s.members.map((m: any) => <div className="wrow" key={m.id} data-testid="who-row"><Flower fb={m.flowerBack} size={24} /><span className="grow">{m.id === s.me.id ? `${m.displayName} (you)` : m.displayName}{m.role === 'organizer' ? ' ★' : ''}</span>
           <span className={`st ${m.holding ? 'on' : ''}`}>{m.holding ? '✓ in' : 'not yet'}</span></div>)}</div>
         <div className="dl" data-testid="deadline-box"><b>{countdown(b.buyByAt, s.now)}</b> to buy (until {short(b.buyByAt)}). If it isn’t bought by then, every hold comes off and nobody pays.</div></div>
