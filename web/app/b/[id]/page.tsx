@@ -9,6 +9,7 @@ import PaySheet from '../../../components/PaySheet';
 import GiftStrip from '../../../components/GiftStrip';
 import ChipInAI from '../../../components/ChipInAI';
 import ExplainPay from '../../../components/ExplainPay';
+import Concierge from '../../../components/Concierge';
 
 const STAGES = [['collecting', 'Cards'], ['fusing', 'Fuse & vote'], ['funding', 'Bloom & fund'], ['purchased', 'Purchased'], ['revealed', 'Revealed']];
 
@@ -55,6 +56,7 @@ export default function Room({ params }: { params: { id: string } }) {
     </div>
     {b.status === 'collecting' && <Collecting s={s} act={act} setS={setS} />}
     {b.status === 'fusing' && <Deck s={s} setS={setS} act={act} />}
+    {b.status === 'fusing' && <Concierge s={s} act={act} />}
     {['funding', 'purchased', 'revealed', 'expired'].includes(b.status) && s.tiers.length > 0 && <Funding s={s} act={act} setS={setS} />}
     {['purchased', 'revealed'].includes(b.status) && <Purchased s={s} />}
     <DemoDrawer s={s} reload={load} />

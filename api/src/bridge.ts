@@ -115,3 +115,24 @@ export function explainRules(f: ExplainFacts): string {
   const why = `Why tier ${f.tierLevel}: the ${f.holders === 1 ? 'one hold covers' : `${f.holders} holds cover`} it fully (${money(f.chargeCents ?? 0)} of ${money(f.heldCents)} held)${f.nextTierGapCents ? `, and ${f.nextTierTitle} needs ${money(f.nextTierGapCents)} more` : ', and it is the top tier'}.`;
   return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
 }
+
+/* ---------- gift concierge ---------- */
+export type ConciergeIn = { candidates: { id: string; title: string; rare: boolean; traits: string[]; votes: number; citedFriends: string[]; tiers: { level: number; title: string; thresholdCents: number }[] }[];
+  traitKeeps: Record<string, number>; groupBudgetCents: number; members: number };
+export type ConciergePick = { candidateId: string; title: string; score: number; reachableTier: { level: number; title: string; thresholdCents: number } | null;
+  nextTier: { level: number; title: string; thresholdCents: number } | null; why: string };
+/** Rank gifts by what the group actually kept and voted for, then check them against everyone's combined budget caps.
+ * Only the reachable tier is shown, never the sum, so no one can back out a friend's private budget. */
+export function conciergeRules(x: ConciergeIn): ConciergePick[] {
+  return x.candidates.map(c => {
+    const keeps = c.traits.reduce((a, t) => a + (x.traitKeeps[t] ?? 0), 0);
+    const tiers = [...c.tiers].sort((a, b) => a.thresholdCents - b.thresholdCents);
+    const reach = [...tiers].reverse().find(t => t.thresholdCents <= x.groupBudgetCents) ?? null;
+    const nxt = tiers.find(t => t.thresholdCents > x.groupBudgetCents) ?? null;
+    const fits = reach ? reach.level : 0;
+    const score = keeps * 2 + c.votes * 3 + (c.rare ? 2 : 0) + c.citedFriends.length + fits;
+    const kept = c.traits.filter(t => x.traitKeeps[t]).map(t => `${t} (kept ×${x.traitKeeps[t]})`);
+    const why = `${kept.length ? `Built on ${kept.join(' and ')}` : `Built on ${c.traits.join(' and ')}`}${c.citedFriends.length ? `, from ${c.citedFriends.join(', ')}’s cards` : ''}. ${reach ? `Your group’s combined budget reaches tier ${reach.level} (${money(reach.thresholdCents)}).` : `Even tier 1 (${money(tiers[0]?.thresholdCents ?? 0)}) is above the group’s combined budget so far.`}`;
+    return { candidateId: c.id, title: c.title, score, reachableTier: reach, nextTier: nxt ? { level: nxt.level, title: nxt.title.replace(/^\+ /, ''), thresholdCents: nxt.thresholdCents } : null, why };
+  }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+}

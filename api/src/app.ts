@@ -401,6 +401,21 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const rules = B.explainRules(facts); const friendly = await ai.reword('explain', rules);
     return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules) };
   }));
+  // 3) Gift concierge: ranks the gifts on the table from the group's kept cards + votes, checks them against everyone's combined budget caps,
+  //    and says which tier the group can reach and what the next upgrade costs. Gemini rewords the top pick's "why" (figures checked).
+  app.get('/api/bouquets/:id/concierge', h(async req => {
+    const uid = auth(req); const st: any = await state(String(req.params.id), uid);
+    if (st.bouquet.status !== 'fusing') fail(409, 'The concierge helps while the group is picking a gift');
+    const tiers = await db.query('SELECT candidate_id, level, title, threshold_cents FROM gift_tiers WHERE bouquet_id=$1 ORDER BY level', [st.bouquet.id]);
+    const [{ total }] = await db.query('SELECT COALESCE(SUM(budget_max_cents),0)::int AS total FROM members WHERE bouquet_id=$1', [st.bouquet.id]);
+    const traitKeeps = Object.fromEntries(st.traits.map((t: any) => [t.label, t.keptCount]));
+    const picks = B.conciergeRules({ traitKeeps, groupBudgetCents: Number(total), members: st.members.length,
+      candidates: st.candidates.map((c: any) => ({ id: c.id, title: c.title, rare: c.rare, traits: c.traits, votes: c.votes, citedFriends: c.citedFriends,
+        tiers: tiers.filter((t: any) => t.candidate_id === c.id).map((t: any) => ({ level: t.level, title: t.title, thresholdCents: t.threshold_cents })) })) }).slice(0, 3);
+    let source = 'rules';
+    if (picks[0]) { const w = await ai.reword('concierge', `${picks[0].title}: ${picks[0].why}`); if (w) { picks[0].why = w; source = 'gemini'; } }
+    return { picks, source, members: st.members.length };
+  }));
   /* ---------- lock: capture at highest funded tier, release the rest ---------- */
   async function lock(bid: string) {
     const members = await db.query(`SELECT DISTINCT m.phone, m.display_name FROM members m JOIN contributions c ON c.member_id=m.id WHERE m.bouquet_id=$1 AND c.status='held'`, [bid]);
