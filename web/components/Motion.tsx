@@ -18,7 +18,7 @@ export default function Motion() {
       fx.appendChild(el); setTimeout(() => el.remove(), 900);
     };
     const onDown = (e: PointerEvent) => {
-      if (calm()) return;
+      if (calm() || navigator.webdriver) return; // no tap effects in automated runs (keeps screenshots clean)
       const t = (e.target as HTMLElement)?.closest?.('button, .btn') as HTMLElement | null;
       if (!t || (t as HTMLButtonElement).disabled || t.closest('[data-nofx]')) return;
       const primary = !t.classList.contains('ghost') && !t.classList.contains('opt') && !t.classList.contains('stack') && !t.classList.contains('link');

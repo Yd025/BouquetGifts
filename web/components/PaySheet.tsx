@@ -11,7 +11,7 @@ export default function PaySheet({ amountCents, recipient, onClose, onPay }: { a
   const [show, setShow] = useState(false);
   return <Overlay onClick={onClose}><div className="paysheet" onClick={e => e.stopPropagation()} data-testid="pay-sheet" role="dialog" aria-label="Chip in">
     <div className="row"><b className="grow">For {recipient}’s gift</b><button className="ghost sm" onClick={onClose} aria-label="Close">✕</button></div>
-    <div className="payamt">{$(amountCents)}</div><div className="muted" style={{ marginTop: -6 }}>a hold, not a charge</div>
+    <div className="payamt">{$(amountCents)}</div><div className="muted" style={{ marginTop: -6, textAlign: 'center' }}>a hold, not a charge</div>
     <div className="visacard"><div className="row"><span className="chipgold" /><span className="grow" /><b className="visa">{digits.startsWith('4') ? 'VISA' : digits.startsWith('5') ? 'MC' : ''}</b></div>
       <input aria-label="Card number" data-testid="card-input" className="cardnum" value={show ? digits.replace(/(\d{4})(?=\d)/g, '$1 ') : masked} onFocus={() => setShow(true)} onBlur={() => setShow(false)}
         onChange={e => setRaw(e.target.value)} inputMode="numeric" />
