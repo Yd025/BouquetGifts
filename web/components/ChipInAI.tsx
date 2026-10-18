@@ -4,7 +4,7 @@ import { api, $ } from '../lib/api';
 /** "Just say it": a friend types how they want to chip in; Gemini turns it into a soft amount, a private cap and a payday, read back for confirmation before any Visa hold. */
 export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (plan: any) => Promise<void> }) {
   const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [r, setR] = useState<any>(null); const [err, setErr] = useState('');
-  const understand = async (t = text) => { setErr(''); setBusy(true); try { setR(await api(`/bouquets/${bid}/chip-in/understand`, { body: { text: t } })); } catch (e: any) { setErr(e.message); setR(null); } finally { setBusy(false); } };
+  const understand = async (t = text, conditionTierId?: string) => { setErr(''); setBusy(true); try { setR(await api(`/bouquets/${bid}/chip-in/understand`, { body: { text: t, conditionTierId } })); } catch (e: any) { setErr(e.message); setR(null); } finally { setBusy(false); } };
   // 🎙 Say it out loud: the browser's own speech recognition (Web Speech API, free, on-device or browser-provided) fills the box, then we read it back.
   const [canMic, setCanMic] = useState(false); const [listening, setListening] = useState(false); const rec = useRef<any>(null);
   useEffect(() => { setCanMic(!!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)); }, []);
@@ -29,13 +29,18 @@ export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (
     {err && <div className="err" role="alert" data-testid="chipin-error">{err}</div>}
     {p && <div className="readback pop" data-testid="chipin-plan">
       <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard · <span data-testid="chipin-source">{r.source === 'gemini' ? 'read by Gemini' : 'read by Bouquet rules · amounts only from your words'}</span></div>
+      {r.choices && <div className="schedule" data-testid="chipin-choices">🤔 <b>Which one did you mean by “{p.conditional?.phrase}”?</b>
+        <div className="row" style={{ marginTop: 6, flexWrap: 'wrap', gap: 6 }}>{r.choices.map((c: any) => <button key={c.tierId} className="ghost sm" data-testid="chipin-choice" onClick={() => understand(text, c.tierId)}>{c.title}</button>)}</div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Until you pick, only the {$(p.holdNowCents)} part is planned.</div></div>}
+      {p.condition && <div className="condbig" data-testid="chipin-condition"><b data-testid="chipin-cap-cond">{$(p.capCents)} cap, only for the {p.condition.tierTitle} tier</b>
+        <span>{p.condition.unlocksNow ? `Holding it now unlocks that tier right away.` : `+${$(p.condition.extraCents)} is offered as a one-tap top-up only if the group goes for it. Nothing extra is held today.`}</span></div>}
       <div className="rbgrid">
-        <div><span className="muted">Comfortable</span><b data-testid="chipin-soft">{$(p.softCents)}</b></div>
-        <div><span className="muted">Private cap</span><b data-testid="chipin-cap">{$(p.condition ? p.capCents - p.condition.extraCents : p.capCents)}</b>{p.condition && <span className="muted" style={{ fontSize: 12 }} data-testid="chipin-cap-cond">{$(p.capCents)} for {p.condition.tierTitle}</span>}</div>
-        <div><span className="muted">Payday (optional)</span><b data-testid="chipin-payday">{payday ?? "not given"}</b></div></div>
-      {p.condition && <div className="schedule" data-testid="chipin-condition">🎯 <b>Extra {$(p.condition.extraCents)} only for {p.condition.tierTitle}</b>{p.condition.unlocksNow ? ' — and holding it now unlocks that tier right away.' : ', offered as a one-tap top-up only when the group is going for that tier. Nothing extra is held today.'}</div>}
+        <div><span className="muted">Now</span><b data-testid="chipin-soft">{$(p.holdNowCents)}</b></div>
+        <div><span className="muted">Max</span><b data-testid="chipin-cap">{$(p.condition ? p.capCents - p.condition.extraCents : p.capCents)}</b>{p.condition && <span className="muted" style={{ fontSize: 12 }}>+{$(p.condition.extraCents)} for {p.condition.tierTitle}</span>}</div>
+        <div><span className="muted">{payday ? `More on ${payday.split(',')[0]}` : 'Payday'}</span><b data-testid="chipin-payday">{p.scheduledTopUp ? $(p.scheduledTopUp.cents) : '—'}</b></div></div>
       {p.scheduledTopUp && <div className="schedule" data-testid="chipin-schedule">📅 <b>{payday}: payday top-up of up to {$(p.scheduledTopUp.cents)}</b>, offered with one tap only if the group still needs it. Nothing is held for it today.</div>}
-      <p style={{ margin: '8px 0' }} data-testid="chipin-summary">{p.summary}</p>
+      {!p.condition && <p style={{ margin: '8px 0' }} data-testid="chipin-summary">{p.summary}</p>}
+      {p.condition && <p className="sronly" data-testid="chipin-summary">{p.summary}</p>}
       {p.warnings.map((w: string) => <p key={w} className="muted" style={{ fontSize: 13, margin: '4px 0' }} data-testid="chipin-warning">ⓘ {w}</p>)}
       <div className="row" style={{ marginTop: 10 }}>
         <button disabled={busy || p.holdNowCents < 100} data-testid="chipin-confirm" onClick={async () => { setBusy(true); try { await onConfirm(p); setR(null); setText(''); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } }}>

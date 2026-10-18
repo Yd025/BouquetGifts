@@ -63,6 +63,8 @@ describe('GET /explain', { timeout: 30000 }, () => {
     const after = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
     const paid = me.contributions.reduce((x: number, k: any) => x + (k.captured_cents ?? 0), 0);
     expect(after.text).toContain(`You paid ${$(paid)} of your ${$(a)} hold`);
+    expect(after.receipt).toMatchObject({ mode: 'paid', chargedCents: paid, releasedCents: a - paid }); // receipt lines reconcile to the hold
+    expect(pre.receipt).toMatchObject({ mode: 'preview', chargedCents: co.myChargeCents, releasedCents: co.myHeldCents - co.myChargeCents });
     const caps = await Promise.all([friends[0], friends[1]].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.me.contributions.reduce((p: number, k: any) => p + (k.captured_cents ?? 0), 0)));
     const cap = (await org.get(`/api/bouquets/${b.id}`)).body.bouquet.capturedCents;
     expect(caps.reduce((p: number, x: number) => p + x, 0)).toBe(cap); expect(cap).toBe(co.chargeCents); expect(after.text).toContain(`captured exactly ${$(cap)}`);

@@ -70,16 +70,23 @@ export function conditionalIn(text: string): (ChipInCondition & { at: number; en
   const cents = Math.round(Number(amt.replace(/[^\d.]/g, '')) * 100); if (!cents || !phrase) return null;
   return { cents, phrase, at: m.index, end: m.index + m[0].length };
 }
-/** Which tier a phrase like "the Polaroid" or "the next tier" means (word overlap with the tier title/items). */
+// everyday words for the same thing ("the record" can mean an LP or the record-care kit, so it must match both and ask)
+const SYN: Record<string, string[]> = { record: ['vinyl', 'lp', 'album'], vinyl: ['record', 'lp'], lp: ['vinyl', 'record'], album: ['vinyl', 'lp', 'record'],
+  camera: ['polaroid', 'instax'], polaroid: ['camera', 'instant'], film: ['35mm'], turntable: ['record player', 'player'], mug: ['cup'], cup: ['mug'], plant: ['succulent', 'pearls'], coffee: ['espresso', 'beans', 'pour'] };
+/** Every tier a phrase like "the Polaroid" could mean, best matches first. More than one equally good match → ask the person, don't guess. */
+export function matchTiers<T extends { title: string; level: number; items?: string[] }>(phrase: string, tiers: T[], next: T | null): T[] {
+  if (/\b(next|upgrade|bigger|better|nicer)\b/i.test(phrase) && next) return [next];
+  const words = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length >= 2 && !['the', 'and', 'with', 'for', 'set', 'kit', 'one', 'we', 'us', 'get', 'too', 'an'].includes(w));
+  const want = words(phrase); if (!want.length) return [];
+  const scored = tiers.map(t => { const have = words([t.title, ...(t.items ?? [])].join(' '));
+    const hit = (w: string) => have.some(h => h === w || (w.length >= 4 && (h.startsWith(w) || w.startsWith(h))));
+    return { t, n: want.filter(w => hit(w) || (SYN[w] ?? []).some(hit)).length }; }).filter(x => x.n > 0);
+  const top = Math.max(0, ...scored.map(x => x.n));
+  return scored.filter(x => x.n === top).sort((a, b) => a.t.level - b.t.level).map(x => x.t);
+}
+/** The single tier a phrase means, or null when it matches none or several. */
 export function matchTier<T extends { title: string; level: number; items?: string[] }>(phrase: string, tiers: T[], next: T | null): T | null {
-  if (/\b(next|upgrade|bigger|better|nicer)\b/i.test(phrase) && next) return next;
-  const words = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w.length >= 3 && !['the', 'and', 'with', 'for', 'set', 'kit', 'one'].includes(w));
-  const want = words(phrase); if (!want.length) return null;
-  let best: T | null = null, score = 0;
-  for (const t of tiers) { const have = new Set(words([t.title, ...(t.items ?? [])].join(' ')));
-    const n = want.filter(w => have.has(w) || [...have].some(h => h.startsWith(w) || w.startsWith(h))).length;
-    if (n > score || (n === score && best && t.level < best.level)) { best = t; score = n; } }
-  return score ? best : null;
+  const m = matchTiers(phrase, tiers, next); return m.length === 1 ? m[0] : null;
 }
 
 /** Rule-based understanding of "I can do about $30, $40 max, and I get paid Friday". Null when no amount was said. */
@@ -104,11 +111,11 @@ export function groundedAmount(cents: number, text: string) { return amountsIn(t
 /** Turn an understood draft into what we'll do: the hold amount (never above budget room), warnings, and a read-back sentence. */
 export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt: string; nextTierGapCents: number | null; nextTierTitle?: string | null;
   /** The tier the conditional phrase matched (if any), and how far the group is from it right now. */
-  conditionTier?: { id: string; title: string; isNext: boolean; gapCents: number } | null }): ChipInPlan {
+  conditionTier?: { id: string; title: string; isNext: boolean; gapCents: number } | null; /** the phrase matched several tiers: the UI asks which */ ambiguous?: boolean }): ChipInPlan {
   let capCents = Math.max(100, Math.min(d.capCents, 1_000_000)); const softCents = Math.max(100, Math.min(d.softCents, capCents));
   const warnings: string[] = []; const buyBy = new Date(ctx.buyByAt);
   let condition: ChipInPlan['condition'] = null;
-  if (d.conditional && !ctx.conditionTier) warnings.push(`I couldn’t match “${d.conditional.phrase}” to one of this gift’s tiers, so the extra ${money(d.conditional.cents - capCents)} isn’t planned. Try naming the upgrade as it appears on the tier list.`);
+  if (d.conditional && !ctx.conditionTier && !ctx.ambiguous) warnings.push(`I couldn’t match “${d.conditional.phrase}” to one of this gift’s tiers, so the extra ${money(d.conditional.cents - capCents)} isn’t planned. Try naming the upgrade as it appears on the tier list.`);
   if (d.conditional && ctx.conditionTier && d.conditional.cents > capCents) {
     const extra = d.conditional.cents - capCents; const t = ctx.conditionTier;
     // Holding the extra right now only makes sense if it actually finishes that tier now; otherwise it waits for a targeted top-up.
@@ -122,14 +129,14 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   if (d.payday && new Date(d.payday + 'T23:59:59Z').getTime() > buyBy.getTime())
     warnings.push(`Your payday (${d.paydayPhrase ?? d.payday}) is after the buy-by date (${byDay}). A hold isn’t a charge, but checkout can happen before you’re paid, so only hold what you’re comfortable with today.`);
   if (ctx.pledgedCents > 0 && room < softCents) warnings.push(room === 0 ? `You already hold ${money(ctx.pledgedCents)}, which is your whole ${money(capCents)} cap.` : `You already hold ${money(ctx.pledgedCents)}, so only ${money(room)} more fits under your ${money(capCents)} cap.`);
-  if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle) warnings.push(`Nice: ${money(holdNowCents)} alone unlocks ${ctx.nextTierTitle}.`);
+  if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle && !condition?.unlocksNow) warnings.push(`Nice: with the group’s holds, your ${money(holdNowCents)} unlocks ${ctx.nextTierTitle}.`);
   const later = Math.max(0, room - holdNowCents);
   const beforeDeadline = !!d.payday && new Date(d.payday + 'T00:00:00Z').getTime() <= buyBy.getTime();
   const scheduledTopUp = !condition && d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
   const summary = condition?.unlocksNow
     ? `Hold ${money(holdNowCents)} now: that unlocks ${condition.tierTitle} right away, which is exactly what your ${money(condition.cents)} was for.`
     : condition
-      ? `Hold ${money(holdNowCents)} now. Your extra ${money(condition.extraCents)} is kept only for ${condition.tierTitle}: Bouquet offers it as a one-tap top-up${d.payday && beforeDeadline ? ` (from payday, ${d.paydayPhrase ?? d.payday})` : ''} if the group is going for that tier, never for anything else.`
+      ? `Hold ${money(holdNowCents)} now. +${money(condition.extraCents)} only if the group goes for the ${condition.tierTitle}${d.payday && beforeDeadline ? ` (from payday, ${d.paydayPhrase ?? d.payday})` : ''}.`
       : scheduledTopUp
     ? `Hold ${money(holdNowCents)} now, and the other ${money(later)} waits for payday (${scheduledTopUp.phrase}).`
     : capCents > softCents
@@ -152,6 +159,14 @@ export type ExplainFacts = {
   nextTierTitle: string | null; nextTierGapCents: number | null; firstTierGapCents: number | null; isOrganizer: boolean;
   /** only two friends are holding: never state the group total (each could deduce the other's amount) */ groupHidden?: boolean;
 };
+/** The 3-line receipt (charged · released · why) a person can read in three seconds; the prose sits behind "Why?". */
+export function receipt(f: ExplainFacts): { mode: 'paid' | 'preview' | 'pending' | 'expired'; chargedCents: number; releasedCents: number; why: string } {
+  const tier = f.tierLevel !== null ? `tier ${f.tierLevel} of ${f.tiersCount} (${f.tierTitle}), ${money(f.chargeCents ?? 0)} in total` : '';
+  if (f.status === 'purchased' || f.status === 'revealed') return { mode: 'paid', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `Bought ${tier}, split in proportion to each hold.` };
+  if (f.status === 'expired') return { mode: 'expired', chargedCents: 0, releasedCents: f.myHeldCents, why: 'The buy-by date passed before checkout, so every hold was released.' };
+  if (f.tierLevel === null) return { mode: 'pending', chargedCents: 0, releasedCents: 0, why: 'The first tier isn’t funded yet, so nothing can be charged.' };
+  return { mode: 'preview', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `If checked out now: ${tier} is fully funded, split in proportion to each hold.` };
+}
 export function explainRules(f: ExplainFacts): string {
   const by = new Date(f.buyBy).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const who = f.isOrganizer ? 'you check out' : `${f.organizer} checks out`;

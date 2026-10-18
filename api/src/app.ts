@@ -423,17 +423,20 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
-    const { text } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500) }).parse(req.body);
+    const { text, conditionTierId } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500), conditionTierId: z.string().optional() }).parse(req.body);
     const now = clock.now(); const fromAi = await ai.understandChipIn(text, now); const ruled = B.parseChipInRules(text, now);
     // A conditional extra ("or $40 if it gets us the Polaroid") is read by the rules so the money is exact; Gemini may still supply the payday.
     const draft = ruled?.conditional ? { ...ruled, payday: ruled.payday ?? fromAi?.payday ?? null, paydayPhrase: ruled.paydayPhrase ?? fromAi?.paydayPhrase ?? null } : fromAi ?? ruled;
     if (!draft) fail(422, 'I couldn’t find an amount. Try something like “about $30, $40 max”.');
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bq.id]); const { held } = await fundedCents(bq.id); const nt = D.nextTier(tiers, held);
-    const ct = draft!.conditional ? B.matchTier(draft!.conditional.phrase, tiers, nt) : null;
+    // "the Record" can mean two tiers: never guess, offer a one-tap choice (the person's pick comes back as conditionTierId)
+    const matches = draft!.conditional ? (conditionTierId ? tiers.filter((t: any) => t.id === conditionTierId) : B.matchTiers(draft!.conditional.phrase, tiers, nt)) : [];
+    const ct = matches.length === 1 ? matches[0] : null;
+    const choices = matches.length > 1 ? matches.map((t: any) => ({ tierId: t.id, title: t.title.replace(/^\+ /, ''), priceCents: t.threshold_cents })) : null;
     const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: Math.max(0, ct.threshold_cents - held) } : null;
-    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier });
-    return { heard: text, plan, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
+    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
+    return { heard: text, plan, choices, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
   }));
   // 2) Plain-language payment explainer: the rules compute every figure for *this* person; Gemini may only reword it (every $ kept, none added).
   app.get('/api/bouquets/:id/explain', h(async req => {
@@ -451,7 +454,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, nextTierGapCents: nt ? nt.thresholdCents - st.totals.fundedCents : null,
       firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer, groupHidden: !!st.totals.blurred };
     const rules = B.explainRules(facts); const friendly = await ai.reword('explain', rules);
-    return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules) };
+    return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules), receipt: B.receipt(facts) };
   }));
   // 3) Gift concierge: ranks the gifts on the table from the group's kept cards + votes, checks them against everyone's combined budget caps,
   //    and says which tier the group can reach and what the next upgrade costs. Gemini rewords the top pick's "why" (figures checked).
