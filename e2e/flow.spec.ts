@@ -147,6 +147,10 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   await expect(strip.locator('[data-unlocked="0"]')).toHaveCount(nTiers); await expect(org.getByTestId('checkout-preview')).toHaveCount(0);
   await expect(org.getByTestId('whos-in')).toContainText('0 of 4 in'); await expect(org.getByTestId('deadline-box')).toContainText('left to buy');
   expect(await org.getByTestId('tier').first().locator('a[href^="https://"]').first().getAttribute('href')).toMatch(/^https:\/\/[a-z.]+\/products\//);
+  // the organizer chips in too ($20), so their Bought screen reads 'You paid $X of your $20 hold' (like the seeded Maya demo)
+  await org.getByTestId('enter-amounts').click(); await org.fill('input[name=budgetMax]', '70'); await org.getByTestId('save-budget').click();
+  await org.fill('input[name=amount]', '20'); await org.getByTestId('hold').click(); await expect(org.getByTestId('pay-confirm')).toBeEnabled({ timeout: 15000 });
+  await org.getByTestId('pay-confirm').click(); await expect(org.getByTestId('pay-sheet')).toHaveCount(0); await expect(org.getByTestId('you-in')).toContainText('You’re in for $20');
   const amounts = [50, 40, 45]; let pops = 0;
   for (const [k, f] of friends.entries()) {
     await f.reload(); await expect(f.getByTestId('chipin-text')).toBeVisible(); await expect(f.getByTestId('claim')).toHaveCount(0); // no sign-up wall: guests chip in first
@@ -187,9 +191,9 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     const tops = await f.locator('.cards > *').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top))); expect(new Set(tops).size).toBe(1);
     await settle(f.locator('.cards')); await f.screenshot({ path: SHOTS + '10e-mobile-room.png', fullPage: true, style: NOFAB }); await f.setViewportSize({ width: 1280, height: 860 }); }
   await expect(friends[2].getByTestId('petals')).toContainText('Sam');
-  const f2 = friends[2]; await f2.reload(); await expect(f2.getByTestId('tier')).toHaveCount(nTiers); await expect(f2.getByTestId('funded')).toContainText('$135'); const unlocked = await f2.getByTestId('tier').and(f2.locator('.unlocked')).count();
+  const f2 = friends[2]; await f2.reload(); await expect(f2.getByTestId('tier')).toHaveCount(nTiers); await expect(f2.getByTestId('funded')).toContainText('$155'); const unlocked = await f2.getByTestId('tier').and(f2.locator('.unlocked')).count();
   await expect(f2.getByTestId('gift-strip').locator('[data-unlocked="1"]')).toHaveCount(unlocked); // lit tiles = unlocked tiers
-  await expect(f2.getByTestId('who-row')).toHaveCount(4); await expect(f2.getByTestId('whos-in')).toContainText('3 of 4 in'); await expect(f2.getByTestId('whos-in')).not.toContainText('$');
+  await expect(f2.getByTestId('who-row')).toHaveCount(4); await expect(f2.getByTestId('whos-in')).toContainText('4 of 4 in'); await expect(f2.getByTestId('whos-in')).not.toContainText('$');
   await expect(f2.getByTestId('checkout-preview')).toContainText(/it costs \$\d+/);
   const fundedText = (await f2.getByTestId('funded').textContent())!;
   if (/fully funded/.test(fundedText)) await expect(f2.getByTestId('checkout-preview')).toContainText(/Fully funded.*goes back to their cards/); // over the goal: say what happens to the extra
@@ -197,10 +201,10 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   const share = Number((await f2.getByTestId('my-share').locator('b').textContent())!.replace('$', ''));
   await expect(f2.getByTestId('unlock-pop')).toHaveCount(0, { timeout: 8000 }); await settle(f2.getByTestId('gift-strip')); await settle(f2.locator('.cards')); await expect(f2.locator('.cards h3')).toHaveCount(3);
   await f2.screenshot({ path: SHOTS + '10-funding-bloom.png', fullPage: true, style: NOFAB });
-  await org.reload(); await expect(org.getByTestId('funded')).toContainText('$135');
+  await org.reload(); await expect(org.getByTestId('funded')).toContainText('$155');
   await org.getByTestId('checkout').click(); await expect(org.getByText('Demo · no real money moved')).toBeVisible();
   await friends[0].reload(); await expect(friends[0].getByTestId('my-charge')).toBeVisible(); await expect(friends[0].getByTestId('vcard-line').first()).toContainText(/one-time Visa card •••• \d{4} \(sandbox\) · order #BQ-/); await expect(friends[0].getByText(/went back to your card/)).toBeVisible();
-  await expect(org.getByText('You didn’t place a hold, so you paid nothing.')).toBeVisible(); await expect(org.getByTestId('gift-strip')).toBeVisible(); await expect(org.getByTestId('funded')).toContainText(/paid · \d of \d in the box/); await expect(org.getByTestId('countdown')).toHaveText('✓ Bought in time'); await expect(org.getByTestId('countdown')).not.toContainText('left');
+  await expect(org.getByTestId('my-receipt')).toContainText(/You paid \$[\d.]+ of your \$20(\.00)? hold/); await expect(org.getByTestId('gift-strip')).toBeVisible(); await expect(org.getByTestId('funded')).toContainText(/paid · \d of \d in the box/); await expect(org.getByTestId('countdown')).toHaveText('✓ Bought in time'); await expect(org.getByTestId('countdown')).not.toContainText('left');
   await f2.reload(); await expect(f2.getByTestId('my-charge')).toHaveText('$' + (share % 1 ? share.toFixed(2) : share)); // the preview was exactly what got charged
   await org.waitForTimeout(900);
   await org.screenshot({ path: SHOTS + '11-purchased.png', fullPage: true, style: NOFAB });
