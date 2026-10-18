@@ -416,3 +416,4 @@ html[data-auto] .route-in { animation: none; } html[data-auto] [data-reveal] { o
 .list a.item:nth-child(2n) .dashimg { transform: rotate(3deg); }
 @media (hover: hover) { .list a.item:hover .dashimg { transform: rotate(0) scale(1.06); } }
 .list a.item b, .list a.item strong { font-family: Fraunces, Georgia, serif; font-size: 18px; }
+@media (max-width: 560px) { .nav-how { display: none; } .navr { flex-wrap: nowrap; align-items: center; } }
