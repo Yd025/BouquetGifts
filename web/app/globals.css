@@ -409,3 +409,4 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
 .bigpack.tear { animation: shake .3s 2; }
 @media (hover: hover) { .opt:hover { border-color: var(--pink); transform: translateY(-1px); box-shadow: 0 6px 14px #e2588f1a; } }
 .opt.sel { animation: optPick .35s cubic-bezier(.3,1.8,.5,1); } @keyframes optPick { 50% { transform: scale(1.03); } }
+html[data-auto] .route-in { animation: none; } html[data-auto] [data-reveal] { opacity: 1; transform: none; transition: none; }

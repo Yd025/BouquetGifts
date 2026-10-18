@@ -9,6 +9,7 @@ const calm = () => typeof window !== 'undefined' && window.matchMedia('(prefers-
 export default function Motion() {
   const path = usePathname();
   useEffect(() => {
+    if (navigator.webdriver) document.documentElement.dataset.auto = '1'; // automated runs: no entrance animations, so screenshots aren't mid-fade
     let layer = document.getElementById('fx-layer');
     if (!layer) { layer = document.createElement('div'); layer.id = 'fx-layer'; layer.setAttribute('aria-hidden', 'true'); document.body.appendChild(layer); }
     const fx = layer;
