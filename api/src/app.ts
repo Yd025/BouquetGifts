@@ -40,6 +40,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   // Fan-out: in-process SSE bus always; the Cloudflare Durable Object room too when configured (fire-and-forget, SSE/polling stay as fallback).
   const notify = (bid: string, type: string) => {
     const ev = { type, at: clock.now().toISOString() }; bus.emit(bid, ev);
+    db.query('UPDATE bouquets SET last_activity_at=$2 WHERE id=$1', [bid, ev.at]).catch(() => {}); // lets reset-demo see that someone is mid-demo
     if (rt) fetch(`${rt.url}/room/${bid}/publish`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-realtime-secret': rt.secret }, body: JSON.stringify(ev), signal: AbortSignal.timeout(2000) }).catch(() => {});
   };
   const realtimeTicket = (bid: string, mid: string, name: string) => {
@@ -789,7 +790,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   if (deps.demo ?? process.env.DEMO_MODE === '1') {
     // Demo shortcuts never move a server-wide clock: they only touch the caller's own gift (organizer) or the caller's own payday.
     app.post('/api/dev/deadline', h(async req => {
-      const uid = auth(req); const b = z.object({ bouquetId: z.string() }).parse(req.body ?? {}); await requireOrganizer(b.bouquetId, uid);
+      const uid = auth(req); const b = z.object({ bouquetId: z.string(), force: z.boolean().optional() }).parse(req.body ?? {}); await requireOrganizer(b.bouquetId, uid);
+      if ((await getBouquet(b.bouquetId)).is_demo && !b.force) fail(409, 'The shared demo gift can’t be expired (others may be using it). Start your own gift to try this.');
       const moved = await db.query(`UPDATE bouquets SET buy_by_at=$2 WHERE id=$1 AND status IN ('collecting','fusing','funding') RETURNING id`, [b.bouquetId, new Date(clock.now().getTime() - 60000).toISOString()]);
       if (!moved.length) fail(409, 'This gift is already bought or closed');
       return { expired: await sweep() }; }));
@@ -807,6 +809,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     // Fresh demo: only the demo organizer. Releases every hold on the old demo bouquet(s), resets the clock, and seeds a new ready "Maya" bouquet.
     app.post('/api/dev/reset-demo', h(async req => {
       const uid = auth(req); if (uid !== 'usr_demo') fail(403, 'Only the demo organizer can reset the demo');
+      // Everyone shares the demo login: don't pull the gift out from under someone who is mid-demo (activity in the last 10 minutes) unless forced.
+      const force = z.object({ force: z.boolean().optional() }).parse(req.body ?? {}).force;
+      const [busy] = await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND is_demo AND status NOT IN ('expired') AND last_activity_at > $2`, [uid, new Date(clock.now().getTime() - 10 * 60000).toISOString()]);
+      if (busy && !force) fail(409, 'Someone is using the demo right now (activity in the last 10 minutes). Try again in a few minutes.');
       // Only the seeded demo gift(s) are reset; anything a person created in the demo account is left alone.
       for (const { id: bid } of await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND is_demo AND status NOT IN ('expired')`, [uid])) {
         await db.tx(async q => { await q('SELECT id FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);

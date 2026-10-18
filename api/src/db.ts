@@ -62,6 +62,7 @@ ALTER TABLE bouquets ADD CONSTRAINT bouquets_status_check CHECK (status IN ('dra
 ALTER TABLE contributions ADD COLUMN IF NOT EXISTS authorized_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE contributions ADD COLUMN IF NOT EXISTS settle_tries INT NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS hold_notice TEXT;
+ALTER TABLE bouquets ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMPTZ;
 ALTER TABLE bouquets ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE ledger_events DROP CONSTRAINT IF EXISTS ledger_events_type_check;
 ALTER TABLE ledger_events ADD CONSTRAINT ledger_events_type_check CHECK (type IN ('hold','capture','release','vcard','reauth'));

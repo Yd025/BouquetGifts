@@ -57,3 +57,16 @@ describe('sessions on a public https origin', { timeout: 30000 }, () => {
     expect(String(r.headers['set-cookie'])).toMatch(/Secure/);
   });
 });
+
+describe('the shared demo login', { timeout: 60000 }, () => {
+  it('reset-demo refuses while the demo gift was used in the last 10 minutes (unless forced), and the demo gift cannot be expired', async () => {
+    const request = (await import('supertest')).default;
+    const { ctx, org, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    const [{ organizer_id: orig }] = await ctx.db.query('SELECT organizer_id FROM bouquets WHERE id=$1', [b.id]);
+    await ctx.db.query(`UPDATE bouquets SET is_demo=true, organizer_id='usr_demo', last_activity_at=$2 WHERE id=$1`, [b.id, ctx.clock.now().toISOString()]);
+    const demo = request.agent(ctx.app); expect((await demo.post('/api/auth/login').send({ email: 'demo@bouquet.gift', password: 'bouquet123' })).status).toBe(200);
+    const r = await demo.post('/api/dev/reset-demo').send({}); expect(r.status).toBe(409); expect(r.body.error).toMatch(/using the demo right now/);
+    await ctx.db.query('UPDATE bouquets SET organizer_id=$2 WHERE id=$1', [b.id, orig]);
+    const d = await org.post('/api/dev/deadline').send({ bouquetId: b.id }); expect(d.status).toBe(409); // the gift's organizer still can't expire the shared demo
+  });
+});

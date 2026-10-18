@@ -234,7 +234,8 @@ function DemoDrawer({ s, reload }: any) {
         <button className="ghost" disabled={b.status !== 'funding'} data-testid="demo-simswap" onClick={() => run(async () => { await api('/dev/simswap', { body: { bouquetId: b.id } });
           try { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 6000, ...tokenizeCard('4242424242424242'), idempotencyKey: crypto.randomUUID() } }); return 'Hold went through (no phone on file?)'; }
           finally { await api('/dev/simswap', { body: { bouquetId: b.id, on: false } }); } })}>Try a stolen phone number</button>
-        {b.isOrganizer && <button className="ghost" data-testid="demo-reset" onClick={() => run(async () => { const r = await api('/dev/reset-demo', { body: {} }); window.location.href = `/b/${r.bouquetId}`; return 'Fresh demo bouquet ready'; })}>Reset demo</button>}
+        {b.isOrganizer && <button className="ghost" data-testid="demo-reset" onClick={() => run(async () => { let r; try { r = await api('/dev/reset-demo', { body: {} }); } catch (e: any) { if (!/using the demo/.test(e.message) || !confirm(`${e.message}\n\nReset anyway?`)) throw e; r = await api('/dev/reset-demo', { body: { force: true } }); }
+          window.location.href = `/b/${r.bouquetId}`; return 'Fresh demo bouquet ready'; })}>Reset demo</button>}
       </div>
       <p className="muted" style={{ fontSize: 13 }}>“Try a stolen phone number” marks your number as recently moved to a new SIM and tries a $60 hold. The phone safety check blocks it, then the mark is cleared.</p>
       {msg && (!msg.ok && /SIM/.test(msg.t) ? <div data-testid="demo-msg"><SimBlock /></div> : <div className={msg.ok ? 'ok' : 'err'} role="status" data-testid="demo-msg">{msg.ok ? '✓ ' : ''}{msg.t}</div>)}</div>}</div>;
