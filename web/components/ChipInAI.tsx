@@ -23,7 +23,7 @@ export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { b
     <label className="sayit">Just say it <span className="chip aitag" title="Read by AI, then you confirm">AI</span></label>
     <div className="sayrow">
       <textarea name="chipinText" data-testid="chipin-text" rows={text.length > 30 ? 2 : 1} className="sayinput" maxLength={500}
-        placeholder="e.g. “$30, up to $40”" value={text}
+        placeholder="“$30, up to $40”" value={text}
         onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); understand(); } }} />
       {canMic && <button className={'ghost mic tap' + (listening ? ' on' : '')} onClick={mic} disabled={busy} data-testid="chipin-mic" aria-pressed={listening} aria-label="Say it out loud" title="Say it out loud">{listening ? '■' : '🎙'}</button>}
       <button className="ghost tap" disabled={busy || !text.trim()} onClick={() => understand()} data-testid="chipin-understand">{busy ? '…' : 'Go'}</button></div>
