@@ -29,7 +29,10 @@ describe('natural-language chip-in (rules)', () => {
     const late = planChipIn({ softCents: 3000, capCents: 4000, payday: '2026-10-30', paydayPhrase: 'the 30th' }, { pledgedCents: 2500, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: null });
     expect(late.holdNowCents).toBe(1500); expect(late.warnings.join(' ')).toMatch(/after the buy-by date/); expect(late.warnings.join(' ')).toMatch(/only \$15 more fits/);
     const ok = planChipIn({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' }, { pledgedCents: 0, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: 2000, nextTierTitle: 'Mug' });
-    expect(ok.holdNowCents).toBe(3000); expect(ok.summary).toMatch(/Hold \$30 now\. Your private cap is \$40/); expect(ok.warnings.join(' ')).toMatch(/unlocks Mug/);
+    expect(ok.holdNowCents).toBe(3000); expect(ok.summary).toBe('Hold $30 now. On payday (Friday), Bouquet offers a one-tap top-up of up to $10, only if the group still needs it.');
+    expect(ok.scheduledTopUp).toEqual({ cents: 1000, on: '2026-10-23', phrase: 'Friday' }); expect(late.scheduledTopUp).toBeNull(); // payday after the deadline: no schedule
+    const noPay = planChipIn({ softCents: 3000, capCents: 4000, payday: null, paydayPhrase: null }, { pledgedCents: 0, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: null });
+    expect(noPay.scheduledTopUp).toBeNull(); expect(noPay.summary).toMatch(/Your private cap is \$40/); // payday is optional expect(ok.warnings.join(' ')).toMatch(/unlocks Mug/);
   });
 });
 
@@ -65,7 +68,8 @@ describe('POST /chip-in/understand', { timeout: 30000 }, () => {
     expect((await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: 'happy to help' })).status).toBe(422);
     expect((await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '' })).status).toBe(400);
     // confirm = save budget, then the normal Visa hold
-    await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 3000, budgetMaxCents: 4000 });
+    expect((await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 3000, budgetMaxCents: 4000, payday: r.body.plan.payday })).body.me.payday).toBe(r.body.plan.payday);
+    expect((await friends[0].patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 3000, budgetMaxCents: 4000, payday: 'friday' })).status).toBe(400);
     expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 3000, cardNumber: VISA, idempotencyKey: 'nl-' + b.id })).status).toBe(201);
     const again = (await friends[0].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: '$20 more, $40 max overall' })).body.plan;
     expect(again.holdNowCents).toBe(1000); expect(again.warnings.join(' ')).toMatch(/only \$10 more fits/); // only $10 left under the $40 cap

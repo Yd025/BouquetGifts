@@ -132,7 +132,7 @@ function Funding({ s, act, setS }: any) {
         <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
         <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save my spot</button></div>
       </div> : <>
-        <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents } });
+        <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
         <label>My budget for this gift ($)</label>
         <div className="row"><input name="budgetMin" type="number" min={0} value={bud.min} onChange={e => setBud({ ...bud, min: Number(e.target.value) })} style={{ width: 110 }} /><span>to</span>

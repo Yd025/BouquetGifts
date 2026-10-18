@@ -10,7 +10,9 @@ const CAP_BEFORE = /(max(imum)?|at most|up to|upto|cap(ped)?( at)?|no more than|
 const CAP_AFTER = /^\s*(max(imum)?|tops|at most|absolute max|hard cap|is my (max|limit|cap)|cap|ceiling|limit)\b/i;
 
 export type ChipInDraft = { softCents: number; capCents: number; payday: string | null; paydayPhrase: string | null };
-export type ChipInPlan = ChipInDraft & { holdNowCents: number; warnings: string[]; summary: string };
+export type ChipInPlan = ChipInDraft & { holdNowCents: number; warnings: string[]; summary: string;
+  /** Payday-aware: the rest of the cap Bouquet will offer as a one-tap top-up on payday, if the group still needs it. */
+  scheduledTopUp: { cents: number; on: string; phrase: string } | null };
 
 type Amt = { cents: number; at: number; end: number; cap: boolean };
 /** Every dollar amount a person wrote (digits or common words), with whether it was phrased as a ceiling. Dates like "the 15th" are skipped. */
@@ -75,13 +77,17 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   const byDay = buyBy.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   if (d.payday && new Date(d.payday + 'T23:59:59Z').getTime() > buyBy.getTime())
     warnings.push(`Your payday (${d.paydayPhrase ?? d.payday}) is after the buy-by date (${byDay}). A hold isn’t a charge, but checkout can happen before you’re paid, so only hold what you’re comfortable with today.`);
-  else if (d.payday) warnings.push(`A hold isn’t a charge. Nothing is captured until the organizer checks out, and you’re paid ${d.paydayPhrase ?? d.payday}, before the ${byDay} buy-by date.`);
   if (ctx.pledgedCents > 0 && room < softCents) warnings.push(room === 0 ? `You already hold ${money(ctx.pledgedCents)}, which is your whole ${money(capCents)} cap.` : `You already hold ${money(ctx.pledgedCents)}, so only ${money(room)} more fits under your ${money(capCents)} cap.`);
   if (ctx.nextTierGapCents && holdNowCents >= ctx.nextTierGapCents && ctx.nextTierTitle) warnings.push(`Nice: ${money(holdNowCents)} alone unlocks ${ctx.nextTierTitle}.`);
-  const summary = capCents > softCents
-    ? `Hold ${money(holdNowCents)} now. Your private cap is ${money(capCents)}, so you can top up later if the group is close${d.payday ? ` (you’re paid ${d.paydayPhrase ?? d.payday})` : ''}.`
-    : `Hold ${money(holdNowCents)}, and that’s your limit${d.payday ? ` (you’re paid ${d.paydayPhrase ?? d.payday})` : ''}.`;
-  return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, holdNowCents, warnings, summary };
+  const later = Math.max(0, room - holdNowCents);
+  const beforeDeadline = !!d.payday && new Date(d.payday + 'T00:00:00Z').getTime() <= buyBy.getTime();
+  const scheduledTopUp = d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
+  const summary = scheduledTopUp
+    ? `Hold ${money(holdNowCents)} now. On payday (${scheduledTopUp.phrase}), Bouquet offers a one-tap top-up of up to ${money(later)}, only if the group still needs it.`
+    : capCents > softCents
+      ? `Hold ${money(holdNowCents)} now. Your private cap is ${money(capCents)}, so Bouquet can suggest a top-up later if the group is close.`
+      : `Hold ${money(holdNowCents)}, and that’s your limit.`;
+  return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, holdNowCents, warnings, summary, scheduledTopUp };
 }
 
 /** Every "$12" / "$12.50" figure in a text. An AI rewording must keep exactly these, and add none. */

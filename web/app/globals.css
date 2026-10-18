@@ -238,3 +238,4 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
 .rbgrid>div{display:flex;flex-direction:column;background:#fbf7ff;border-radius:10px;padding:8px}
 .rbgrid b{font-size:20px}
 .explain{margin-top:12px;background:#fff;border:1px solid #eadcf7;border-radius:12px;padding:12px;text-align:left}
+.schedule{margin-top:8px;background:#f3ecff;border-radius:10px;padding:8px 10px;font-size:14px}

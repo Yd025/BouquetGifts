@@ -124,7 +124,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null,
         chosenCandidateId: b.chosen_candidate_id, capturedTierId: b.captured_tier_id, capturedCents: b.captured_cents, isOrganizer: b.organizer_id === uid,
         deadlinePassed: deadlinePassed(b) },
-      me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, networkVerified: me.network_verified,
+      me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, networkVerified: me.network_verified,
         hasCard: cards.some((c: any) => c.member_id === me.id), vote: myVote, contributions: myContribs },
       members: members.map((m: any) => ({ id: m.id, displayName: m.display_name, role: m.role, networkVerified: m.network_verified, flowerBack: m.flower_back,
         hasCard: cards.some((c: any) => c.member_id === m.id), pledgedCents: Number(m.pledged), budgetMaxCents: m.budget_max_cents })),
@@ -207,9 +207,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
   app.patch('/api/bouquets/:id/budget', h(async req => {
     const uid = auth(req); const m = await requireMember(String(req.params.id), uid);
-    const b = z.object({ budgetMinCents: z.number().int().min(0), budgetMaxCents: z.number().int().min(100) }).parse(req.body);
+    const b = z.object({ budgetMinCents: z.number().int().min(0), budgetMaxCents: z.number().int().min(100), payday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional() }).parse(req.body);
     if (b.budgetMinCents > b.budgetMaxCents) fail(400, 'Minimum budget cannot exceed maximum');
     await db.query('UPDATE members SET budget_min_cents=$2, budget_max_cents=$3 WHERE id=$1', [m.id, b.budgetMinCents, b.budgetMaxCents]);
+    if (b.payday !== undefined) await db.query('UPDATE members SET payday=$2 WHERE id=$1', [m.id, b.payday]); // optional, private: lets Bouquet schedule a top-up after payday
     notify(String(req.params.id), 'budget'); return state(String(req.params.id), uid);
   }));
 

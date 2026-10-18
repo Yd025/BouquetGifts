@@ -42,6 +42,7 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS avoids JSONB;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS art_key TEXT;
 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'match';
 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cover_level INT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS payday DATE;
 `;
 export async function makeDb(url = process.env.DATABASE_URL): Promise<Db> {
   let db: Db;

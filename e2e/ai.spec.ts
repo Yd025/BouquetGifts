@@ -33,7 +33,8 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   await jon.getByTestId('chipin-text').fill('I can do about $30, $40 max, and I get paid Friday'); await jon.getByTestId('chipin-understand').click();
   await expect(jon.getByTestId('chipin-plan')).toBeVisible();
   await expect(jon.getByTestId('chipin-soft')).toHaveText('$30'); await expect(jon.getByTestId('chipin-cap')).toHaveText('$40'); await expect(jon.getByTestId('chipin-payday')).toContainText(/Fri/);
-  await expect(jon.getByTestId('chipin-summary')).toContainText('Hold $30 now'); await expect(jon.getByTestId('chipin-source')).toHaveText(/read by (Gemini|Bouquet rules)/);
+  await expect(jon.getByTestId('chipin-summary')).toContainText('Hold $30 now'); await expect(jon.getByTestId('chipin-schedule')).toContainText('payday top-up of up to $10');
+  expect(await jon.getByTestId('chipin-text').evaluate((e: HTMLTextAreaElement) => e.scrollWidth <= e.clientWidth + 1)).toBe(true); // whole sentence visible, wraps instead of truncating await expect(jon.getByTestId('chipin-source')).toHaveText(/read by (Gemini|Bouquet rules)/);
   await jon.waitForTimeout(700); await jon.getByTestId('chipin-ai').screenshot({ path: SHOTS + '16b-ai-chipin.png' });
   await jon.getByTestId('chipin-confirm').click(); await expect(jon.getByTestId('pay-sheet')).toBeVisible();
   await expect(jon.getByTestId('pay-confirm')).toHaveText('Hold $30 with Visa', { timeout: 15000 });
