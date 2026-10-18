@@ -13,11 +13,11 @@ export default function Profile() {
     <div className="list">
       <div className="item"><span className="muted">Name</span><b>{u.name}</b></div>
       <div className="item"><span className="muted">Email</span><b>{u.email}</b></div>
-      <div className="item"><span className="muted">Phone</span><span>{u.phone ? <>{u.phone} {u.phoneVerified && <span className="badge soft">✓ Phone check passed</span>}</> : <span className="muted">Added when you join a bouquet</span>}</span></div>
-      <div className="item"><span className="muted">Bouquets</span><span>{list.length} total · {organized} organized</span></div>
+      <div className="item"><span className="muted">Phone</span><span>{u.phone ? <>{u.phone} {u.phoneVerified && <span className="badge soft">✓ Phone check passed</span>}</> : <span className="muted">Added when you join a gift</span>}</span></div>
+      <div className="item"><span className="muted">Gifts</span><span>{list.length} total · {organized} you organized</span></div>
     </div>
-    <p className="muted" style={{ fontSize: 13, marginTop: 16 }}>Payments are card holds in the Visa sandbox. You’re only charged when a group checks out, and only your fair share of the funded tier.</p>
-    <div className="row" style={{ marginTop: 16 }}><Link className="btn" href="/dashboard">My bouquets</Link><Link className="ghost btn" href="/new">Plant a new one</Link>
+    <p className="muted" style={{ fontSize: 13, marginTop: 16 }}>Chipping in places a hold on your card. You’re only charged if the gift is bought, and never more than your share. (Demo: card holds are simulated.)</p>
+    <div className="row" style={{ marginTop: 16 }}><Link className="btn" href="/dashboard">My gifts</Link><Link className="ghost btn" href="/new">Start a gift</Link>
       <button className="ghost" onClick={async () => { await api('/auth/logout', { method: 'POST' }); r.push('/'); }}>Log out</button></div>
   </div>;
 }
