@@ -18,20 +18,28 @@ export default function Room({ params }: { params: { id: string } }) {
   const r = useRouter(); const [s, setS] = useState<any>(null); const [err, setErr] = useState('');
   const load = useCallback(() => api(`/bouquets/${params.id}`).then(setS).catch(e => { if (e.status === 401) r.push(`/login?next=/b/${params.id}`); else setErr(e.message); }), [params.id]);
   const [live, setLive] = useState<{ mode: string; online: string[] }>({ mode: 'connecting', online: [] });
+  const [demoMode, setDemoMode] = useState(false); useEffect(() => { api('/health').then(h => setDemoMode(!!h.demo)).catch(() => {}); }, []);
   // Live room: Cloudflare Durable Object over WebSocket when available → SSE fallback → 15 s polling safety net.
   useEffect(() => {
-    load(); let closed = false; let es: EventSource | null = null; let ws: WebSocket | null = null;
+    load(); let closed = false; let es: EventSource | null = null; let ws: WebSocket | null = null; let retry: any = null; let attempt = 0;
     const sse = () => { if (closed || es) return; es = new EventSource(`/api/bouquets/${params.id}/stream`); es.onmessage = () => load(); setLive(l => ({ ...l, mode: 'sse' })); };
+    const stopSse = () => { es?.close(); es = null; };
+    // WebSocket first; on any drop, cover with SSE and keep retrying the socket with backoff (1s, 2s, 4s … 30s), so one blip isn't SSE forever.
+    const connect = (url: string) => {
+      if (closed) return; let opened = false;
+      try { ws = new WebSocket(url); } catch { sse(); return schedule(url); }
+      const failTimer = setTimeout(() => { if (ws && ws.readyState !== WebSocket.OPEN) ws.close(); }, 4000);
+      ws.onopen = () => { opened = true; attempt = 0; clearTimeout(failTimer); stopSse(); setLive(l => ({ ...l, mode: 'websocket' })); load(); };
+      ws.onmessage = e => { try { const m = JSON.parse(e.data); if (m.online) setLive(l => ({ ...l, online: m.online })); if (m.type !== 'hello' && m.type !== 'presence') load(); } catch { /* ignore */ } };
+      ws.onclose = () => { clearTimeout(failTimer); if (closed) return; void opened; sse(); schedule(url); };
+    };
+    const schedule = (url: string) => { if (closed || retry) return; const ms = Math.min(30000, 1000 * 2 ** attempt++); retry = setTimeout(() => { retry = null; connect(url); }, ms); };
     api(`/bouquets/${params.id}/realtime`).then((rt: any) => {
       if (closed) return; if (!rt?.url || typeof WebSocket === 'undefined') return sse();
-      try { ws = new WebSocket(rt.url); } catch { return sse(); }
-      const failTimer = setTimeout(() => { if (ws && ws.readyState !== WebSocket.OPEN) { ws.close(); sse(); } }, 4000);
-      ws.onopen = () => { clearTimeout(failTimer); setLive(l => ({ ...l, mode: 'websocket' })); };
-      ws.onmessage = e => { try { const m = JSON.parse(e.data); if (m.online) setLive(l => ({ ...l, online: m.online })); if (m.type !== 'hello' && m.type !== 'presence') load(); } catch { /* ignore */ } };
-      ws.onclose = () => { clearTimeout(failTimer); if (!closed) sse(); };
+      connect(rt.url);
     }).catch(sse);
     const t = setInterval(load, 15000);
-    return () => { closed = true; ws?.close(); es?.close(); clearInterval(t); };
+    return () => { closed = true; clearTimeout(retry); ws?.close(); es?.close(); clearInterval(t); };
   }, [load, params.id]);
   const act = async (path: string, body?: any, method?: string) => { setErr(''); try { setS(await api(`/bouquets/${params.id}${path}`, { body: body ?? {}, method })); } catch (e: any) { setErr(e.message); } };
   if (!s) return <div className="panel">{err || 'Loading…'}</div>;
@@ -46,7 +54,7 @@ export default function Room({ params }: { params: { id: string } }) {
             <div className="muted">Checked out ahead of the {new Date(b.buyByAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} buy-by date ({b.shipBufferDays} shipping days built in)</div></>
           : <><div className="deadline" data-testid="countdown">{b.status === 'expired' ? 'Expired — all holds released' : countdown(b.buyByAt, s.now)}</div>
             <div className="muted">Buy by {new Date(b.buyByAt).toLocaleString()} · {b.shipBufferDays} shipping days</div></>}</div></div>
-      <div className="live" data-testid="live" data-mode={live.mode} title={live.mode === 'websocket' ? 'Live via Cloudflare Durable Object' : live.mode === 'sse' ? 'Live via server-sent events (fallback)' : 'Connecting…'}>
+      <div className={'live' + (demoMode ? ' sronly' : '')} data-testid="live" data-mode={live.mode} title={live.mode === 'websocket' ? 'Live via Cloudflare Durable Object' : live.mode === 'sse' ? 'Live via server-sent events (fallback)' : 'Connecting…'}>
         <span className={'dot ' + live.mode} />{live.mode === 'websocket' ? `Live room${live.online.length ? ` · ${live.online.length} here now` : ''}` : live.mode === 'sse' ? 'Live (fallback)' : 'Connecting…'}</div>
       <div className="stage">{STAGES.map(([k, l], i) => <span key={k} className={i === idx ? 'on' : i < idx ? 'done' : ''}>{i + 1}. {l}</span>)}</div>
       <div className="members">{s.members.map((m: any) => <div className="member" key={m.id}><Flower fb={m.flowerBack} size={28} />{m.displayName}{m.role === 'organizer' && ' ★'}
