@@ -22,7 +22,7 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   const jon = await (await browser.newContext({ storageState: await f0.storageState() })).newPage();
   await jon.goto(`/b/${b.id}`); await expect(jon.getByTestId('concierge')).toBeVisible();
   await jon.getByTestId('concierge-ask').click(); await expect(jon.getByTestId('concierge-pick').first()).toBeVisible();
-  await expect(jon.getByTestId('concierge-tier')).toContainText(/Reachable if everyone|Caps could reach|above everyone’s caps/);
+  await expect(jon.getByTestId('concierge-tier')).toContainText(/Within reach if everyone|Limits could cover|more than everyone’s limits/);
   await expect(jon.getByTestId('concierge-why')).not.toBeEmpty(); await expect(jon.getByTestId('concierge-standout').first()).not.toBeEmpty(); await expect(jon.getByTestId('concierge-source')).toBeVisible();
   await jon.getByTestId('concierge').scrollIntoViewIfNeeded(); await jon.getByTestId('concierge').screenshot({ path: SHOTS + '16a-ai-concierge.png' });
   await jon.getByTestId('concierge-vote').first().click(); await expect(jon.getByTestId('concierge-vote').first()).toHaveText('Voted ✓');
@@ -38,12 +38,12 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   await expect(jon.getByTestId('chipin-source')).toHaveText(/read by (Gemini|Bouquet rules)/);
   await jon.waitForTimeout(700); await jon.getByTestId('chipin-ai').screenshot({ path: SHOTS + '16b-ai-chipin.png' });
   await jon.getByTestId('chipin-confirm').click(); await expect(jon.getByTestId('pay-sheet')).toBeVisible();
-  await expect(jon.getByTestId('pay-confirm')).toHaveText('Hold $30 with Visa', { timeout: 15000 });
+  await expect(jon.getByTestId('pay-confirm')).toHaveText('Hold $30', { timeout: 15000 });
   await jon.getByTestId('pay-confirm').click(); await expect(jon.getByText(/•••• 4242/)).toBeVisible();
   await expect(jon.locator('input[name=budgetMax]')).toHaveValue('40'); // the spoken cap became the private budget
   // an over-cap ask is trimmed to what fits, before any money moves
   await jon.getByTestId('chipin-text').fill('$25, $40 max'); await jon.getByTestId('chipin-understand').click();
-  await expect(jon.getByTestId('chipin-confirm')).toHaveText('Looks right: hold $10 with Visa'); await expect(jon.getByTestId('chipin-warning').first()).toContainText('only $10 more fits');
+  await expect(jon.getByTestId('chipin-confirm')).toHaveText('Looks right: hold $10'); await expect(jon.getByTestId('chipin-warning').first()).toContainText('only $10 more fits');
   await jon.getByText('Not quite').click();
 
   // 3) Explainer before checkout (tier 1 funded by Priya + Jon)
@@ -57,7 +57,7 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   // 4) Top-up plan: Priya (no payday, room under her cap) gets her own one-tap ask; Jon's room updates live, no reload
   const priya = await (await browser.newContext({ storageState: await f1.storageState() })).newPage();
   await priya.goto(`/b/${b.id}`); await expect(priya.getByTestId('topup')).toBeVisible();
-  await expect(priya.getByTestId('topup-title')).toHaveText(/^💐 Top up \$\d+\?$/); await expect(priya.getByTestId('topup-message')).toContainText('unlocks');
+  await expect(priya.getByTestId('topup-title')).toHaveText(/^Top up \$\d+\?$/); await expect(priya.getByTestId('topup-message')).toContainText('unlocks');
   await expect(priya.getByTestId('topup-group')).toContainText(/^\+\$\d+ from you · /);
   await priya.waitForTimeout(600); await priya.getByTestId('topup').screenshot({ path: SHOTS + '16e-ai-topup.png' });
   const before = await jon.getByTestId('funded').textContent();
