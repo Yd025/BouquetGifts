@@ -439,23 +439,35 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   /* ---------- AI between people and payments ---------- */
   // 1) Natural-language chip-in: "about $30, $40 max, paid Friday" → soft amount, private cap, payday → a plan the person confirms.
   //    Gemini only reads the sentence; amounts are checked against what they wrote, and nothing is held until they press the Visa button.
-  app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
-    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+  /** Shared by the room (signed-in member) and the invite page (not joined yet, so nothing pledged). */
+  async function understandChipIn(bq: any, pledgedCents: number, body: any) {
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
-    const { text, conditionTierId } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500), conditionTierId: z.string().optional() }).parse(req.body);
+    const { text, conditionTierId } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500), conditionTierId: z.string().optional() }).parse(body);
     const now = clock.now(); const fromAi = await ai.understandChipIn(text, now); const ruled = B.parseChipInRules(text, now);
     // A conditional extra ("or $40 if it gets us the Polaroid") is read by the rules so the money is exact; Gemini may still supply the payday.
     const draft = ruled?.conditional ? { ...ruled, payday: ruled.payday ?? fromAi?.payday ?? null, paydayPhrase: ruled.paydayPhrase ?? fromAi?.paydayPhrase ?? null } : fromAi ?? ruled;
     if (!draft) fail(422, 'I couldn’t find an amount. Try something like “about $30, $40 max”.');
-    const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bq.id]); const { held } = await fundedCents(bq.id); const nt = D.nextTier(tiers, held);
     // "the Record" can mean two tiers: never guess, offer a one-tap choice (the person's pick comes back as conditionTierId)
     const matches = draft!.conditional ? (conditionTierId ? tiers.filter((t: any) => t.id === conditionTierId) : B.matchTiers(draft!.conditional.phrase, tiers, nt)) : [];
     const ct = matches.length === 1 ? matches[0] : null;
     const choices = matches.length > 1 ? matches.map((t: any) => ({ tierId: t.id, title: t.title.replace(/^\+ /, ''), priceCents: t.threshold_cents })) : null;
     const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: Math.max(0, ct.threshold_cents - held) } : null;
-    const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
+    const plan = B.planChipIn(draft!, { pledgedCents, buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
     return { heard: text, plan, choices, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
+  }
+  app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
+    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+    const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
+    return understandChipIn(bq, Number(s), req.body);
+  }));
+  // The invite page's "Just say it" box: anyone holding the invite link, before joining. Light per-IP limit since it can call the AI.
+  const sayHits = new Map<string, number[]>();
+  app.post('/api/join/:token/chip-in/understand', h(async req => {
+    const ip = String(req.headers['cf-connecting-ip'] ?? req.ip ?? ''); const now = Date.now(); const hits = (sayHits.get(ip) ?? []).filter(t => now - t < 60000);
+    if (hits.length >= 20) fail(429, 'Too many tries. Please wait a minute.'); hits.push(now); sayHits.set(ip, hits);
+    const [bq] = await db.query('SELECT * FROM bouquets WHERE invite_token=$1', [String(req.params.token)]); if (!bq) fail(404, 'This invite link is not valid');
+    return understandChipIn(bq, 0, req.body);
   }));
   // 2) Plain-language payment explainer: the rules compute every figure for *this* person; Gemini may only reword it (every $ kept, none added).
   app.get('/api/bouquets/:id/explain', h(async req => {

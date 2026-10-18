@@ -22,14 +22,14 @@ type Amt = { cents: number; at: number; end: number; cap: boolean };
 /** Every dollar amount a person wrote (digits or common words), with whether it was phrased as a ceiling. Dates like "the 15th" are skipped. */
 export function amountsIn(text: string): Amt[] {
   const out: Amt[] = [];
-  const re = /(\$\s*)?(\d{1,5}(?:[.,]\d{1,2})?)(\s*k\b)?(?!\s*(st|nd|rd|th)\b)(\s*(dollars|bucks|usd))?/gi;
+  const re = /(\$\s*)?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d{1,5}(?:[.,]\d{1,2})?)(\s*k\b)?(?!\s*(st|nd|rd|th)\b)(\s*(dollars|bucks|usd))?/gi;
   for (let m; (m = re.exec(text));) {
     const before = text.slice(Math.max(0, m.index - 4), m.index).toLowerCase();
     const hasMoney = !!m[1] || !!m[5];
     if (!hasMoney && /(the|on|by)\s*$/.test(text.slice(Math.max(0, m.index - 4), m.index))) continue; // "on the 15", "by 5"
     if (!hasMoney && /\b(am|pm)\b/i.test(text.slice(m.index + m[0].length, m.index + m[0].length + 4))) continue;
     if (/[:/]$/.test(before)) continue;
-    let v = Number(m[2].replace(',', '.')); if (m[3]) v *= 1000;
+    let v = Number(/,\d{3}/.test(m[2]) ? m[2].replace(/,/g, '') : m[2].replace(',', '.')); // "$1,000" is a thousand; "12,50" is 12.50 if (m[3]) v *= 1000;
     out.push({ cents: Math.round(v * 100), at: m.index, end: m.index + m[0].length, cap: false });
   }
   for (const [w, v] of Object.entries(WORDS)) {

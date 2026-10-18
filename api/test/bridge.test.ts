@@ -82,3 +82,23 @@ describe('POST /chip-in/understand', { timeout: 30000 }, () => {
     expect(r.body.source).toBe('gemini'); expect(r.body.plan).toMatchObject({ softCents: 2500, capCents: 3500, holdNowCents: 2500 });
   });
 });
+
+describe('chip-in parser edge cases', () => {
+  it('reads thousands separators and "paid Friday" next to a conditional extra', () => {
+    expect(parseChipInRules('$1,000 max', NOW)).toMatchObject({ capCents: 100000 });
+    expect(parseChipInRules('$1,250.50', NOW)).toMatchObject({ softCents: 125050 });
+    expect(parseChipInRules('$12,50', NOW)).toMatchObject({ softCents: 1250 });
+    expect(parseChipInRules('$30, $40 if it gets the Polaroid, paid Friday', NOW)).toMatchObject({ softCents: 3000, payday: '2026-10-23', conditional: { cents: 4000, phrase: 'Polaroid' } });
+    expect(parseChipInRules('$30 on payday Friday', NOW)).toMatchObject({ softCents: 3000, payday: '2026-10-23' });
+  });
+});
+
+describe('POST /join/:token/chip-in/understand', { timeout: 30000 }, () => {
+  it('lets someone with the invite link say it before joining, and nothing is held', async () => {
+    const { ctx, org, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    const r = await request(ctx.app).post(`/api/join/${b.inviteToken}/chip-in/understand`).send({ text: '$30, $40 max' });
+    expect(r.status).toBe(200); expect(r.body.plan.holdNowCents).toBe(3000); expect(r.body.plan.capCents).toBe(4000);
+    expect((await request(ctx.app).post('/api/join/nope/chip-in/understand').send({ text: '$30' })).status).toBe(404);
+    expect((await org.get(`/api/bouquets/${b.id}`)).body.totals.heldCents).toBe(0);
+  });
+});
