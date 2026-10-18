@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, $, countdown } from '../../../lib/api';
-import { Bloom, Flower, TraitCard } from '../../../components/Art';
+import { Bloom, Flower, GrowVine, TraitCard } from '../../../components/Art';
+import { useCountUp } from '../../../components/Motion';
 import Deck from '../../../components/Deck';
 import Questionnaire from '../../../components/Questionnaire';
 import PaySheet from '../../../components/PaySheet';
@@ -115,6 +116,7 @@ function Funding({ s, act, setS }: any) {
   useEffect(() => { const cur = s.totals.currentTier;
     if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(s.totals.blurred ? `Unlocked ${t?.title.replace(/^\+ /, '')} ✿` : `+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
     prevTier.current = cur; prevTotal.current = total; }, [s.totals.currentTier, total]);
+  const shown = useCountUp(total);
   const petals = s.members.filter((m: any) => m.holding); const co = b.status === 'funding' ? s.totals.checkout : null;
   // One idempotency key per opening of the Visa sheet: a double tap or a network retry can't place two holds.
   const payKey = useRef(''); useEffect(() => { if (sheet) payKey.current = crypto.randomUUID(); }, [sheet]);
@@ -126,14 +128,14 @@ function Funding({ s, act, setS }: any) {
   const [late, setLate] = useState<'off' | 'on' | 'done'>('off');
   useEffect(() => { if (late === 'off' && b.status === 'funding' && !s.me.hasCard && s.me.role !== 'organizer') setLate('on'); }, [late, b.status, s.me.hasCard, s.me.role]);
   return <>{late === 'on' && b.status === 'funding' && <LateCard s={s} setS={setS} onDone={() => setLate('done')} />}<div className={b.status === 'funding' ? 'grid2' : 'solo'}>
-    {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}</div>}
+    {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}<span className="uconfetti" aria-hidden>{Array.from({ length: 16 }, (_, i) => <i key={i} style={{ ['--a' as any]: `${i * 22.5}deg`, ['--c' as any]: ['#f7a1c4', '#c3a6ff', '#f6c34a', '#9fd3ae'][i % 4], ['--d' as any]: `${70 + (i % 3) * 30}px` }} />)}</span></div>}
     <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
       {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
         unlocked: t.unlocked, note: t.unlocked ? (b.status === 'funding' ? 'Unlocked' : 'In the box') : b.status === 'funding' ? (s.totals.blurred ? 'Not yet' : `${$(t.thresholdCents - total)} more`) : 'Not included' }))} />}
       <div className="bloomwrap"><Bloom progress={total / top} stems={3 + s.members.length} />
         <div className="petals" data-testid="petals">{petals.map((m: any, i: number) => <div key={m.id} className="petal pop" style={{ animationDelay: `${i * 90}ms` }}><Flower fb={m.flowerBack} size={30} /><span>{m.displayName}</span></div>)}</div></div>
-      <div className="bar" style={{ margin: '14px 0 6px' }}><div style={{ width: `${Math.min(100, (total / top) * 100)}%` }} /></div>
-      <div data-testid="funded">{b.status === 'funding' && s.totals.blurred ? <span data-testid="funded-private">{s.totals.currentTier ? <><b>{s.tiers.find((t: any) => t.id === s.totals.currentTier)?.level} of {s.tiers.length}</b> unlocked</> : <b>Not unlocked yet</b>} · With two people in, the total stays private.</span> : b.status === 'funding' && total >= top ? <><b>{$(total)}</b> in · fully funded</> : b.status === 'funding' ? <><b>{$(total)}</b> of {$(top)}</> : b.status === 'expired' ? <>{b.cancelled ? 'Cancelled' : 'Time ran out'} · every hold was released, nobody was charged</> : <><b>{$(total)}</b> paid · {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length} in the box</>}</div>
+      <GrowVine progress={s.totals.blurred && b.status === 'funding' ? (s.tiers.filter((t: any) => t.unlocked).length / Math.max(1, s.tiers.length)) : total / top} marks={s.tiers.map((t: any) => ({ at: s.totals.blurred && b.status === 'funding' ? t.level / s.tiers.length : t.thresholdCents / top, on: t.unlocked, label: clean(t.title) }))} />
+      <div data-testid="funded">{b.status === 'funding' && s.totals.blurred ? <span data-testid="funded-private">{s.totals.currentTier ? <><b>{s.tiers.find((t: any) => t.id === s.totals.currentTier)?.level} of {s.tiers.length}</b> unlocked</> : <b>Not unlocked yet</b>} · With two people in, the total stays private.</span> : b.status === 'funding' && total >= top ? <><b>{$(shown)}</b> in · fully funded</> : b.status === 'funding' ? <><b>{$(shown)}</b> of {$(top)}</> : b.status === 'expired' ? <>{b.cancelled ? 'Cancelled' : 'Time ran out'} · every hold was released, nobody was charged</> : <><b>{$(total)}</b> paid · {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length} in the box</>}</div>
       {next && b.status === 'funding' && <p className="muted">{s.totals.blurred ? 'Next up:' : `${$(next.thresholdCents - total)} more adds`} <b>{clean(next.title)}</b></p>}
       {co && <div className="goal" data-testid="checkout-preview">{co.releaseCents === null
         ? <><b>Ready to buy.</b> Buying now costs {$(co.chargeCents)}, shared by both of you in proportion to what you put in. Anything extra goes back to your cards.</>

@@ -71,3 +71,22 @@ export function Garland({ children }: { children: React.ReactNode }) {
     <div className="garland-inner">{children}</div>
   </div>;
 }
+
+/** Funding garland: a vine that grows along with the money; a flower opens at each item the group unlocks. */
+export function GrowVine({ progress, marks }: { progress: number; marks: { at: number; on: boolean; label: string }[] }) {
+  const p = Math.max(0, Math.min(1, progress));
+  const X0 = 14, X1 = 386, y = (x: number) => 34 + 11 * Math.sin((x - X0) / 34);
+  const pts: string[] = []; for (let x = X0; x <= X1; x += 6) pts.push(`${x.toFixed(0)} ${y(x).toFixed(1)}`);
+  const d = 'M' + pts.join(' L');
+  const leaves = Array.from({ length: 22 }, (_, i) => { const x = X0 + ((X1 - X0) * (i + .5)) / 22; return { x, y: y(x), up: i % 2 === 0, on: (x - X0) / (X1 - X0) <= p }; });
+  return <svg className="vine" viewBox="0 0 400 66" role="img" aria-label={`${Math.round(p * 100)}% funded`}>
+    <path d={d} className="vine-bg" pathLength={100} />
+    <path d={d} className="vine-fg" pathLength={100} style={{ strokeDashoffset: 100 - p * 100 }} />
+    {leaves.map((l, i) => <path key={i} className={`vine-leaf ${l.on ? 'on' : ''}`} style={{ transformOrigin: `${l.x}px ${l.y}px` }}
+      d={l.up ? `M${l.x} ${l.y} q-3 -11 7 -14 q1 10 -7 14z` : `M${l.x} ${l.y} q3 11 -7 14 q-1 -10 7 -14z`} />)}
+    {marks.map((m, i) => { const x = X0 + (X1 - X0) * Math.min(1, m.at), yy = y(x); return <g key={i} className={`vine-mark ${m.on ? 'on' : ''}`} style={{ transformOrigin: `${x}px ${yy}px` }}>
+      <title>{m.label}</title>
+      {Array.from({ length: 6 }, (_, k) => <ellipse key={k} cx={x} cy={yy - 7} rx={4.2} ry={7} transform={`rotate(${k * 60} ${x} ${yy})`} />)}
+      <circle cx={x} cy={yy} r={3.6} className="vine-core" /></g>; })}
+  </svg>;
+}

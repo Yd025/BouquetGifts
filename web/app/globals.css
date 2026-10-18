@@ -333,3 +333,20 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
   .lp-step:nth-child(2) { padding-left: 28px; } .lp-step:nth-child(3) { padding-left: 56px; }
   .lp-tag { font-size: 12px; padding: 7px 12px; }
 }
+/* ---------- funding: growing vine, blooming marks, unlock confetti ---------- */
+.vine { width: 100%; height: auto; display: block; margin: 12px 0 4px; overflow: visible; }
+.vine-bg { fill: none; stroke: #f3d6e3; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 5; }
+.vine-fg { fill: none; stroke: #6f9f7e; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 100; transition: stroke-dashoffset 1.2s cubic-bezier(.3,.8,.3,1); }
+.vine-leaf { fill: #8cc09b; transform: scale(0); transition: transform .5s cubic-bezier(.3,1.7,.5,1); } .vine-leaf.on { transform: scale(1); }
+.vine-leaf.on:nth-child(3n) { fill: #a8d3b3; }
+.vine-mark ellipse { fill: #fff; stroke: #f0c9da; stroke-width: 1; transition: fill .5s, stroke .5s; } .vine-mark .vine-core { fill: #f3d6e3; transition: fill .5s; }
+.vine-mark { transition: transform .6s cubic-bezier(.3,1.8,.5,1); transform: scale(.8); }
+.vine-mark.on { transform: scale(1.25); } .vine-mark.on ellipse { fill: #f7a1c4; stroke: #e2588f; } .vine-mark.on .vine-core { fill: #f6c34a; }
+.vine-mark.on { animation: markOpen .8s cubic-bezier(.3,1.8,.5,1); } @keyframes markOpen { from { transform: scale(.4) rotate(-40deg); } }
+.bloom g g { transform-box: fill-box; }
+.bloomwrap .bloom > g { animation: sway 6s ease-in-out infinite alternate; transform-origin: 120px 205px; }
+.bloomwrap .bloom > g:nth-child(2n) { animation-direction: alternate-reverse; animation-duration: 7s; }
+.unlockpop { overflow: visible; }
+.uconfetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.uconfetti i { position: absolute; width: 8px; height: 12px; margin: -6px 0 0 -4px; border-radius: 80% 0 80% 0; background: var(--c); animation: uconfetti 1.1s cubic-bezier(.15,.7,.3,1) forwards; }
+@keyframes uconfetti { 0% { transform: rotate(var(--a)) translateY(0) scale(.4); opacity: 1; } 80% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(200deg) scale(1); opacity: 0; } }
