@@ -35,8 +35,8 @@ test('say it out loud: mic → transcript → conditional read-back → hold onl
   if (await jon.getByTestId('chipin-choices').isVisible()) { // "the Record" fits two tiers: one tap says which, nothing is guessed
     await jon.waitForTimeout(400); await jon.getByTestId('chipin-ai').screenshot({ path: '../screenshots/16g-ai-voice-which.png' });
     await jon.getByTestId('chipin-choice').filter({ hasText: top.title.replace(/^\+ /, '') }).click(); await expect(jon.getByTestId('chipin-choices')).toHaveCount(0); }
-  await expect(jon.getByTestId('chipin-cap')).toHaveText(`$${base}`); await expect(jon.getByTestId('chipin-cap-cond')).toContainText(`$${base + 15}`);
-  await expect(jon.getByTestId('chipin-condition')).toContainText(`max, only if it’s the`); await expect(jon.getByTestId('chipin-condition')).toContainText(`+$15 is offered`);
+  await expect(jon.getByTestId('chipin-cap')).toHaveText(`$${base + 15}`); await expect(jon.getByTestId('chipin-cap-cond')).toContainText(`$${base + 15}`);
+  await expect(jon.getByTestId('chipin-condition')).toContainText(`now, up to $${base + 15} for the`); await expect(jon.getByTestId('chipin-condition')).toContainText(`+$15 is offered`);
   await expect(jon.getByTestId('chipin-summary')).toContainText(`Hold $${base} now`);
   await jon.waitForTimeout(500); await jon.getByTestId('chipin-ai').screenshot({ path: '../screenshots/16f-ai-voice-conditional.png' });
   await jon.getByTestId('chipin-confirm').click(); await expect(jon.getByTestId('pay-confirm')).toHaveText(`Hold $${base}`, { timeout: 15000 });

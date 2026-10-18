@@ -46,7 +46,7 @@ describe('GET /explain', { timeout: 30000 }, () => {
     const st = (await friends[0].get(`/api/bouquets/${b.id}`)).body; const co = st.totals.checkout;
     const pre = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body;
     const $ = (x: number) => '$' + (x / 100).toFixed(x % 100 ? 2 : 0);
-    expect(pre.text).toContain(`you pay ${$(co.myChargeCents)} of your ${$(co.myHeldCents)} hold`);
+    expect(co.atMost).toBe(true); expect(pre.text).toContain(`you pay at most your ${$(co.myHeldCents)} hold`); // two holders: exact share stays private
     // "fully funded" really means held ≥ tier price, and the text says it in that order
     // only two holders: a holder never sees the exact group total (they could back out the other's amount)
     expect(st.totals.blurred).toBe(true); expect(co.releaseCents).toBeNull(); expect(st.totals.heldCents).toBe(co.chargeCents);
@@ -58,13 +58,13 @@ describe('GET /explain', { timeout: 30000 }, () => {
     if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`the other ${$(ost.totals.heldCents - co.chargeCents)} is released`);
     // every per-person share adds up to exactly the amount that will be captured
     const shares = await Promise.all([friends[0], friends[1], org].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.totals.checkout.myChargeCents));
-    expect(shares.reduce((p: number, x: number) => p + x, 0)).toBe(co.chargeCents); expect(pre.text).toContain('if Org checks out now'); void org;
+    expect(shares.reduce((p: number, x: number) => p + x, 0)).toBeGreaterThanOrEqual(co.chargeCents); // "at most" caps cover the charge; exact sum is checked after buying in money.test expect(pre.text).toContain('if Org checks out now'); void org;
     await org.post(`/api/bouquets/${b.id}/lock`);
     const after = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
     const paid = me.contributions.reduce((x: number, k: any) => x + (k.captured_cents ?? 0), 0);
     expect(after.text).toContain(`You paid ${$(paid)} of your ${$(a)} hold`);
     expect(after.receipt).toMatchObject({ mode: 'paid', chargedCents: paid, releasedCents: a - paid }); // receipt lines reconcile to the hold
-    expect(pre.receipt).toMatchObject({ mode: 'preview', chargedCents: co.myChargeCents, releasedCents: co.myHeldCents - co.myChargeCents });
+    expect(pre.receipt).toMatchObject({ mode: 'atmost', chargedCents: co.myHeldCents, releasedCents: 0 });
     const caps = await Promise.all([friends[0], friends[1]].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.me.contributions.reduce((p: number, k: any) => p + (k.captured_cents ?? 0), 0)));
     const cap = (await org.get(`/api/bouquets/${b.id}`)).body.bouquet.capturedCents;
     expect(caps.reduce((p: number, x: number) => p + x, 0)).toBe(cap); expect(cap).toBe(co.chargeCents); expect(after.text).toContain(`charged exactly ${$(cap)}`);

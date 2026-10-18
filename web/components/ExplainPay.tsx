@@ -10,8 +10,8 @@ export default function ExplainPay({ bid, label = 'What will I pay?' }: { bid: s
     {err && <div className="err" role="alert">{err}</div>}
     {r && <div className="explain pop" data-testid="explain-text">
       {r.receipt && <div className="receipt" data-testid="explain-receipt">
-        <div className="rl"><span>{r.receipt.mode === 'preview' ? 'You’d be charged' : r.receipt.mode === 'pending' ? 'Charged so far' : 'Charged'}</span><b data-testid="receipt-charged">{$(r.receipt.chargedCents)}</b></div>
-        <div className="rl"><span>Back to your card</span><b data-testid="receipt-released">{$(r.receipt.releasedCents)}</b></div>
+        <div className="rl"><span>{r.receipt.mode === 'preview' ? 'You’d be charged' : r.receipt.mode === 'atmost' ? 'You’d pay at most' : r.receipt.mode === 'pending' ? 'Charged so far' : 'Charged'}</span><b data-testid="receipt-charged">{$(r.receipt.chargedCents)}</b></div>
+        {r.receipt.mode !== 'atmost' && <div className="rl"><span>Back to your card</span><b data-testid="receipt-released">{$(r.receipt.releasedCents)}</b></div>}
         <div className="rl why"><span>Why</span><span data-testid="receipt-why">{r.receipt.why}</span></div></div>}
       <details className="whyprose"><summary data-testid="explain-why">Why?</summary><p style={{ margin: '6px 0 0' }}>{r.text}</p>
         {r.source === 'gemini' && <p className="muted" style={{ fontSize: 13, margin: '6px 0 0' }} data-testid="explain-rules">Exact numbers: {r.rules}</p>}</details>

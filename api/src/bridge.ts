@@ -160,11 +160,12 @@ export type ExplainFacts = {
   /** only two friends are holding: never state the group total (each could deduce the other's amount) */ groupHidden?: boolean;
 };
 /** The 3-line receipt (charged · released · why) a person can read in three seconds; the prose sits behind "Why?". */
-export function receipt(f: ExplainFacts): { mode: 'paid' | 'preview' | 'pending' | 'expired'; chargedCents: number; releasedCents: number; why: string } {
+export function receipt(f: ExplainFacts): { mode: 'paid' | 'preview' | 'atmost' | 'pending' | 'expired'; chargedCents: number; releasedCents: number; why: string } {
   const tier = f.tierLevel !== null ? `${f.tierLevel} of ${f.tiersCount} items, up to ${f.tierTitle} (${money(f.chargeCents ?? 0)} total)` : '';
   if (f.status === 'purchased' || f.status === 'revealed') return { mode: 'paid', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `Bought ${tier}, split in proportion to each hold.` };
   if (f.status === 'expired') return { mode: 'expired', chargedCents: 0, releasedCents: f.myHeldCents, why: 'The buy-by date passed before checkout, so every hold was released.' };
   if (f.tierLevel === null) return { mode: 'pending', chargedCents: 0, releasedCents: 0, why: 'The first item isn’t funded yet, so nothing can be charged.' };
+  if (f.groupHidden) return { mode: 'atmost', chargedCents: f.myHeldCents, releasedCents: 0, why: `Only two of you are in, so your exact share stays private until it’s bought. You never pay more than your hold.` };
   return { mode: 'preview', chargedCents: f.myChargeCents, releasedCents: Math.max(0, f.myHeldCents - f.myChargeCents), why: `If bought now: ${tier}, fully funded and split in proportion to each hold.` };
 }
 const firstN = (n: number | null, title: string | null) => n === 1 ? `the first item (${title}) costs` : `the first ${n} items (up to ${title}) cost`;
@@ -183,7 +184,7 @@ export function explainRules(f: ExplainFacts): string {
     return `Nothing is charged yet. The first item of ${f.gift} needs ${money(gap)} more in holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
   }
   const back = f.myHeldCents - f.myChargeCents;
-  const mine = f.myHeldCents ? `For ${f.recipient}’s gift: if ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
+  const mine = f.myHeldCents && f.groupHidden ? `For ${f.recipient}’s gift: if ${who} now, you pay at most your ${money(f.myHeldCents)} hold, and anything you don’t need goes back to your card.` : f.myHeldCents ? `For ${f.recipient}’s gift: if ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
   // Wording matters as much as maths here: always "costs X, group holds Y (Y ≥ X)", then what is captured and what is released.
   const charge = f.chargeCents ?? 0, spare = f.heldCents - charge;
   if (f.groupHidden) return `${mine} Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and that is fully funded, so the cards would be charged exactly ${money(charge)}, split in proportion to each hold, and anything above that is released. (Only two friends are holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That’s everything on the list.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;

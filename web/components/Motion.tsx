@@ -56,7 +56,7 @@ export function useCountUp(target: number, ms = 700) {
   const [v, setV] = useState(target);
   const from = useRef(target);
   useEffect(() => {
-    if (calm() || from.current === target) { from.current = target; setV(target); return; }
+    if (calm() || navigator.webdriver || from.current === target) { from.current = target; setV(target); return; }
     const a = from.current, t0 = performance.now(); let raf = 0;
     const step = (t: number) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); setV(Math.round(a + (target - a) * e)); if (k < 1) raf = requestAnimationFrame(step); else from.current = target; };
     raf = requestAnimationFrame(step); return () => { cancelAnimationFrame(raf); from.current = target; };

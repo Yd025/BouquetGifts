@@ -99,6 +99,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   const requireOrganizer = async (bid: string, uid: string) => { const b = await getBouquet(bid); if (b.organizer_id !== uid) fail(403, 'Only the organizer can do that'); return b; };
   const deadlinePassed = (b: any) => clock.now().getTime() > new Date(b.buy_by_at).getTime();
 
+  /** One source for "your share": held = every hold you placed, charged = what was captured (or is being captured), back = the rest. */
+  const myReceipt = (rows: any[]) => { const heldCents = rows.reduce((a, c) => a + c.amount_cents, 0);
+    const chargedCents = rows.filter(c => c.status === 'captured' || c.status === 'capture_pending').reduce((a, c) => a + (c.captured_cents ?? 0), 0);
+    return { heldCents, chargedCents, backCents: heldCents - chargedCents }; };
   async function state(bid: string, uid: string) {
     const b = await getBouquet(bid); const me = await requireMember(bid, uid);
     const members = await db.query('SELECT m.*, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status<>$2) AS pledged FROM members m WHERE bouquet_id=$1 ORDER BY joined_at', [bid, 'released']);
@@ -127,11 +131,11 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     return {
       now: clock.now().toISOString(),
       bouquet: { id: b.id, recipientName: b.recipient_name, occasion: b.occasion, note: b.note, status: b.status, cancelled: !!b.cancelled_at, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days,
-        inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null,
+        inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null, revealUrl: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/reveal/${b.reveal_token}` : null,
         chosenCandidateId: b.chosen_candidate_id, capturedTierId: b.captured_tier_id, capturedCents: b.captured_cents, isOrganizer: b.organizer_id === uid,
         deadlinePassed: deadlinePassed(b) },
       me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, networkVerified: me.network_verified,
-        hasCard: cards.some((c: any) => c.member_id === me.id), vote: myVote, contributions: myContribs },
+        hasCard: cards.some((c: any) => c.member_id === me.id), vote: myVote, contributions: myContribs, receipt: myReceipt(myContribs) },
       members: members.map((m: any) => ({ id: m.id, displayName: m.display_name, role: m.role, networkVerified: m.network_verified, flowerBack: m.flower_back,
         hasCard: cards.some((c: any) => c.member_id === m.id), holding: Number(m.pledged) > 0 })), // never another friend's amount or cap
       cards: cards.map((c: any) => ({ id: c.id, memberId: c.member_id, memberName: name.get(c.member_id), title: c.title, traits: c.traits, story: c.story,
@@ -149,7 +153,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         currentTier: D.highestFundedTier(tiers, total)?.id ?? null, nextTier: D.nextTier(tiers, total)?.id ?? null,
         checkout: previewTier ? { tierId: previewTier.id, tierLevel: previewTier.level, chargeCents: previewTier.threshold_cents, releaseCents: blurred ? null : f.held - previewTier.threshold_cents,
           holders: new Set(liveHolds.map((h: any) => h.member_id)).size,
-          myHeldCents: myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0), myChargeCents: myHolds.reduce((a: number, h: any) => a + (previewAlloc.get(h.id) ?? 0), 0) } : null },
+          myHeldCents: myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0), atMost: blurred,
+          myChargeCents: blurred ? myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0) : myHolds.reduce((a: number, h: any) => a + (previewAlloc.get(h.id) ?? 0), 0) } : null },
     };
   }
 
@@ -452,8 +457,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const nt = st.tiers.find((t: any) => t.id === st.totals.nextTier);
     const holders = done ? (await db.query(`SELECT COUNT(DISTINCT member_id)::int AS n FROM contributions WHERE bouquet_id=$1 AND status='captured'`, [b.id]))[0].n : co?.holders ?? 0;
     const facts: B.ExplainFacts = { status: b.status, recipient: b.recipientName, gift: cand?.title ?? 'the gift', organizer: org?.displayName ?? 'the organizer', buyBy: new Date(b.buyByAt).toISOString(), holders: Number(holders),
-      heldCents: st.totals.heldCents, myHeldCents: done || b.status === 'expired' ? mine.reduce((a: number, c: any) => a + c.amount_cents, 0) : co?.myHeldCents ?? mine.filter((c: any) => c.status === 'held').reduce((a: number, c: any) => a + c.amount_cents, 0),
-      myChargeCents: done ? mine.reduce((a: number, c: any) => a + (c.captured_cents ?? 0), 0) : co?.myChargeCents ?? 0,
+      heldCents: st.totals.heldCents, myHeldCents: done ? st.me.receipt.heldCents : b.status === 'expired' ? mine.reduce((a: number, c: any) => a + c.amount_cents, 0) : co?.myHeldCents ?? mine.filter((c: any) => c.status === 'held').reduce((a: number, c: any) => a + c.amount_cents, 0),
+      myChargeCents: done ? st.me.receipt.chargedCents : co?.myChargeCents ?? 0,
       tierLevel: tierRow?.level ?? null, tierTitle: tierRow?.title.replace(/^\+ /, '') ?? null, chargeCents: done ? b.capturedCents : co?.chargeCents ?? null, tiersCount: st.tiers.length,
       nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, nextTierGapCents: nt ? nt.thresholdCents - st.totals.fundedCents : null,
       firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer, groupHidden: !!st.totals.blurred };

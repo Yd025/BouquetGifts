@@ -15,7 +15,7 @@ import TopUp from '../../../components/TopUp';
 
 const STAGES = [['collecting', 'Cards'], ['fusing', 'Pick the gift'], ['funding', 'Chip in'], ['purchased', 'Bought'], ['revealed', 'Opened']];
 const short = (d: any) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-const clean = (t: string) => t.replace(/^\+ /, '');
+const clean = (t: string) => { const x = t.replace(/^\+ /, ''); return x.charAt(0).toUpperCase() + x.slice(1); };
 
 export default function Room({ params }: { params: { id: string } }) {
   const r = useRouter(); const [s, setS] = useState<any>(null); const [err, setErr] = useState('');
@@ -144,7 +144,7 @@ function Funding({ s, act, setS }: any) {
       <div className="tiers" style={{ marginTop: 14, textAlign: 'left' }}>{s.tiers.map((t: any) => <div key={t.id} className={`tier ${t.unlocked ? 'unlocked' : ''}`} data-testid="tier">
         {t.product ? <img className="tierimg" src={t.product.photoUrl} alt={t.product.name} data-testid="tier-photo" /> : <span className="tierimg ph">🎁</span>}
         <div className="grow"><b>{clean(t.title)}</b>{t.product && <div className="tiermeta"><a href={t.product.url} target="_blank" rel="noreferrer">{t.product.name}</a> · {t.product.store} · {$(t.product.priceCents)}</div>}</div>
-        <span className="thr">{$(t.thresholdCents)}</span></div>)}</div>
+        <span className="thr"><b>{$(t.product?.priceCents ?? (t.thresholdCents - (s.tiers[s.tiers.indexOf(t) - 1]?.thresholdCents ?? 0)))}</b><small>unlocks at {$(t.thresholdCents)}</small></span></div>)}</div>
     </div>
     {b.status === 'funding' && <div className="panel"><h2>Chip in</h2>
       {s.me.isGuest ? <div data-testid="claim">
@@ -168,7 +168,7 @@ function Funding({ s, act, setS }: any) {
         {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Card •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {({ held: 'on hold', captured: 'paid', released: 'returned', capture_pending: 'paying…', release_pending: 'returning…' } as any)[c.status] ?? c.status}</span></div>)}</div>}
       </>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">{err}</div>}
-      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</div>}
+      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). With only two of you in, the exact split stays private until it’s bought.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
       {!s.me.isGuest && <ExplainPay bid={b.id} />}
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
         <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · amounts stay private</div>
@@ -184,11 +184,12 @@ function Funding({ s, act, setS }: any) {
 }
 
 function Purchased({ s }: any) {
-  const link = s.bouquet.revealToken && typeof window !== 'undefined' ? `${location.origin}/reveal/${s.bouquet.revealToken}` : null;
-  const mine = s.me.contributions.filter((c: any) => c.status === 'captured').reduce((a: number, c: any) => a + c.captured_cents, 0);
-  return <div className="panel ticket"><div className="stamp-bought" aria-hidden /><h2>Bought <span className="chip" data-testid="sandbox-chip" title="This is a demo. Card holds are simulated.">Demo · no real money moved</span></h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
-      if (!held) return <p>You didn’t place a hold, so you paid nothing. The organizer orders the gift.</p>;
-      return <p>Your share: <b data-testid="my-charge">{$(mine)}</b>{held > mine ? <>, not {$(held)}. The group got up to “{clean(tier?.title ?? '')}”, so the rest of your hold went back to your card</> : ''}. The organizer orders the gift.</p>; })()}
+  const link = s.bouquet.revealUrl ?? (s.bouquet.revealToken && typeof window !== 'undefined' ? `${location.origin}/reveal/${s.bouquet.revealToken}` : null);
+  const r = s.me.receipt; // one source: held, charged, back (charged + back = held)
+  const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
+  return <div className="panel ticket"><div className="stamp-bought" aria-hidden /><h2>Bought <span className="chip" data-testid="sandbox-chip" title="This is a demo. Card holds are simulated.">Demo · no real money moved</span></h2>
+    {!r.heldCents ? <p>You didn’t place a hold, so you paid nothing.</p>
+      : <p data-testid="my-receipt">You paid <b data-testid="my-charge">{$(r.chargedCents)}</b> of your {$(r.heldCents)} hold{r.backCents > 0 ? <> · <b>{$(r.backCents)}</b> went back to your card</> : ''}. The group got everything up to “{clean(tier?.title ?? '')}”.</p>}
     <ExplainPay bid={s.bouquet.id} label="What did I pay?" />
     {link && <><label>Send {s.bouquet.recipientName} this link to open the gift</label><div className="copy"><input readOnly value={link} data-testid="reveal-link" /><a className="btn sm" href={link} target="_blank">Preview</a></div></>}</div>;
 }
