@@ -46,6 +46,20 @@ describe('GeminiAi text', () => {
   });
 });
 
+describe('GeminiAi text quota fallback', () => {
+  it('retries text on the fallback model when the primary is out of free-tier quota', async () => {
+    const { f, calls } = fakeGemini((_b, url) => url.includes('/gemini-2.5-flash:') ? { status: 429, json: {} } : textReply('A gentle Sunrise Hiker'));
+    const ai = new GeminiAi('k', { fetch: f, model: 'gemini-2.5-flash' });
+    expect(await ai.cardTitle(['Sunrise Hiker'])).toBe('A gentle Sunrise Hiker');
+    expect(calls.map(c => c.url.split('/models/')[1])).toEqual(['gemini-2.5-flash:generateContent', 'gemini-flash-lite-latest:generateContent']);
+    expect(calls[0].body.generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 }); expect(calls[1].body.generationConfig.thinkingConfig).toBeUndefined();
+    const both = fakeGemini(() => ({ status: 429, json: {} })); // both out → rules
+    expect(await new GeminiAi('k', { fetch: both.f }).cardTitle(['Bookworm'])).toMatch(/Bookworm/); expect(both.calls).toHaveLength(2);
+    const bad = fakeGemini(() => ({ status: 400, json: {} })); // a real bug is not retried
+    await new GeminiAi('k', { fetch: bad.f }).polish('x', 'J'); expect(bad.calls).toHaveLength(1);
+  });
+});
+
 describe('GeminiAi card art', () => {
   it('asks the image model for an IMAGE and returns the inline bytes with their MIME type', async () => {
     const png = Buffer.from('89504e470d0a1a0a', 'hex');

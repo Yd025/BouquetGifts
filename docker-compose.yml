@@ -15,6 +15,7 @@ services:
       # --- keys that drop in at 3 PM (each falls back to its mock when empty; check with `docker compose exec api npm run check:keys`) ---
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL-gemini-flash-lite-latest}
       GEMINI_IMAGE_MODEL: ${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
       GEMINI_TTS_MODEL: ${GEMINI_TTS_MODEL:-gemini-2.5-flash-preview-tts}
       GEMINI_TTS_VOICE: ${GEMINI_TTS_VOICE:-Sulafat}

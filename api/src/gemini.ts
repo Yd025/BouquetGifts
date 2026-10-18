@@ -17,6 +17,19 @@ export class GeminiAi extends MockAi {
   get ttsModel() { return process.env.GEMINI_TTS_MODEL ?? 'gemini-2.5-flash-preview-tts'; }
   get voice() { return process.env.GEMINI_TTS_VOICE ?? 'Sulafat'; }
   get model() { return this.opts.model ?? process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'; }
+  /** Second text model, tried when the first is out of free-tier quota (429) or unavailable. Set GEMINI_FALLBACK_MODEL='' to disable. */
+  get fallbackModel() { return process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-flash-lite-latest'; }
+  /** Text generation with the quota fallback; thinking is switched off on 2.5 models (short copy, low latency). */
+  protected async generateText(contents: unknown, config: Record<string, unknown>): Promise<GeminiPart[]> {
+    const models = [this.model, this.fallbackModel].filter((m, i, a) => m && a.indexOf(m) === i);
+    let last: unknown;
+    for (const m of models) {
+      const generationConfig: any = { ...config }; if (m.startsWith('gemini-2.5')) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      try { return await this.generate(m, { contents, generationConfig }); }
+      catch (e) { last = e; if (!/ (429|404|500|503)$/.test((e as Error).message)) throw e; }
+    }
+    throw last;
+  }
 
   /** POST models/{model}:generateContent and return the response parts. Throws on HTTP errors so callers can fall back. */
   protected async generate(model: string, body: unknown, timeoutMs = 10000): Promise<GeminiPart[]> {
@@ -28,9 +41,7 @@ export class GeminiAi extends MockAi {
     return (j.candidates?.[0]?.content?.parts ?? []) as GeminiPart[];
   }
   protected async text(prompt: string, maxOutputTokens = 120, temperature = 0.8) {
-    const generationConfig: any = { temperature, maxOutputTokens };
-    if (this.model.startsWith('gemini-2.5')) generationConfig.thinkingConfig = { thinkingBudget: 0 }; // short copy: skip thinking for latency
-    const parts = await this.generate(this.model, { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig });
+    const parts = await this.generateText([{ role: 'user', parts: [{ text: prompt }] }], { temperature, maxOutputTokens });
     const t = parts.map(p => p.text ?? '').join('').trim();
     if (!t) throw new Error('gemini empty');
     return t;
@@ -73,14 +84,13 @@ export class GeminiAi extends MockAi {
    */
   async understandChipIn(text: string, now: Date): Promise<ChipInDraft | null> {
     try {
-      const generationConfig: any = { temperature: 0, maxOutputTokens: 200, responseMimeType: 'application/json',
+      const generationConfig = { temperature: 0, maxOutputTokens: 200, responseMimeType: 'application/json',
         responseSchema: { type: 'OBJECT', properties: { softDollars: { type: 'NUMBER', nullable: true }, capDollars: { type: 'NUMBER', nullable: true }, payday: { type: 'STRING', nullable: true }, paydayPhrase: { type: 'STRING', nullable: true } } } };
-      if (this.model.startsWith('gemini-2.5')) generationConfig.thinkingConfig = { thinkingBudget: 0 };
       const today = now.toISOString().slice(0, 10), wd = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
-      const parts = await this.generate(this.model, { contents: [{ role: 'user', parts: [{ text:
+      const parts = await this.generateText([{ role: 'user', parts: [{ text:
         `Today is ${wd} ${today}. A friend is chipping in to a group gift and wrote: ${JSON.stringify(text.slice(0, 500))}\n` +
         `Extract: softDollars = the amount they'd comfortably give; capDollars = the most they'd go to (same as soft if only one amount); ` +
-        `payday = the next date they get paid as YYYY-MM-DD if they mention one, else null; paydayPhrase = their words for it (e.g. "Friday"). Use null for anything not stated. Never guess an amount.` }] }], generationConfig });
+        `payday = the next date they get paid as YYYY-MM-DD if they mention one, else null; paydayPhrase = their words for it (e.g. "Friday"). Use null for anything not stated. Never guess an amount.` }] }], generationConfig);
       const j = JSON.parse(parts.map(p => p.text ?? '').join(''));
       const c = (d: unknown) => typeof d === 'number' && d > 0 && d < 10000 ? Math.round(d * 100) : null;
       let soft = c(j.softDollars), cap = c(j.capDollars) ?? soft; soft = soft ?? cap;
