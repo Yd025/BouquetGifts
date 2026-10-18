@@ -186,7 +186,7 @@ function Funding({ s, act, setS }: any) {
 function Purchased({ s }: any) {
   const link = s.bouquet.revealToken && typeof window !== 'undefined' ? `${location.origin}/reveal/${s.bouquet.revealToken}` : null;
   const mine = s.me.contributions.filter((c: any) => c.status === 'captured').reduce((a: number, c: any) => a + c.captured_cents, 0);
-  return <div className="panel"><h2>Bought <span className="chip" data-testid="sandbox-chip" title="This is a demo. Card holds are simulated.">Demo · no real money moved</span></h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
+  return <div className="panel ticket"><div className="stamp-bought" aria-hidden /><h2>Bought <span className="chip" data-testid="sandbox-chip" title="This is a demo. Card holds are simulated.">Demo · no real money moved</span></h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
       if (!held) return <p>You didn’t place a hold, so you paid nothing. The organizer orders the gift.</p>;
       return <p>Your share: <b data-testid="my-charge">{$(mine)}</b>{held > mine ? <>, not {$(held)}. The group got up to “{clean(tier?.title ?? '')}”, so the rest of your hold went back to your card</> : ''}. The organizer orders the gift.</p>; })()}
     <ExplainPay bid={s.bouquet.id} label="What did I pay?" />
