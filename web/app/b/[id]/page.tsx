@@ -130,7 +130,7 @@ function Funding({ s, act, setS }: any) {
   const pay = async (card: string, human: string | null) => { setErr('');
     try { const cents = Math.round(amt * 100); setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: cents, ...tokenizeCard(card), idempotencyKey: payKey.current || crypto.randomUUID() }, human }));
       setJustIn(cents); setQuiet(true); localStorage.setItem(`bq-in-${b.id}`, String(Date.now())); return true; }
-    catch (e: any) { setErr(e.message); return true; } };
+    catch (e: any) { setErr(e.message); return !/SIM/.test(e.message); } }; // a SIM-swap block stays on the sheet, in red
   // Latch the late card: once shown it stays mounted until the friend finishes or skips, so a realtime refresh
   // (which flips hasCard the moment the card is saved) can't yank the minted-card reveal mid-animation.
   const [late, setLate] = useState<'off' | 'on' | 'done'>('off');
@@ -189,7 +189,7 @@ function Funding({ s, act, setS }: any) {
       {b.isOrganizer && <div style={{ marginTop: 22, borderTop: '1px dashed #f3d0df', paddingTop: 18 }}><h3>Ready to buy?</h3>
         <p className="muted">{co ? <>Buying now gets {co.tierLevel} of {s.tiers.length} parts for {$(co.chargeCents)}, shared fairly{co.releaseCents > 0 ? `; the extra ${$(co.releaseCents)} goes back` : ''}.</> : 'You can buy once the first part is fully funded. Everyone pays a fair share, and anything extra goes back to them.'}</p>
         <button disabled={!s.totals.currentTier} onClick={() => act('/lock')} data-testid="checkout">Buy the gift</button></div>}
-      {sheet && <PaySheet amountCents={Math.round(amt * 100)} recipient={b.recipientName} onClose={() => setSheet(false)} onPay={pay} />}
+      {sheet && <PaySheet amountCents={Math.round(amt * 100)} recipient={b.recipientName} onClose={() => { setSheet(false); setErr(''); }} onPay={pay} error={err} />}
     </div>}
   </div></>;
 }

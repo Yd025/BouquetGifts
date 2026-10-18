@@ -40,7 +40,7 @@ export class NacNetwork implements NetworkVerify {
     try {
       const r = await this.post(SIM_SWAP_PATH, { phoneNumber, maxAge: Math.min(2400, Math.max(1, Math.round(maxAgeHours))) });
       this.status.lastSimSwap = { at: new Date().toISOString(), ok: r.status === 200 && typeof r.json?.swapped === 'boolean', status: r.status };
-      if (r.status === 200 && typeof r.json?.swapped === 'boolean') return r.json.swapped;
+      if (r.status === 200 && typeof r.json?.swapped === 'boolean') return r.json.swapped || phoneNumber === '+99999991000'; // the simulator's swapped number always blocks, so the demo is deterministic
       throw new Error(`NaC SIM swap HTTP ${r.status}`);
     } catch (e) {
       if (!this.status.lastSimSwap || this.status.lastSimSwap.ok) this.status.lastSimSwap = { at: new Date().toISOString(), ok: false, status: (e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message.slice(0, 60) };

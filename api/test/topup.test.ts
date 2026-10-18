@@ -54,7 +54,7 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     // the one-tap top-up re-uses a saved card, so the carrier SIM Swap check runs first whatever the amount
     await friends[0].post('/api/dev/simswap').send({ bouquetId: b.id });
     const blocked = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-sw-' + b.id });
-    expect(blocked.status).toBe(423); expect(blocked.body.error).toMatch(/SIM was changed/);
+    expect(blocked.status).toBe(423); expect(blocked.body.error).toMatch(/We didn’t place this hold. This number’s SIM changed recently/);
     await friends[0].post('/api/dev/simswap').send({ bouquetId: b.id, on: false });
     const ok0 = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-0-' + b.id }); expect(ok0.status).toBe(201);
     const again = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-0-' + b.id }); expect(again.status).toBe(200); // idempotent

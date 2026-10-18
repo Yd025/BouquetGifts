@@ -465,3 +465,7 @@ html[data-auto] .cands.reveal > .cand { animation: none; }
 
 /* landing example: item price, then where it unlocks (same as the room) */
 .gprice{font-weight:700;font-variant-numeric:lining-nums tabular-nums;font-family:var(--sans,inherit)}
+
+/* SIM-swap protection: a clear red stop, nothing held */
+.simblock{display:flex;gap:10px;align-items:flex-start;background:#fdecec;border:1.5px solid #e04848;color:#8f1d1d;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:14px;line-height:1.4}
+.simblock b{color:#b42323}.simicon{font-size:20px;line-height:1}

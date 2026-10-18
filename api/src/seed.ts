@@ -7,6 +7,7 @@ export const DEMO_USERS = [
   { id: 'usr_jon', email: 'jon@bouquet.gift', name: 'Jon', password: 'bouquet123' },
   { id: 'usr_priya', email: 'priya@bouquet.gift', name: 'Priya', password: 'bouquet123' },
   { id: 'usr_sam', email: 'sam@bouquet.gift', name: 'Sam', password: 'bouquet123' },
+  { id: 'usr_leo', email: 'leo@bouquet.gift', name: 'Leo', password: 'bouquet123' },
 ];
 export async function seed(db: Db) {
   for (const q of QUESTIONS) await db.query('INSERT INTO questions (id,kind,prompt,options) VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO NOTHING', [q.id, q.kind, q.prompt, JSON.stringify(q.options)]);
@@ -27,7 +28,7 @@ export async function seedDemoBouquet(base: string, internalToken = ''): Promise
     const j: any = await r.json(); if (!r.ok) throw new Error(path + ': ' + j.error); return j; };
   const org = await login('demo@bouquet.gift');
   const existing = (await call(org, '/bouquets')).bouquets.find((b: any) => b.recipientName === 'Maya' && b.status !== 'expired');
-  if (existing && existing.members >= 4) return existing.id;
+  if (existing && existing.members >= 5) return existing.id;
   // Reuse (repair) a partially seeded demo bouquet instead of creating a duplicate.
   const b = existing ? (await call(org, `/bouquets/${existing.id}`)).bouquet : (await call(org, '/bouquets', { recipientName: 'Maya', occasion: 'Birthday', note: 'Maya turns 25! Let’s make it special.', neededBy: new Date(Date.now() + 14 * 864e5).toISOString(), shipBufferDays: 3, budgetMaxCents: 8000 })).bouquet;
   const picks: Record<string, string[]> = { jon: ['Sunrise Hiker', 'Coffee Snob'], priya: ['Film Shooter', 'Sunrise Hiker'], sam: ['Music Head', 'Film Shooter'] };
@@ -41,6 +42,9 @@ export async function seedDemoBouquet(base: string, internalToken = ''): Promise
       return [q.id, q.id === 's4' ? 3 : Math.max(0, k)]; }));
     await call(c, `/bouquets/${b.id}/cards`, { answers, story: DEMO_MEMORIES[who] });
   }
+  // Leo's number is Nokia's "SIM swapped recently" simulator number: his $60 hold is blocked in red (the trust check, live in the demo). No card, so the deck stays the same.
+  const leo = await login('leo@bouquet.gift');
+  await call(leo, `/join/${b.inviteToken}`, { displayName: 'Leo', phone: '+99999991000', budgetMaxCents: 9000 });
   console.log('Seeded demo bouquet for Maya:', b.id);
   return b.id;
 }

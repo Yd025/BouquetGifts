@@ -397,13 +397,14 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
 
   /* ---------- contributions (card holds) ---------- */
+  const SIM_BLOCK = 'We didn’t place this hold. This number’s SIM changed recently, so we’re protecting your card.';
   /** One code path for every hold: budget cap, SIM-swap check, mock Visa authorization (card or saved token), ledger. */
   async function placeHold(bq: any, m: any, amountCents: number, pay: { token: string; last4: string }, idempotencyKey: string) {
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
     if (deadlinePassed(bq)) fail(409, 'The buy-by deadline has passed');
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     if (Number(s) + amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
-    if (amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
+    if (amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, SIM_BLOCK);
     let hold; try { hold = await payments.hold({ amountCents, ...pay, idempotencyKey }); }
     catch (e) { if (e instanceof PaymentError) fail(402, e.message); throw e; }
     const created = await db.tx(async q => {
@@ -436,7 +437,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     // cheap checks first (budget, SIM swap) so a bot-check round trip isn't wasted on a hold that can't happen
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     if (Number(s) + b.amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
-    if (b.amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
+    if (b.amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, SIM_BLOCK);
     await human(req);
     const created = await placeHold(bq, m, b.amountCents, { token: b.cardToken, last4: b.last4 }, b.idempotencyKey);
     res.status(created ? 201 : 200); return state(bq.id, uid);
@@ -553,7 +554,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (!r.ask) fail(409, r.reason); if (r.ask.availableAt) fail(409, `This top-up opens on your payday (${r.ask.availableAt})`);
     if (r.ask.cents !== cents) fail(409, 'The group changed, so your top-up was recalculated. Please check the new amount.');
     // One tap re-uses a saved card, so always run the carrier SIM Swap check first, whatever the amount (account-takeover guard).
-    if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently, so one-tap top-ups are paused for your safety. Re-verify your phone to continue.');
+    if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, SIM_BLOCK);
     await placeHold(bq, m, cents, { token: m.card_token, last4: m.card_last4 }, idempotencyKey);
     await db.query('UPDATE members SET topped_tier_id=$2 WHERE id=$1', [m.id, r.tierId]);
     res.status(201); return state(bq.id, uid);

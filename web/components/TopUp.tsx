@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { SimBlock } from './PaySheet';
 import { api, $ } from '../lib/api';
 /** Your own top-up ask: a fair share of the gap, never above what you said you could do (nobody else's amount or cap is ever shown). One tap re-uses your saved Visa card after a SIM Swap check. */
 export default function TopUp({ s, setS }: { s: any; setS: (x: any) => void }) {
@@ -25,6 +26,6 @@ export default function TopUp({ s, setS }: { s: any; setS: (x: any) => void }) {
       try { await api(`/bouquets/${bid}/topup/done`, { body: {} }); setR(null); } catch (e: any) { setErr(e.message); } }}>I’m done</button>
     <div className="topup-group" data-testid="topup-group"><b>+{$(a.cents)} from you</b>{a.friends > 1 ? ` · ${a.friends - 1} other friend${a.friends > 2 ? 's are' : ' is'} getting their own ask` : ' · you can close this one alone'}</div>
     <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Never more than your limit. Nobody sees anyone else’s ask.</div>
-    {err && <div className="err" role="alert">{err}</div>}
+    {err && (/SIM/.test(err) ? <SimBlock /> : <div className="err" role="alert">{err}</div>)}
   </div>;
 }

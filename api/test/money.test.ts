@@ -115,3 +115,15 @@ describe('a renewal the card declines', { timeout: 60000 }, () => {
     expect(status).toBe('held'); expect(h1).not.toBe(h0);
   });
 });
+
+describe('the SIM-swapped friend', { timeout: 60000 }, () => {
+  it('Nokia\'s swapped test number gets a clear "we didn’t place this hold" and nothing is held', async () => {
+    const request = (await import('supertest')).default;
+    const { ctx, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    const leo = request.agent(ctx.app); await leo.post('/api/auth/signup').send({ email: `leo${Math.random()}@x.io`, password: 'password1', name: 'Leo' });
+    expect((await leo.post(`/api/join/${b.inviteToken}`).send({ displayName: 'Leo', phone: '+99999991000', budgetMaxCents: 9000 })).status).toBeLessThan(300);
+    const r = await leo.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardToken: TOK, last4: '4242', idempotencyKey: `leo-${b.id}` });
+    expect(r.status).toBe(423); expect(r.body.error).toBe('We didn’t place this hold. This number’s SIM changed recently, so we’re protecting your card.');
+    expect((await ctx.db.query(`SELECT * FROM contributions WHERE bouquet_id=$1 AND idempotency_key=$2`, [b.id, `leo-${b.id}`])).length).toBe(0);
+  });
+});

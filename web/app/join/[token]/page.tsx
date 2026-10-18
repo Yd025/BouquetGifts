@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { api, countdown, $ } from '../../../lib/api';
 import { Flower } from '../../../components/Art';
 import Turnstile from '../../../components/Turnstile';
+import { SimBlock } from '../../../components/PaySheet';
 const FB = { petals: 9, petalColor: '#f7a1c4', bgColor: '#ffd6e7', centerColor: '#f6c34a', rotation: 12, layers: 3, petalShape: 'round' };
 export default function Join({ params }: { params: { token: string } }) {
   const r = useRouter(); const [inv, setInv] = useState<any>(null); const [me, setMe] = useState<any>(undefined); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
@@ -67,7 +68,7 @@ function ChipInFirst({ inv, token, me }: { inv: any; token: string; me: any }) {
       <label>Mobile number</label><input name="phone" required type="tel" autoComplete="tel" placeholder="+1 206 555 0101" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} />
       <label>Card <span className="muted" style={{ fontWeight: 400 }}>· Test card (demo)</span></label><input name="card" required inputMode="numeric" autoComplete="cc-number" value={f.card} onChange={e => setF({ ...f, card: e.target.value })} />
       <Turnstile onToken={setHuman} />
-      {err && <div className="err" role="alert">{err}</div>}
+      {err && (/SIM/.test(err) ? <SimBlock /> : <div className="err" role="alert">{err}</div>)}
       <button type="submit" disabled={busy || human === null || cents < 100} className="cf-go" data-testid="cf-hold">{busy ? 'Holding…' : `Chip in ${$(cents)}`}</button>
       <p className="muted cf-fine" data-testid="cf-fine">It’s a hold, not a charge. If the gift is bought by {by}, you pay your share, never more than <b>{$(cents)}</b>, and {inv.organizer} sends it. If not, the hold drops off.</p>
     </form>
