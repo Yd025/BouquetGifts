@@ -164,7 +164,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     if (k === 2) { await f.getByTestId('demo-toggle').click(); await f.getByTestId('demo-simswap').click();
       await expect(f.getByTestId('demo-msg')).toContainText('SIM'); await f.screenshot({ path: SHOTS + '10d-demo-simswap.png', fullPage: true }); await f.getByTestId('demo-toggle').click(); }
     await f.fill('input[name=amount]', String(amounts[k])); await f.getByTestId('hold').click(); await expect(f.getByTestId('pay-sheet')).toBeInViewport({ ratio: 0.95 });
-    await expect(f.getByTestId('pay-confirm')).toBeEnabled({ timeout: 15000 }); await expect(f.getByTestId('pay-confirm')).toContainText('with Visa'); await expect(f.getByTestId('human-ok')).toBeVisible(); // Turnstile passed
+    await expect(f.getByTestId('pay-confirm')).toBeEnabled({ timeout: 15000 }); await expect(f.getByTestId('pay-confirm')).toContainText('Hold $'); await expect(f.getByTestId('human-ok')).toBeVisible(); // Turnstile passed
     await settle(f.getByTestId('pay-sheet')); await expectCrisp(f.getByTestId('pay-sheet'), f.getByTestId('pay-confirm')); // opaque, nothing stacked over the Hold button
     expect(await f.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden'); // page behind the modal is scroll-locked
     if (k === 0) await f.screenshot({ path: SHOTS + '10b-pay-sheet.png' });
