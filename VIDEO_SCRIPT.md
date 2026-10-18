@@ -3,8 +3,8 @@
 *Before recording (don't read aloud): sign in as demo@bouquet.gift, open the 🎬 drawer, tap **Reset demo**. Everything below is the same bouquet, Maya's birthday, with Jon, Priya and Sam. Run `check:keys`, and only say "live" about Nokia if it shows PASS.*
 
 **0:00–0:20 · Cold open: the conditional voice pledge** *(screen, phone frame: Maya's bouquet, funding. Tap 🎙)*
-Jon taps the mic and says: *"Thirty now, forty-two if we get the record."*
-"Payment forms want numbers. People talk in conditions. Bouquet hears both. Bouquet asks one thing back, because the table has a record player *and* a record: which one? One tap. Now it's three numbers you can read in three seconds: thirty now, forty-two max, and one line: *'$42 cap, only for the Record tier.'* One more tap and the Visa sheet is filled in."
+Jon taps the mic and says: *"Thirty now, forty-five if we get the [last item on the gift strip]."* (Use the name of the top tier on screen, e.g. "the record".)
+"Payment forms want numbers. People talk in conditions. Bouquet hears both. If the phrase fits two items on the table, it asks which one, one tap, instead of guessing. Then it's three numbers you can read in three seconds: thirty now, forty-five max, and one line: *'$45 cap, only for the [item] tier.'* One more tap and the Visa sheet is filled in with thirty dollars. The extra fifteen waits, and is only offered if the group goes for that item."
 
 **0:20–0:35 · Hook**
 "Every group gift has one person who guesses the gift, fronts the money and chases Venmo for weeks. Everyone else knows something that would have made it better. We built Bouquet: the gift is grown by everyone who loves her, and nobody fronts the money."
@@ -17,7 +17,7 @@ Jon taps the mic and says: *"Thirty now, forty-two if we get the record."*
 
 **1:15–1:45 · The money, readable in three seconds** *(screen: Priya's phone opens the invite → one screen: gift photo, $15/$25/$40, Hold with Visa; then the one-tap top-up; then Explain my payment)*
 "Priya opens the link late. She gets one screen: the gift, how much is in, three quick amounts, her name and 'Hold $25 with Visa'. It's a hold, not a charge, and the line underneath says the most she'll pay and when it drops off. No signup. Adding her own card comes after, and she can skip it.
-The group is twelve dollars short of the record. Bouquet splits that gap fairly, in proportion to the room each friend has left under their own cap, and each one sees only their own ask: *'+$12 from you, and the other friends are getting their own ask.'* One tap, a carrier SIM-swap check runs first, 'phone check passed', and the record unlocks for everyone.
+The group is a few dollars short of the next item. Bouquet splits that gap fairly, in proportion to the room each friend has left under their own cap, and each one sees only their own ask: *'+$12 from you, and the other friends are getting their own ask'* One tap, a carrier SIM-swap check runs first, 'phone check passed', and the next item unlocks for everyone.
 And anyone can tap 'Explain my payment': a three-line receipt. Charged, released, why. Our rules compute every number from the ledger. Gemini only words it, and its version is shown only if every dollar matches."
 
 **1:45–2:00 · Checkout** *(screen: gift strip lights up → checkout → "✓ Purchased in time")*
