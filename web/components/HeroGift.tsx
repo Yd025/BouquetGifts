@@ -10,6 +10,6 @@ export default function HeroGift() {
   const lit = Math.max(1, g.products.length - 1);
   return <div data-testid="hero-gift"><h4>For example: {g.title}</h4>
     <GiftStrip layout="col" testId="hero-strip" items={g.products.map((p: any, i: number) => ({ photoUrl: p.photoUrl, label: p.label, href: p.url, title: `${p.name} · ${p.store}`, unlocked: i < lit,
-      note: `${i === 0 ? 'Starts at' : 'At'} ${$(g.tiers[i])}` }))} />
+      price: p.priceCents ? $(p.priceCents) : undefined, note: `unlocks at ${$(g.tiers[i])}` }))} />
     <p className="muted">Real products, real prices. The more friends chip in, the more of it they get.</p></div>;
 }

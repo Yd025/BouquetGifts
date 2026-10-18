@@ -9,7 +9,7 @@ import { Db } from './db.js';
 import { Payments, NetworkVerify, Ai, PaymentError, Turnstile, makeTurnstile } from './adapters.js';
 import { Storage, FsStorage, cardSvg } from './storage.js';
 import { seedDemoBouquet } from './seed.js';
-import { coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
+import { catalogTiers, coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
 import * as D from './domain.js';
 import * as B from './bridge.js';
 import { CARD_TOKEN } from './adapters.js';
@@ -64,7 +64,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   // Public sample gift for the landing page: a real recipe's real catalog products and cumulative tier prices (nothing invented).
   app.get('/api/catalog/featured', (_q, r) => { const rec = D.RECIPES.find(x => productsFor(x.title).length >= 3);
     if (!rec) return r.json({ gift: null });
-    r.json({ gift: { title: rec.title, traits: rec.traits, products: productsFor(rec.title).map(p => publicProduct(p)), tiers: rec.tiers.map(t => t.threshold_cents) } }); });
+    r.json({ gift: { title: rec.title, traits: rec.traits, products: productsFor(rec.title).map(p => publicProduct(p)), tiers: (catalogTiers(rec.title) ?? rec.tiers).map(t => t.threshold_cents) } }); });
   app.get('/api/health', (_q, r) => r.json({ ok: true, demo: !!(deps.demo ?? process.env.DEMO_MODE === '1'), turnstileSiteKey: turnstile.siteKey, storage: storage.provider, ai: ai.provider, network: network.provider, networkChecks: (network as any).status ? { simSwap: (network as any).status.simSwap, numberVerify: (network as any).status.numberVerify, lastSimSwapOk: (network as any).status.lastSimSwap?.ok ?? null } : { simSwap: 'mock', numberVerify: 'mock', lastSimSwapOk: null }, realtime: rt ? 'durable-object' : 'sse', now: clock.now() }));
   app.post('/api/auth/signup', h(async (req, res) => {
     const b = z.object({ email: z.string().email(), password: z.string().min(8, 'Password must be at least 8 characters'), name: z.string().min(1) }).parse(req.body);
