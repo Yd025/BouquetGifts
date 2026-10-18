@@ -1,31 +1,34 @@
 # Bouquet: demo video script (about 2:15)
 
-**0:00–0:15 · Hook (face cam or title card)**
-"Every group gift has one person who guesses the gift, fronts the money, and chases Venmo for weeks. Everyone else knows something that would have made the gift better, and none of it gets used. We built Bouquet."
+*Before recording (don't read aloud): sign in as demo@bouquet.gift, open the 🎬 drawer, tap **Reset demo**. Everything below is the same bouquet, Maya's birthday, with Jon, Priya and Sam. Run `check:keys`, and only say "live" about Nokia if it shows PASS.*
 
-**0:15–0:30 · Plant** *(screen: landing, with the sample bouquet's real product photos → sign up → Plant a bouquet)*
-"I'm making a bouquet for Maya's birthday. It needs to arrive by the 30th, and shipping takes three days, so Bouquet sets a buy-by deadline. If we miss it, nobody gets charged."
+**0:00–0:20 · Cold open: the conditional voice pledge** *(screen, phone frame: Maya's bouquet, funding. Tap 🎙)*
+Jon taps the mic and says: *"Thirty now, forty-two if we get the record."*
+"Payment forms want numbers. People talk in conditions. Bouquet hears both. Bouquet asks one thing back, because the table has a record player *and* a record: which one? One tap. Now it's three numbers you can read in three seconds: thirty now, forty-two max, and one line: *'$42 cap, only for the Record tier.'* One more tap and the Visa sheet is filled in."
 
-**0:30–0:50 · Invite + Card** *(screen: invite link → join page with the T-Mobile badge → questionnaire)*
-"Friends tap a face-down card and join with just a name and a number. T-Mobile's network verifies it, so there are no codes and no account yet. Then it's one card per screen. This question was drawn from the deck, so not everyone gets it, and the flower grows as Jon answers. He writes a memory in his own words, mints, and the pack tears open: *The Well-Read Sunrise Hiker*."
+**0:20–0:35 · Hook**
+"Every group gift has one person who guesses the gift, fronts the money and chases Venmo for weeks. Everyone else knows something that would have made it better. We built Bouquet: the gift is grown by everyone who loves her, and nobody fronts the money."
 
-**0:50–1:10 · Draw, keep, fuse** *(screen: deck → draw flips → swipe right KEEP stamp → swipe left to discard → hand fan → select two → fusion animation)*
-"Everyone's cards flip together, each with its own title and memory. Their answers become a deck. I draw. Film Shooter, legendary, because all three friends said it. Swipe right to keep. Coffee Snob, swipe left. Oops, undo. Now I fuse two cards from my hand, and out comes a trail film camera set. It's a rare fusion, so it only unlocks because two or more friends agreed. My fusion is my vote, and the gift table updates live for everyone. That runs on a Cloudflare Durable Object, one per bouquet, on the free plan. Not sure which gift to pick? I ask the Gemini concierge. It reads the cards we kept and everyone's budget caps added together, and tells us what sets each gift apart: the trail film camera set is the only rare fusion, and our budget covers all of it."
+**0:35–0:55 · Plant + Card** *(screen: Plant a bouquet → invite card → questionnaire → pack tears open)*
+"Maya's gift needs to arrive by the 30th, and shipping takes three days, so Bouquet sets a buy-by deadline. Miss it, and nobody is charged. Friends join with a name and a number, no account. One card per screen; this question was drawn from the deck, so not everyone gets it. Jon writes a memory, mints, and the pack tears open: *The Well-Read Sunrise Hiker*."
 
-**1:10–1:50 · AI between people and payment** *(screen: "Just say it" box → read-back card → Visa sheet prefilled → hold; then "✨ Explain my payment")*
-"This is where people and payments usually clash. Payment forms want numbers, but people talk in sentences. So Jon just types: 'I can do about thirty, forty max, and I get paid Friday.' Gemini reads it back: thirty now, a private cap of forty, payday Friday, and it warns him if payday falls after the buy-by date. Gemini can't invent money: if it names an amount Jon never wrote, we throw it out. The payday is optional, but because he gave one, Bouquet holds thirty now and offers the last ten as a one-tap top-up on Friday, only if the group still needs it. One tap and the Visa sheet is already filled in with thirty dollars. When the group is a few dollars short of the next item, each friend gets their own small ask, sized to the cap they set, never anyone else's: 'Top up four dollars?' One tap on their saved card, and everyone's room updates live. And at any point, anyone can tap 'Explain my payment': 'If Olive checks out now, you pay twenty-nine seventy of your thirty dollar hold, and thirty cents goes back. Tier two costs ninety-eight, the group holds ninety-nine, so it's fully funded.' Our rules compute every number from the ledger, Gemini makes the wording human, and we only show its version if every dollar amount matches."
+**0:55–1:15 · Draw, keep, fuse** *(screen: deck → swipe keep/discard → hand → fusion → gift table; concierge)*
+"Everyone's answers become a deck. Swipe right to keep, left to discard. Fuse two cards and out comes a gift. Rare fusions only unlock when two friends agree, and the gift table updates live for everyone on a Cloudflare Durable Object. Stuck? The Gemini concierge says what sets each gift apart and names whose cards it uses, without ever adding up anyone's private budget."
 
-**1:50–2:00 · Bloom + Checkout** *(screen: gift strip lighting up, bloom growing, checkout → header reads "✓ Purchased in time")*
-"Those are Visa holds, not charges, and Cloudflare Turnstile quietly checks it's a human first. As the group fills it, the gift grows into real products from real stores: a 35mm camera, then Kodak Gold film, then a Polaroid. These are their actual photos and prices, and each one lights up at the top of the page as we fund it. At checkout, Bouquet captures the highest tier we fully funded, splits it fairly, and releases the rest. The countdown turns into a green 'Purchased in time.'"
+**1:15–1:45 · The money, readable in three seconds** *(screen: Priya's phone opens the invite → one screen: gift photo, $15/$25/$40, Hold with Visa; then the one-tap top-up; then Explain my payment)*
+"Priya opens the link late. She gets one screen: the gift, how much is in, three quick amounts, her name and 'Hold $25 with Visa'. It's a hold, not a charge, and the line underneath says the most she'll pay and when it drops off. No signup. Adding her own card comes after, and she can skip it.
+The group is twelve dollars short of the record. Bouquet splits that gap fairly, in proportion to the room each friend has left under their own cap, and each one sees only their own ask: *'+$12 from you, and the other friends are getting their own ask.'* One tap, a carrier SIM-swap check runs first, 'phone check passed', and the record unlocks for everyone.
+And anyone can tap 'Explain my payment': a three-line receipt. Charged, released, why. Our rules compute every number from the ledger. Gemini only words it, and its version is shown only if every dollar matches."
 
-*Honesty note (don't read aloud): Visa isn't issuing API credentials this weekend, so holds, captures and releases run on our mock Visa sandbox. Say so if asked, and say it on the Devpost. The T-Mobile SIM Swap check is wired to Nokia Network as Code (simulator numbers) and falls back to the mock if the call fails; Number Verify is mocked. Run `check:keys` before recording and only say "live" if Nokia shows PASS. If Gemini is down, each AI box quietly falls back to Bouquet's rules (same amounts, plainer wording) and still works.*
+**1:45–2:00 · Checkout** *(screen: gift strip lights up → checkout → "✓ Purchased in time")*
+"At checkout, Bouquet captures the highest tier we fully funded, splits it in proportion to each hold, and releases the rest. The countdown turns into 'Purchased in time.'"
 
-**2:00–2:10 · Reveal** *(screen: recipient pack → cards flip with voice → garland gift)*
-"Maya tears open her pack. Every card turns a trait into a compliment, 'You chase every sunrise', and a Gemini voice reads that friend's memory in their own words. The last card is legendary: her gift, with a photo of exactly what's coming, in a garland, with confetti."
+*Honesty note (don't read aloud): Visa isn't issuing API credentials this weekend, so holds, captures and releases run on our mock Visa sandbox; say so if asked. The SIM Swap check is a real Nokia Network as Code client (simulator numbers) that falls back to the mock if the call fails; this weekend Nokia's gateway refused TLS, so the demo answers from the mock unless `check:keys` shows PASS. Number Verify is mocked. If Gemini is down, each AI box falls back to Bouquet's rules (same amounts, plainer wording).*
 
-*(optional, 10s, judge drawer: click the small 🎬 button at the bottom right)* "And for the judges: a SIM-swapped phone tries to put $60 on hold, and T-Mobile blocks it. Fast-forward past the deadline, and every hold is released."
+**2:00–2:10 · Reveal** *(screen: Maya's pack → cards flip with voice → garland)*
+"Maya tears open her pack. Each card turns a trait into a compliment, a Gemini voice reads that friend's memory in their own words, and the last card is her gift, in a garland, with confetti."
 
 **2:10–2:15 · Close**
-"Bouquet. AI that speaks human between your friends and the payment. Gifts grown by everyone who loves them. Built with Google Gemini, on a Visa sandbox, T-Mobile network APIs and Cloudflare."
+"Bouquet. AI that speaks human between your friends and the payment. Built with Google Gemini, on a Visa sandbox, carrier network APIs and Cloudflare."
 
-*Recording tip (don't read aloud): record at 1280px or wider so the 🎬 button stays in the page margin. For a phone cut-in, the room works at 390px: the friend cards swipe sideways in one row.*
+*Recording tips (don't read aloud): record desktop at 1280px or wider so the 🎬 button stays in the margin; record the cold open and Priya's invite at 390px (phone frame). Optional 10s for judges from the 🎬 drawer: a SIM-swapped phone tries a $60 hold and is blocked; fast-forward past the deadline and every hold is released; Reset demo puts it all back.*
