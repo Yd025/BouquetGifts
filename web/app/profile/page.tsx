@@ -13,7 +13,7 @@ export default function Profile() {
     <div className="list">
       <div className="item"><span className="muted">Name</span><b>{u.name}</b></div>
       <div className="item"><span className="muted">Email</span><b>{u.email}</b></div>
-      <div className="item"><span className="muted">Phone</span><span>{u.phone ? <>{u.phone} {u.phoneVerified && <span className="badge">✓ T-Mobile verified</span>}</> : <span className="muted">Added when you join a bouquet</span>}</span></div>
+      <div className="item"><span className="muted">Phone</span><span>{u.phone ? <>{u.phone} {u.phoneVerified && <span className="badge soft">✓ Phone check passed</span>}</> : <span className="muted">Added when you join a bouquet</span>}</span></div>
       <div className="item"><span className="muted">Bouquets</span><span>{list.length} total · {organized} organized</span></div>
     </div>
     <p className="muted" style={{ fontSize: 13, marginTop: 16 }}>Payments are card holds in the Visa sandbox. You’re only charged when a group checks out, and only your fair share of the funded tier.</p>

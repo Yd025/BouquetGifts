@@ -58,7 +58,7 @@ export default function Room({ params }: { params: { id: string } }) {
         <span className={'dot ' + live.mode} />{live.mode === 'websocket' ? `Live room${live.online.length ? ` · ${live.online.length} here now` : ''}` : live.mode === 'sse' ? 'Live (fallback)' : 'Connecting…'}</div>
       <div className="stage">{STAGES.map(([k, l], i) => <span key={k} className={i === idx ? 'on' : i < idx ? 'done' : ''}>{i + 1}. {l}</span>)}</div>
       <div className="members">{s.members.map((m: any) => <div className="member" key={m.id}><Flower fb={m.flowerBack} size={28} />{m.displayName}{m.role === 'organizer' && ' ★'}
-        {m.networkVerified && <span className="badge" title="Verified by T-Mobile network">✓ T-Mobile</span>}{m.hasCard && <span className="chip">card</span>}</div>)}</div>
+        {m.networkVerified && <span className="badge soft" title="Phone check passed">✓ phone</span>}{m.hasCard && <span className="chip">card</span>}</div>)}</div>
       {b.isOrganizer && ['collecting', 'fusing', 'funding'].includes(b.status) && <div style={{ marginTop: 16 }}><label>Invite friends with this link</label>
         <div className="copy"><input readOnly value={invite} data-testid="invite-link" /><button className="ghost" onClick={() => navigator.clipboard?.writeText(invite)}>Copy</button></div></div>}
       {err && <div className="err" role="alert">{err}</div>}

@@ -20,7 +20,7 @@ export default function Home() {
       <div className="panel after"><h3>With Bouquet ✿</h3><ul><li>Every friend fills out a card. The group’s knowledge picks the gift</li><li>Everyone holds only what <i>they</i> choose to give</li><li>Charged only if the gift is fully funded before the deadline</li><li>The recipient opens a pack of memories, plus the gift</li></ul></div>
     </section>
     <section className="steps" id="how">
-      {[['Plant', 'Create a bouquet with a buy-by deadline that leaves time for shipping.'], ['Invite', 'Friends join by link + phone, verified by the T-Mobile network.'], ['Card', 'Each friend answers a questionnaire card — shared and random questions.'],
+      {[['Plant', 'Create a bouquet with a buy-by deadline that leaves time for shipping.'], ['Invite', 'Friends join by link with a name and number, no account. A carrier SIM-swap check guards money moments.'], ['Card', 'Each friend answers a questionnaire card — shared and random questions.'],
         ['Fuse', 'Traits fuse into gift ideas. Rare fusions need 2+ friends to agree.'], ['Bloom', 'Everyone holds their own budget. Charged only at the highest fully funded tier.']]
         .map(([t, d], i) => <div className="step" key={t}><b>{i + 1}. {t}</b><span className="muted">{d}</span></div>)}
     </section>
