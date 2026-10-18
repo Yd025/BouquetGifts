@@ -174,11 +174,11 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
   app.get('/api/bouquets', h(async req => {
     const uid = auth(req);
-    const rows = await db.query(`SELECT b.id,b.recipient_name,b.occasion,b.status,b.buy_by_at,m.role,(SELECT COUNT(*)::int FROM members x WHERE x.bouquet_id=b.id) AS members,
+    const rows = await db.query(`SELECT b.id,b.recipient_name,b.occasion,b.status,b.buy_by_at,b.cancelled_at,m.role,(SELECT COUNT(*)::int FROM members x WHERE x.bouquet_id=b.id) AS members,
       c.title AS gift, c.trait_labels AS gift_traits, (SELECT level FROM gift_tiers t WHERE t.id=b.captured_tier_id) AS level
       FROM bouquets b JOIN members m ON m.bouquet_id=b.id AND m.user_id=$1 LEFT JOIN candidates c ON c.id=b.chosen_candidate_id ORDER BY b.created_at DESC`, [uid]);
     return { bouquets: rows.map((r: any) => { const p = r.gift ? publicProduct(productAt(r.gift, r.level ?? 1, r.gift_traits ?? [])) : null;
-      return { id: r.id, recipientName: r.recipient_name, occasion: r.occasion, status: r.status, buyByAt: r.buy_by_at, role: r.role, members: r.members, gift: r.gift, photoUrl: p?.photoUrl ?? null, product: p }; }) };
+      return { id: r.id, recipientName: r.recipient_name, occasion: r.occasion, status: r.status, cancelled: !!r.cancelled_at, buyByAt: r.buy_by_at, role: r.role, members: r.members, gift: r.gift, photoUrl: p?.photoUrl ?? null, product: p }; }) };
   }));
   app.get('/api/bouquets/:id', h(async req => state(String(req.params.id), auth(req))));
 
