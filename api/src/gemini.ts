@@ -4,7 +4,7 @@
  * The key is read from GEMINI_API_KEY and is only ever sent as the x-goog-api-key header to Google.
  */
 import { MockAi, type GeneratedMedia } from './ai.js';
-import { groundedAmount, type ChipInDraft } from './bridge.js';
+import { groundedAmount, keepsFigures, type ChipInDraft } from './bridge.js';
 import { cardTitle as mockTitle, fuse as mockFuse, TraitAgg } from './domain.js';
 
 export const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -90,6 +90,16 @@ export class GeminiAi extends MockAi {
       const okDate = typeof j.payday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(j.payday) && Date.parse(j.payday) >= Date.parse(today) && Date.parse(j.payday) - Date.parse(today) < 62 * 864e5;
       return { softCents: soft, capCents: cap, payday: okDate ? j.payday : null, paydayPhrase: okDate && typeof j.paydayPhrase === 'string' ? j.paydayPhrase.slice(0, 40) : null };
     } catch (e) { console.warn('gemini chip-in failed:', (e as Error).message); return null; }
+  }
+  /** Reword a rule-based money explanation in warm plain language. Rejected (→ null) unless every $ figure is kept and none is added. */
+  async reword(kind: 'explain' | 'concierge', text: string): Promise<string | null> {
+    try {
+      const ask = kind === 'explain'
+        ? `Rewrite this payment explanation for one friend in a group gift so it is warm, plain and short (max 3 sentences, second person, no jargon like "pro-rata"). Keep every dollar amount exactly as written and do not add any new amounts, dates or promises. Text: ${text}`
+        : `Rewrite this gift recommendation as one friendly sentence (max 35 words) saying why the gift fits the group. Keep every dollar amount exactly as written and add none. Text: ${text}`;
+      const out = (await this.text(ask, 220, 0.4)).replace(/^["']|["']$/g, '').trim();
+      return out && out.length <= 600 && keepsFigures(text, out) ? out : null;
+    } catch { return null; }
   }
   async enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }) {
     const base = mockFuse(traits, 2, avoid); // recipes + consensus stay authoritative; Gemini only rewrites the blurb

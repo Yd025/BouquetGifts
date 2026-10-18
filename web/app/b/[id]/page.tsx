@@ -8,6 +8,7 @@ import Questionnaire from '../../../components/Questionnaire';
 import PaySheet from '../../../components/PaySheet';
 import GiftStrip from '../../../components/GiftStrip';
 import ChipInAI from '../../../components/ChipInAI';
+import ExplainPay from '../../../components/ExplainPay';
 
 const STAGES = [['collecting', 'Cards'], ['fusing', 'Fuse & vote'], ['funding', 'Bloom & fund'], ['purchased', 'Purchased'], ['revealed', 'Revealed']];
 
@@ -142,6 +143,7 @@ function Funding({ s, act, setS }: any) {
       </>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">⛔ {err}</div>}
       {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">If the group checks out now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</div>}
+      {!s.me.isGuest && <ExplainPay bid={b.id} />}
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
         <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} holding · everyone’s amount and budget stay private</div>
         <div className="who">{s.members.map((m: any) => <div className="wrow" key={m.id} data-testid="who-row"><Flower fb={m.flowerBack} size={24} /><span className="grow">{m.id === s.me.id ? `${m.displayName} (you)` : m.displayName}{m.role === 'organizer' ? ' ★' : ''}</span>
@@ -161,6 +163,7 @@ function Purchased({ s }: any) {
   return <div className="panel"><h2>🎉 Purchased!</h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
       if (!held) return <p>The group gift is on its way. You didn’t place a hold, so you weren’t charged anything.</p>;
       return <p>The group gift is on its way. You were charged <b data-testid="my-charge">{$(mine)}</b>{held > mine ? <>, not {$(held)}, because the group funded tier {tier?.level} (“{tier?.title.replace(/^\+ /, '')}”) and the rest of your hold was released</> : ''}.</p>; })()}
+    <ExplainPay bid={s.bouquet.id} label="Explain what I paid" />
     {link && <><label>Send this to {s.bouquet.recipientName} to open their bouquet</label><div className="copy"><input readOnly value={link} data-testid="reveal-link" /><a className="btn sm" href={link} target="_blank">Preview</a></div></>}</div>;
 }
 

@@ -83,3 +83,35 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
     : `Hold ${money(holdNowCents)}, and that’s your limit${d.payday ? ` (you’re paid ${d.paydayPhrase ?? d.payday})` : ''}.`;
   return { softCents, capCents, payday: d.payday, paydayPhrase: d.paydayPhrase, holdNowCents, warnings, summary };
 }
+
+/** Every "$12" / "$12.50" figure in a text. An AI rewording must keep exactly these, and add none. */
+export const figures = (t: string) => (t.match(/\$\d[\d,]*(?:\.\d{2})?/g) ?? []).map(s => s.replace(/,/g, ''));
+export function keepsFigures(original: string, rewrite: string) {
+  const a = new Set(figures(original)), b = new Set(figures(rewrite));
+  return [...a].every(x => b.has(x)) && [...b].every(x => a.has(x));
+}
+
+/* ---------- payment explainer facts ---------- */
+export type ExplainFacts = {
+  status: string; recipient: string; gift: string; organizer: string; buyBy: string; holders: number;
+  heldCents: number; myHeldCents: number; myChargeCents: number; tierLevel: number | null; tierTitle: string | null; chargeCents: number | null; tiersCount: number;
+  nextTierTitle: string | null; nextTierGapCents: number | null; firstTierGapCents: number | null; isOrganizer: boolean;
+};
+export function explainRules(f: ExplainFacts): string {
+  const by = new Date(f.buyBy).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const who = f.isOrganizer ? 'you check out' : `${f.organizer} checks out`;
+  if (f.status === 'purchased' || f.status === 'revealed') {
+    if (!f.myHeldCents) return `The group bought ${f.gift} for ${f.recipient} (tier ${f.tierLevel} of ${f.tiersCount}, ${money(f.chargeCents ?? 0)}). You didn’t place a hold, so you paid nothing.`;
+    const back = f.myHeldCents - f.myChargeCents;
+    return `You paid ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold.${back > 0 ? ` The other ${money(back)} went back to your card and was never charged.` : ''} Why: the group’s holds fully covered tier ${f.tierLevel} (${f.tierTitle}), which costs ${money(f.chargeCents ?? 0)}, so that is all Visa captured, split in proportion to what each of the ${f.holders} friends held.`;
+  }
+  if (f.status === 'expired') return `The buy-by date passed before checkout, so every hold was released. Nobody was charged${f.myHeldCents ? `, including your ${money(f.myHeldCents)} hold` : ''}.`;
+  if (f.tierLevel === null) {
+    const gap = f.firstTierGapCents ?? 0;
+    return `Nothing is charged yet. The first tier of ${f.gift} needs ${money(gap)} more in holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
+  }
+  const back = f.myHeldCents - f.myChargeCents;
+  const mine = f.myHeldCents ? `If ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
+  const why = `Why tier ${f.tierLevel}: the ${f.holders === 1 ? 'one hold covers' : `${f.holders} holds cover`} it fully (${money(f.chargeCents ?? 0)} of ${money(f.heldCents)} held)${f.nextTierGapCents ? `, and ${f.nextTierTitle} needs ${money(f.nextTierGapCents)} more` : ', and it is the top tier'}.`;
+  return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
+}

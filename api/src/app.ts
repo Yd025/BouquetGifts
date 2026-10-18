@@ -383,6 +383,24 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const plan = B.planChipIn(draft!, { pledgedCents: Number(s), buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null });
     return { heard: text, plan, source: fromAi ? 'gemini' : 'rules' };
   }));
+  // 2) Plain-language payment explainer: the rules compute every figure for *this* person; Gemini may only reword it (every $ kept, none added).
+  app.get('/api/bouquets/:id/explain', h(async req => {
+    const uid = auth(req); const st: any = await state(String(req.params.id), uid); const b = st.bouquet;
+    if (!['funding', 'purchased', 'revealed', 'expired'].includes(b.status)) fail(409, 'There is nothing to pay yet');
+    const cand = st.candidates.find((c: any) => c.id === b.chosenCandidateId); const org = st.members.find((m: any) => m.role === 'organizer');
+    const mine = st.me.contributions; const done = ['purchased', 'revealed'].includes(b.status); const co = st.totals.checkout;
+    const tierRow = done ? st.tiers.find((t: any) => t.id === b.capturedTierId) : co ? st.tiers.find((t: any) => t.id === co.tierId) : null;
+    const nt = st.tiers.find((t: any) => t.id === st.totals.nextTier);
+    const holders = done ? (await db.query(`SELECT COUNT(DISTINCT member_id)::int AS n FROM contributions WHERE bouquet_id=$1 AND status='captured'`, [b.id]))[0].n : co?.holders ?? 0;
+    const facts: B.ExplainFacts = { status: b.status, recipient: b.recipientName, gift: cand?.title ?? 'the gift', organizer: org?.displayName ?? 'the organizer', buyBy: new Date(b.buyByAt).toISOString(), holders: Number(holders),
+      heldCents: st.totals.heldCents, myHeldCents: done || b.status === 'expired' ? mine.reduce((a: number, c: any) => a + c.amount_cents, 0) : co?.myHeldCents ?? mine.filter((c: any) => c.status === 'held').reduce((a: number, c: any) => a + c.amount_cents, 0),
+      myChargeCents: done ? mine.reduce((a: number, c: any) => a + (c.captured_cents ?? 0), 0) : co?.myChargeCents ?? 0,
+      tierLevel: tierRow?.level ?? null, tierTitle: tierRow?.title.replace(/^\+ /, '') ?? null, chargeCents: done ? b.capturedCents : co?.chargeCents ?? null, tiersCount: st.tiers.length,
+      nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, nextTierGapCents: nt ? nt.thresholdCents - st.totals.fundedCents : null,
+      firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer };
+    const rules = B.explainRules(facts); const friendly = await ai.reword('explain', rules);
+    return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules) };
+  }));
   /* ---------- lock: capture at highest funded tier, release the rest ---------- */
   async function lock(bid: string) {
     const members = await db.query(`SELECT DISTINCT m.phone, m.display_name FROM members m JOIN contributions c ON c.member_id=m.id WHERE m.bouquet_id=$1 AND c.status='held'`, [bid]);
