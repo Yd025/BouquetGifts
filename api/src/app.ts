@@ -131,7 +131,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     return {
       now: clock.now().toISOString(),
       bouquet: { id: b.id, recipientName: b.recipient_name, occasion: b.occasion, note: b.note, status: b.status, cancelled: !!b.cancelled_at, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days,
-        inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null, revealUrl: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/reveal/${b.reveal_token}` : null,
+        inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, vcards: ['purchased', 'revealed'].includes(b.status) && b.vcards ? (typeof b.vcards === 'string' ? JSON.parse(b.vcards) : b.vcards).map(({ cardId: _c, ...c }: any) => c) : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null, revealUrl: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/reveal/${b.reveal_token}` : null,
         chosenCandidateId: b.chosen_candidate_id, capturedTierId: b.captured_tier_id, capturedCents: b.captured_cents, isOrganizer: b.organizer_id === uid,
         deadlinePassed: deadlinePassed(b) },
       me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, networkVerified: me.network_verified,
@@ -569,7 +569,27 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       return { already: false };
     });
     await settlePending(bid); // also retries anything left pending by an earlier processor error
+    await issueCards(bid);
     return r;
+  }
+  /** Pay the stores: one single-use virtual card per store, for exactly what that store is owed, adding up to the charged total.
+   *  Friends' holds are captured by the processor; the organizer never receives or fronts the money. */
+  async function issueCards(bid: string) {
+    const [b] = await db.query('SELECT * FROM bouquets WHERE id=$1', [bid]);
+    if (!b || !['purchased', 'revealed'].includes(b.status) || b.vcards || !(b.captured_cents > 0)) return;
+    const tiers = (await db.query('SELECT t.*, c.title AS ctitle, c.trait_labels FROM gift_tiers t JOIN candidates c ON c.id=t.candidate_id WHERE t.bouquet_id=$1 AND t.candidate_id=(SELECT candidate_id FROM gift_tiers WHERE id=$2) AND t.threshold_cents <= $3 ORDER BY t.level', [bid, b.captured_tier_id, b.captured_cents]));
+    const owed = new Map<string, number>(); let prev = 0;
+    for (const t of tiers) { const p = productAt(t.ctitle, t.level, t.trait_labels); const store = p?.store ?? 'the store';
+      owed.set(store, (owed.get(store) ?? 0) + (t.threshold_cents - prev)); prev = t.threshold_cents; }
+    if (!owed.size) owed.set('the store', b.captured_cents);
+    const entries = [...owed.entries()]; const diff = b.captured_cents - entries.reduce((a, [, c]) => a + c, 0); entries[entries.length - 1][1] += diff; // exact total
+    const issue = payments.issueVirtualCard?.bind(payments) ?? (async ({ idempotencyKey }: any) => ({ cardId: 'vcard_' + idempotencyKey.slice(-12), last4: '0000' }));
+    const cards: any[] = []; let n = 0;
+    for (const [merchant, amountCents] of entries) { const c = await issue({ amountCents, merchant, idempotencyKey: `${bid}-vc-${n++}` });
+      cards.push({ merchant, amountCents, last4: c.last4, cardId: c.cardId, orderRef: 'BQ-' + crypto.createHash('sha256').update(c.cardId).digest('hex').slice(0, 6).toUpperCase() }); }
+    await db.tx(async q => {
+      const done = await q('UPDATE bouquets SET vcards=$2 WHERE id=$1 AND vcards IS NULL RETURNING id', [bid, JSON.stringify(cards)]); if (!done.length) return;
+      for (const c of cards) await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'vcard',$3)`, [bid, c.cardId, c.amountCents]); });
   }
   // Change of heart before checkout: a friend can withdraw every hold they placed. Released at the card network, nothing charged.
   app.post('/api/bouquets/:id/contributions/withdraw', h(async req => {
@@ -725,5 +745,5 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (err instanceof z.ZodError) return res.status(400).json({ error: err.issues.map(i => `${i.path.join('.') || 'input'}: ${i.message}`).join('; ') });
     console.error(err); res.status(500).json({ error: 'Something went wrong' });
   });
-  return { app, artJobs, sweep, lock, clock };
+  return { app, artJobs, sweep, lock, clock, db };
 }

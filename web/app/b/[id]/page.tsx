@@ -190,6 +190,8 @@ function Purchased({ s }: any) {
   return <div className="panel ticket"><div className="stamp-bought" aria-hidden /><h2>Bought <span className="chip" data-testid="sandbox-chip" title="This is a demo. Card holds are simulated.">Demo · no real money moved</span></h2>
     {!r.heldCents ? <p>You didn’t place a hold, so you paid nothing.</p>
       : <p data-testid="my-receipt">You paid <b data-testid="my-charge">{$(r.chargedCents)}</b> of your {$(r.heldCents)} hold{r.backCents > 0 ? <> · <b>{$(r.backCents)}</b> went back to your card</> : ''}. The group got everything up to “{clean(tier?.title ?? '')}”.</p>}
+    {s.bouquet.vcards?.length > 0 && <div className="vcards" data-testid="vcards">{s.bouquet.vcards.map((c: any) => <p key={c.orderRef} data-testid="vcard-line">Paid <b>{c.merchant}</b> {$(c.amountCents)} with a one-time Visa card •••• {c.last4} (sandbox) · order #{c.orderRef}</p>)}
+      <span className="muted">Each card works once, only at that store, for exactly that amount. Nobody fronted the money: the holds paid the store directly.</span></div>}
     <ExplainPay bid={s.bouquet.id} label="What did I pay?" />
     {link && <><label>Send {s.bouquet.recipientName} this link to open the gift</label><div className="copy"><input readOnly value={link} data-testid="reveal-link" /><a className="btn sm" href={link} target="_blank">Preview</a></div></>}</div>;
 }

@@ -7,7 +7,9 @@ import { traitsFromAnswers, fuse as mockFuse, cardTitle as mockTitle, TraitAgg }
 
 /* ---------- Payments (mock Visa sandbox; swap for a real processor) ---------- */
 export interface Payments { hold(a: { amountCents: number; cardNumber?: string; token?: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string; token: string }>;
-  capture(holdId: string, amountCents: number): Promise<void>; release(holdId: string): Promise<void> }
+  capture(holdId: string, amountCents: number): Promise<void>; release(holdId: string): Promise<void>;
+  /** Single-use virtual card locked to one merchant for an exact amount (Visa virtual card / Intelligent Commerce in production). */
+  issueVirtualCard?(a: { amountCents: number; merchant: string; idempotencyKey: string }): Promise<{ cardId: string; last4: string }> }
 export class MockVisaPayments implements Payments {
   holds = new Map<string, { amount: number; state: string }>(); byKey = new Map<string, string>();
   /** Mock token vault (stand-in for a Visa network token / Click to Pay stored credential): we keep a token, never the card number. */
@@ -26,6 +28,12 @@ export class MockVisaPayments implements Payments {
   }
   async capture(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h) { if (amountCents > h.amount) throw new PaymentError('over-capture'); h.state = 'captured'; } }
   async release(holdId: string) { const h = this.holds.get(holdId); if (h) h.state = 'released'; }
+  cards = new Map<string, { amount: number; merchant: string }>();
+  async issueVirtualCard({ amountCents, merchant, idempotencyKey }: { amountCents: number; merchant: string; idempotencyKey: string }) {
+    const h = crypto.createHash('sha256').update('vcard|' + idempotencyKey).digest('hex');
+    const cardId = 'vcard_' + h.slice(0, 16); this.cards.set(cardId, { amount: amountCents, merchant });
+    return { cardId, last4: String(parseInt(h.slice(16, 24), 16) % 10000).padStart(4, '0') };
+  }
 }
 export class PaymentError extends Error {}
 function luhn(d: string) { let s = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } s += n; } return s % 10 === 0; }

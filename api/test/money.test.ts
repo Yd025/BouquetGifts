@@ -35,3 +35,17 @@ describe('one money source per person', { timeout: 60000 }, () => {
     }
   });
 });
+
+describe('paying the store', { timeout: 60000 }, () => {
+  it('issues single-use virtual cards that add up to exactly the charged total, records them in the ledger, and only once', async () => {
+    const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardNumber: VISA, idempotencyKey: `v-${i}-${b.id}` })).status).toBe(201);
+    const st = (await org.post(`/api/bouquets/${b.id}/lock`)).body;
+    const cards = st.bouquet.vcards; expect(cards.length).toBeGreaterThan(0);
+    expect(cards.reduce((a: number, c: any) => a + c.amountCents, 0)).toBe(st.bouquet.capturedCents);
+    for (const c of cards) { expect(c.last4).toMatch(/^\d{4}$/); expect(c.merchant).toBeTruthy(); expect(c.orderRef).toMatch(/^BQ-/); expect(c.cardId).toBeUndefined(); }
+    await org.post(`/api/bouquets/${b.id}/lock`); // a repeat checkout does not issue another card
+    const led = await ctx.db.query(`SELECT * FROM ledger_events WHERE bouquet_id=$1 AND type='vcard'`, [b.id]);
+    expect(led.length).toBe(cards.length); expect(led.reduce((a: number, e: any) => a + e.amount_cents, 0)).toBe(st.bouquet.capturedCents);
+  });
+});
