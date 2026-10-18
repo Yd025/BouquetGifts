@@ -38,7 +38,7 @@ export default function ChipInAI({ bid, onConfirm }: { bid: string; onConfirm: (
         <div><span className="muted">Now</span><b data-testid="chipin-soft">{$(p.holdNowCents)}</b></div>
         <div><span className="muted">Max</span><b data-testid="chipin-cap">{$(p.condition ? p.capCents - p.condition.extraCents : p.capCents)}</b>{p.condition && <span className="muted" style={{ fontSize: 12 }}>+{$(p.condition.extraCents)} for {p.condition.tierTitle}</span>}</div>
         <div><span className="muted">{payday ? `More on ${payday.split(',')[0]}` : 'Payday'}</span><b data-testid="chipin-payday">{p.scheduledTopUp ? $(p.scheduledTopUp.cents) : '—'}</b></div></div>
-      {p.scheduledTopUp && <div className="schedule" data-testid="chipin-schedule"><b>{payday}: payday top-up of up to {$(p.scheduledTopUp.cents)}</b>, offered with one tap only if the group still needs it. Nothing is held for it today.</div>}
+      {p.scheduledTopUp && <div className="schedule" data-testid="chipin-schedule"><b>{payday}: up to {$(p.scheduledTopUp.cents)} more</b>, one tap, only if the group still needs it.</div>}
       {!p.condition && <p style={{ margin: '8px 0' }} data-testid="chipin-summary">{p.summary}</p>}
       {p.condition && <p className="sronly" data-testid="chipin-summary">{p.summary}</p>}
       {p.warnings.map((w: string) => <p key={w} className="muted" style={{ fontSize: 13, margin: '4px 0' }} data-testid="chipin-warning">ⓘ {w}</p>)}
