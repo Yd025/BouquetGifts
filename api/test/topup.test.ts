@@ -79,3 +79,19 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     ctx.clock.offsetMs = 0;
   });
 });
+
+describe("top-up 'I'm done'", { timeout: 30000 }, () => {
+  it('stops my asks and re-splits the gap across the others', async () => {
+    const { friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose();
+    const [t1, t2] = ch.tiers.map((t: any) => t.thresholdCents);
+    for (const f of friends) await f.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: t2 });
+    const a0 = Math.ceil(t1 / 2), a1 = t1 - a0;
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a0, cardNumber: VISA, idempotencyKey: 'dn-0-' + b.id });
+    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: a1, cardNumber: VISA, idempotencyKey: 'dn-1-' + b.id });
+    expect((await friends[0].get(`/api/bouquets/${b.id}/topup`)).body.ask).not.toBeNull();
+    expect((await friends[0].post(`/api/bouquets/${b.id}/topup/done`)).status).toBe(200);
+    expect((await friends[0].get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull();
+    const r1 = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body;
+    expect(r1.ask.cents).toBeGreaterThanOrEqual(t2 - t1); expect(r1.ask.friends).toBe(1); // the whole gap now sits with the one friend still in
+  });
+});

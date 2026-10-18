@@ -21,6 +21,8 @@ export default function TopUp({ s, setS }: { s: any; setS: (x: any) => void }) {
           try { const st = await api(`/bouquets/${bid}/topup/accept`, { body: { cents: a.cents, idempotencyKey: key.current.k } }); setDone(a.cents); setS(st); }
           catch (e: any) { setErr(e.message); api(`/bouquets/${bid}/topup`).then(setR).catch(() => {}); } finally { setBusy(false); } }}>
           Top up {$(a.cents)} with Visa •••• {a.last4}</button>}
+    <button className="ghost sm" style={{ marginLeft: 8 }} data-testid="topup-done-btn" onClick={async () => { setErr('');
+      try { await api(`/bouquets/${bid}/topup/done`, { body: {} }); setR(null); } catch (e: any) { setErr(e.message); } }}>I’m done</button>
     <div className="topup-group" data-testid="topup-group"><b>+{$(a.cents)} from you</b>{a.friends > 1 ? ` · ${a.friends - 1} other friend${a.friends > 2 ? 's are' : ' is'} getting their own ask` : ' · you can close this one alone'}</div>
     <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Never more than you said you could do. Nobody sees anyone else’s ask. A carrier SIM-swap check runs before the hold{r.source === 'gemini' ? ' · worded by Gemini' : ''}.</div>
     {err && <div className="err" role="alert">{err}</div>}

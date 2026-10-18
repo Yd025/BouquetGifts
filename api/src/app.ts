@@ -483,9 +483,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const bq = await getBouquet(bid); if (bq.status !== 'funding' || deadlinePassed(bq)) return { ask: null, reason: 'Funding is closed' };
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bid]); const { held } = await fundedCents(bid); const nt = D.nextTier(tiers, held);
     if (!nt) return { ask: null, reason: 'Every tier is already funded' };
-    const people = await db.query(`SELECT m.id, m.budget_max_cents, m.payday, m.card_token, m.topped_tier_id, m.condition_base_cents, (SELECT level FROM gift_tiers g WHERE g.id=m.condition_tier_id) AS cond_level, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status='held') AS held
+    const people = await db.query(`SELECT m.id, m.budget_max_cents, m.payday, m.card_token, m.topped_tier_id, m.topup_done, m.condition_base_cents, (SELECT level FROM gift_tiers g WHERE g.id=m.condition_tier_id) AS cond_level, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status='held') AS held
       FROM members m WHERE m.bouquet_id=$1 AND m.card_token IS NOT NULL`, [bid]);
-    const plan = B.planTopUps(nt.threshold_cents - held, people.map((p: any) => ({ id: p.id, headroomCents: Math.max(0, (p.cond_level != null && Number(p.cond_level) > nt.level ? Number(p.condition_base_cents) : p.budget_max_cents) - Number(p.held)), payday: p.payday ? new Date(p.payday).toISOString().slice(0, 10) : null, alreadyAsked: p.topped_tier_id === nt.id })), clock.now());
+    const plan = B.planTopUps(nt.threshold_cents - held, people.map((p: any) => ({ id: p.id, headroomCents: p.topup_done ? 0 : Math.max(0, (p.cond_level != null && Number(p.cond_level) > nt.level ? Number(p.condition_base_cents) : p.budget_max_cents) - Number(p.held)), payday: p.payday ? new Date(p.payday).toISOString().slice(0, 10) : null, alreadyAsked: p.topped_tier_id === nt.id })), clock.now());
     if (!plan) return { ask: null, reason: 'Not reachable within everyone’s caps yet' };
     const mine = plan.get(me.id); if (!mine) return { ask: null, reason: 'No top-up needed from you' };
     const tierTitle = nt.title.replace(/^\+ /, '');
@@ -500,6 +500,12 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       : `Top up ${money(a.cents)} and ${recipient}’s gift unlocks ${a.tierTitle} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ` The rest is split fairly across ${a.friends - 1} other friend${a.friends > 2 ? 's' : ''}, each within what they said they could do.` : ''}`;
     const w = await ai.reword('explain', rules);
     return { ask: { ...a, message: w ?? rules }, source: w ? 'gemini' : 'rules' };
+  }));
+  // "I'm done": no more top-up asks for me in this bouquet; the plan re-splits the gap across everyone else.
+  app.post('/api/bouquets/:id/topup/done', h(async req => {
+    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+    await db.query('UPDATE members SET topup_done=true WHERE id=$1', [m.id]); notify(bq.id, 'contribution');
+    return { ok: true };
   }));
   app.post('/api/bouquets/:id/topup/accept', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);

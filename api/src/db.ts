@@ -50,6 +50,7 @@ ALTER TABLE members ADD COLUMN IF NOT EXISTS condition_tier_id TEXT;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS condition_base_cents INT;
 -- Visa calls run outside DB transactions: a hold is first marked capture_pending/release_pending, then settled after the processor answers.
 ALTER TABLE bouquets ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS topup_done BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE contributions DROP CONSTRAINT IF EXISTS contributions_status_check;
 ALTER TABLE contributions ADD CONSTRAINT contributions_status_check CHECK (status IN ('held','capture_pending','release_pending','captured','released'));
 `;
