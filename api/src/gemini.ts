@@ -105,16 +105,16 @@ export class GeminiAi extends MockAi {
   async reword(kind: 'explain' | 'concierge', text: string): Promise<string | null> {
     try {
       const ask = kind === 'explain'
-        ? `Rewrite this payment explanation for one friend in a group gift so it is warm, plain and short (max 3 sentences, second person, no jargon like "pro-rata"). Keep every dollar amount exactly as written and do not add any new amounts, dates or promises. Text: ${text}`
-        : `Rewrite this gift recommendation as one friendly sentence (max 35 words) saying why the gift fits the group. Keep every friend's name that appears, keep every dollar amount exactly as written and add none. Text: ${text}`;
-      const out = (await this.text(ask, 220, 0.4)).replace(/^["']|["']$/g, '').trim();
+        ? `Rewrite this payment explanation for one friend in a group gift so it is warm, plain and short (max 3 sentences, second person, no exclamation marks, no thank-yous, and never the words tier, cap, checkout or pro-rata). Keep every dollar amount exactly as written and do not add any new amounts, dates or promises. Text: ${text}`
+        : `Rewrite this gift recommendation as one friendly sentence (max 35 words, no exclamation marks) saying why the gift fits the group. Keep every friend's name that appears, keep every dollar amount exactly as written and add none. Text: ${text}`;
+      const out = (await this.text(ask, 220, 0.4)).replace(/^["']|["']$/g, '').replace(/!/g, '.').trim();
       return out && out.length <= 600 && keepsFigures(text, out) ? out : null;
     } catch { return null; }
   }
   async enrichCandidates(traits: TraitAgg[], avoid?: { tags: string[]; cards: number }) {
     const base = mockFuse(traits, 2, avoid); // recipes + consensus stay authoritative; Gemini only rewrites the blurb
     await Promise.all(base.map(async c => {
-      try { c.description = (await this.text(`One warm sentence (under 25 words) pitching the gift "${c.title}" for someone who is ${c.traits.join(' and ')}. Reply with the sentence only.`)).split('\n')[0]; } catch { /* keep recipe blurb */ }
+      try { c.description = (await this.text(`One warm sentence (under 25 words, no exclamation marks) pitching the gift "${c.title}" for someone who is ${c.traits.join(' and ')}. Reply with the sentence only.`)).split('\n')[0]; } catch { /* keep recipe blurb */ }
     }));
     return base;
   }
