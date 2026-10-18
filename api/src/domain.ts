@@ -225,7 +225,7 @@ const PALETTES = [['#f7a1c4', '#ffd6e7'], ['#c3a6ff', '#ece2ff'], ['#ffb38a', '#
 /** Unique flower design for a card back, derived from a seed. */
 export function flowerBack(seed: string) {
   const r = rng(seed); const p = PALETTES[Math.floor(r() * PALETTES.length)];
-  return { petals: 5 + Math.floor(r() * 7), petalColor: p[0], bgColor: p[1], centerColor: ['#f6c34a', '#ffffff', '#7a4b94', '#e8735a'][Math.floor(r() * 4)],
+  return { petals: 5 + Math.floor(r() * 7), petalColor: p[0], bgColor: p[1], centerColor: ['#f6c34a', '#ffffff', '#c9a7e8', '#e8735a'][Math.floor(r() * 4)],
     rotation: Math.floor(r() * 360), layers: 1 + Math.floor(r() * 3), petalShape: r() > 0.5 ? 'round' : 'pointed' };
 }
 

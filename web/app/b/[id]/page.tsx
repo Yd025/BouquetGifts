@@ -69,7 +69,7 @@ export default function Room({ params }: { params: { id: string } }) {
         {m.networkVerified && <span className="badge soft" title="Phone check passed">✓ phone</span>}{m.hasCard && <span className="chip">✓ card</span>}</div>)}</div>
       {b.isOrganizer && ['collecting', 'fusing', 'funding'].includes(b.status) && <div style={{ marginTop: 16 }}><label>Invite friends with this link</label>
         <div className="copy"><input readOnly value={invite} data-testid="invite-link" /><button className="ghost" onClick={() => navigator.clipboard?.writeText(invite)}>Copy</button></div>
-        <button className="ghost sm" style={{ marginTop: 10 }} data-testid="cancel-bouquet" onClick={() => { if (confirm('Cancel this gift? Every hold is released and nobody pays. This can’t be undone.')) act('/cancel'); }}>Cancel gift</button></div>}
+        <button className="ghost sm danger" style={{ marginTop: 18 }} data-testid="cancel-bouquet" onClick={() => { if (confirm('Cancel this gift? Every hold is released and nobody pays. This can’t be undone.')) act('/cancel'); }}>Cancel gift</button></div>}
       {err && <div className="err" role="alert">{err}</div>}
     </div>
     {b.status === 'collecting' && <Collecting s={s} act={act} setS={setS} />}

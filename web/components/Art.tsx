@@ -22,7 +22,8 @@ export function CardBack({ fb }: { fb: FB }) {
 }
 
 export function TraitCard({ card, flipped = true, onClick, testId, compliments = false }: { card: { title: string; traits: string[]; story?: string; memberName?: string; friend?: string; flowerBack: FB; artUrl?: string | null; stats?: { label: string; count: number }[]; compliments?: string[] }; flipped?: boolean; onClick?: () => void; testId?: string; compliments?: boolean }) {
-  const stats = card.stats ?? card.traits.map(l => ({ label: l, count: 1 }));
+  // one chip per trait (a repeated label is merged, never shown twice)
+  const stats = Object.values((card.stats ?? card.traits.map(l => ({ label: l, count: 1 }))).reduce((m: Record<string, { label: string; count: number }>, t) => { m[t.label] = m[t.label] ? { label: t.label, count: Math.max(m[t.label].count, t.count) } : t; return m; }, {}));
   return <div className={`flip ${flipped ? 'flipped' : ''}`} onClick={onClick} data-testid={testId}>
     <div className="flipinner">
       <CardBack fb={card.flowerBack} />
