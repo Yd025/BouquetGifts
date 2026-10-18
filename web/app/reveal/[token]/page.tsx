@@ -61,7 +61,7 @@ export default function Reveal({ params }: { params: { token: string } }) {
           : <ul style={{ textAlign: 'left' }}>{p.gift.includes.map((x: string) => <li key={x}>{x.replace(/^\+ /, '')}</li>)}</ul>}
         <div className="compl">{p.gift.compliments.map((c: string) => <div key={c}>✿ {c}</div>)}</div>
         <p className="muted" style={{ fontSize: 13 }}>Chosen by {p.from.join(', ')}.</p>
-        <div className="chip" title="Demo: no real shipment is created">Demo order ref {p.gift.tracking}</div></div></Garland></div>}
+        <div className="chip" title={`Order ${p.gift.tracking}`}>Demo order · nothing ships</div></div></Garland></div>}
     {!done && i >= 0 && <button onClick={next} data-testid="next-card">{i === n - 1 ? 'Reveal the gift ✿' : 'Next card →'}</button>}
     {!done && i >= 0 && <p className="muted" style={{ fontSize: 12 }}>Tap, or swipe the card</p>}
   </div>;
