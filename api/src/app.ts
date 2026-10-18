@@ -24,7 +24,7 @@ const tok = () => crypto.randomBytes(12).toString('base64url');
 class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
 const fail = (s: number, m: string): never => { throw new HttpError(s, m); };
 
-export function createApp(deps: { db: Db; payments: Payments; network: NetworkVerify; ai: Ai; clock?: Clock; secret?: string; demo?: boolean; storage?: Storage; turnstile?: Turnstile; publicOrigin?: string; internalToken?: string; realtime?: { url: string; publicUrl: string; secret: string } }) {
+export function createApp(deps: { db: Db; payments: Payments; network: NetworkVerify; ai: Ai; clock?: Clock; secret?: string; demo?: boolean; storage?: Storage; turnstile?: Turnstile; publicOrigin?: string; secureCookie?: boolean; internalToken?: string; realtime?: { url: string; publicUrl: string; secret: string } }) {
   const { db, payments, network, ai } = deps;
   const storage = deps.storage ?? new FsStorage(); const turnstile = deps.turnstile ?? makeTurnstile();
   const PUBLIC_ORIGIN = (deps.publicOrigin ?? process.env.PUBLIC_ORIGIN ?? '').replace(/\/$/, '');
@@ -34,7 +34,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   const SECRET = deps.secret ?? process.env.JWT_SECRET ?? 'dev-secret-change-me';
   // Fail closed: a public https deployment must have a real session secret, never a placeholder.
   if (PUBLIC_ORIGIN.startsWith('https://') && (!SECRET || SECRET.length < 16 || ['dev-secret-change-me', 'change-me-in-prod'].includes(SECRET))) throw new Error('JWT_SECRET must be set to a long random value when PUBLIC_ORIGIN is https');
-  const SECURE_COOKIE = PUBLIC_ORIGIN.startsWith('https://');
+  const SECURE_COOKIE = deps.secureCookie ?? PUBLIC_ORIGIN.startsWith('https://');
   const bus = new EventEmitter(); bus.setMaxListeners(1000);
   const rt = deps.realtime ?? (process.env.REALTIME_URL ? { url: process.env.REALTIME_URL, publicUrl: process.env.PUBLIC_REALTIME_URL ?? process.env.REALTIME_URL, secret: process.env.REALTIME_SECRET ?? 'dev-realtime-secret' } : undefined);
   // Fan-out: in-process SSE bus always; the Cloudflare Durable Object room too when configured (fire-and-forget, SSE/polling stay as fallback).

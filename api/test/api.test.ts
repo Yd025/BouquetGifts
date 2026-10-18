@@ -16,7 +16,7 @@ class TestAi extends MockAi { voiceOn = false; spoken: string[] = [];
   async speak(text: string) { if (!this.voiceOn) return null; this.spoken.push(text); return { body: Buffer.from('RIFF....WAVEfake'), type: 'audio/wav' }; } }
 const testAi = new TestAi();
 beforeAll(async () => { const db = await makeDb('memory'); await seed(db); payments = new MockVisaPayments();
-  ctx = createApp({ db, payments, network: new MockNetwork(), ai: testAi, clock: makeClock(), demo: true, secret: 't', publicOrigin: 'https://bouquet.example', storage: new FsStorage(path.join(os.tmpdir(), 'bq-test-' + Date.now())) }); app = ctx.app; });
+  ctx = createApp({ db, payments, network: new MockNetwork(), ai: testAi, clock: makeClock(), demo: true, secret: 'api-test-secret-0123456789', secureCookie: false, publicOrigin: 'https://bouquet.example', storage: new FsStorage(path.join(os.tmpdir(), 'bq-test-' + Date.now())) }); app = ctx.app; });
 
 const agent = () => request.agent(app);
 async function signup(name: string) { const a = agent(); const r = await a.post('/api/auth/signup').send({ email: `${name}${Math.random()}@x.io`, password: 'password1', name }); expect(r.status).toBe(201); return a; }
