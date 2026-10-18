@@ -154,7 +154,9 @@ function Funding({ s, act, setS }: any) {
           <button className="ghost" onClick={() => act('/budget', { budgetMinCents: Math.round(bud.min * 100), budgetMaxCents: Math.round(bud.max * 100), condition: null }, 'PATCH')} data-testid="save-budget">Save</button></div>
         <p className="muted" style={{ fontSize: 13 }}>Private to you. You’ve held {$(pledged)}, so {$(room)} is left in your budget.</p>
         <label>{pledged > 0 ? 'Add to your hold ($)' : 'Chip in ($)'}</label><input name="amount" type="number" min={1} value={amt} onChange={e => setAmt(Number(e.target.value))} />
-        <div style={{ marginTop: 14 }}><button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more with Visa` : `Chip in ${$(Math.round(amt * 100))} with Visa`}</button></div>
+        <div style={{ marginTop: 14 }}><button onClick={() => setSheet(true)} data-testid="hold">{pledged > 0 ? `Add ${$(Math.round(amt * 100))} more with Visa` : `Chip in ${$(Math.round(amt * 100))} with Visa`}</button>
+          {pledged > 0 && <button className="ghost sm" style={{ marginLeft: 8 }} data-testid="withdraw" onClick={async () => { if (!confirm(`Withdraw your ${$(pledged)} hold? It's released back to your card and nothing is charged.`)) return; setErr('');
+            try { setS(await api(`/bouquets/${b.id}/contributions/withdraw`, { body: {} })); } catch (e: any) { setErr(e.message); } }}>Withdraw my hold</button>}</div>
         {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Visa •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {c.status === 'held' ? 'on hold' : c.status}</span></div>)}</div>}
       </>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">⛔ {err}</div>}

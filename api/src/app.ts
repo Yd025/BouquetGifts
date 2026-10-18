@@ -556,6 +556,19 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     await settlePending(bid); // also retries anything left pending by an earlier processor error
     return r;
   }
+  // Change of heart before checkout: a friend can withdraw every hold they placed. Released at the card network, nothing charged.
+  app.post('/api/bouquets/:id/contributions/withdraw', h(async req => {
+    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+    const n = await db.tx(async q => {
+      const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
+      if (cur.status !== 'funding') fail(409, 'Holds can only be withdrawn before checkout');
+      const rows = await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE member_id=$1 AND status='held' RETURNING id`, [m.id]);
+      if (!rows.length) fail(409, 'You have no hold to withdraw');
+      await q('UPDATE members SET condition_tier_id=NULL, condition_base_cents=NULL WHERE id=$1', [m.id]);
+      return rows.length; });
+    await settlePending(bq.id); notify(bq.id, 'contribution');
+    return { ...(await state(bq.id, uid)), withdrawn: n };
+  }));
   app.post('/api/bouquets/:id/lock', h(async req => {
     const uid = auth(req); await requireOrganizer(String(req.params.id), uid);
     await lock(String(req.params.id)); notify(String(req.params.id), 'purchased'); return state(String(req.params.id), uid);
