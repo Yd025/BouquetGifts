@@ -47,7 +47,7 @@ export default function Reveal({ params }: { params: { token: string } }) {
     {i === -1 && <>
       <button className={`bigpack ${tearing ? 'tear' : ''}`} onClick={open} data-testid="pack" disabled={tearing || human === null} aria-label="Tear open your pack">
         <div className="tearstrip"><span>✂ tear here</span></div>
-        <div className="packface"><Flower fb={PACK} size={170} /><h2>bouquet</h2><p>{n} cards from friends · 1 legendary gift</p></div></button>
+        <div className="packface"><Flower fb={PACK} size={170} /><h2>bouquet</h2><p>{n} cards from friends, and one gift</p></div></button>
       <Turnstile onToken={setHuman} />{err && <div className="err">{err}</div>}</>}
     {i >= 0 && i < n && <div className="reveal-card" key={i} onPointerDown={sx} onPointerUp={ex} style={{ touchAction: 'pan-y' }}>
       <div className="dealin"><TraitCard card={p.cards[i]} flipped testId="reveal-card" compliments /></div></div>}
