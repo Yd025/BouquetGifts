@@ -53,7 +53,7 @@ export default function Reveal({ params }: { params: { token: string } }) {
       <div className="dealin"><TraitCard card={p.cards[i]} flipped testId="reveal-card" compliments /></div></div>}
     {done && <div className="pop" data-testid="final-gift"><Confetti /><Garland>
       <div className="legend holo" data-testid="legendary">
-        <div className="rar r-legendary" style={{ display: 'inline-block' }}>Legendary{p.gift.rare ? ' · rare fusion' : ''}</div>
+        <div className="rar r-legendary" style={{ display: 'inline-block' }}>Your gift{p.gift.rare ? ' · a rare find' : ''}</div>
         {p.gift.product ? <img className="revealimg" src={p.gift.product.photoUrl} alt={p.gift.product.name} data-testid="reveal-photo" />
           : <div className="product" aria-label="gift illustration">{p.gift.traits.map((t: string) => <span key={t}>{ICON[t] ?? '🎁'}</span>)}<span>🎁</span></div>}
         <h2 style={{ marginTop: 6 }}>{p.gift.title}</h2><p className="muted">{p.gift.description}</p>
