@@ -141,7 +141,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         inviteToken: b.organizer_id === uid ? b.invite_token : null, inviteUrl: b.organizer_id === uid && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/join/${b.invite_token}` : null, vcards: ['purchased', 'revealed'].includes(b.status) && b.vcards ? (typeof b.vcards === 'string' ? JSON.parse(b.vcards) : b.vcards).map(({ cardId: _c, ...c }: any) => c) : null, revealToken: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) ? b.reveal_token : null, revealUrl: me.role === 'organizer' && ['purchased', 'revealed'].includes(b.status) && PUBLIC_ORIGIN ? `${PUBLIC_ORIGIN}/reveal/${b.reveal_token}` : null,
         chosenCandidateId: b.chosen_candidate_id, capturedTierId: b.captured_tier_id, capturedCents: b.captured_cents, isOrganizer: b.organizer_id === uid,
         deadlinePassed: deadlinePassed(b) },
-      me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, networkVerified: me.network_verified,
+      me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, holdNotice: me.hold_notice ?? null, networkVerified: me.network_verified,
         hasCard: cards.some((c: any) => c.member_id === me.id), vote: myVote, contributions: myContribs, receipt: myReceipt(myContribs) },
       members: members.map((m: any) => ({ id: m.id, displayName: m.display_name, role: m.role, networkVerified: m.network_verified, flowerBack: m.flower_back,
         hasCard: cards.some((c: any) => c.member_id === m.id), holding: Number(m.pledged) > 0 })), // never another friend's amount or cap
@@ -417,10 +417,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       const [{ s: heldNow }] = await q(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
       if (Number(heldNow) + amountCents > mm.budget_max_cents) { await payments.release(hold!.holdId); fail(400, `That would exceed your budget of $${(mm.budget_max_cents / 100).toFixed(2)}`); }
       const cid = id('ctb');
-      const ins = await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey]);
+      const ins = await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key,authorized_at) VALUES ($1,$2,$3,$4,$5,'held',$6,$7,$8) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey, clock.now().toISOString()]);
       if (!ins.length) return false; // belt and braces: never a 500 on a duplicate key
       await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'hold',$3)`, [bq.id, cid, amountCents]);
-      await q('UPDATE members SET card_token=$2, card_last4=$3 WHERE id=$1', [m.id, hold!.token, hold!.last4]); // token only, never the card number
+      await q('UPDATE members SET card_token=$2, card_last4=$3, hold_notice=NULL WHERE id=$1', [m.id, hold!.token, hold!.last4]); // token only, never the card number
       return true;
     });
     if (created) notify(bq.id, 'contribution');
@@ -679,8 +679,15 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     // Holds last about 7 days at the card network: re-authorize any hold that has been waiting 6 days (ledger 'reauth').
     const stale = new Date(clock.now().getTime() - 6 * 864e5).toISOString();
     for (const hd of await db.query(`SELECT id, bouquet_id, hold_id, amount_cents FROM contributions WHERE status='held' AND authorized_at < $1`, [stale])) {
-      try { await payments.reauthorize?.(hd.hold_id, hd.amount_cents); } catch (e) { console.error('reauth failed, will retry', hd.id, (e as Error).message); continue; }
-      await db.tx(async q => { const done = await q(`UPDATE contributions SET authorized_at=$2 WHERE id=$1 AND status='held' AND authorized_at < $3 RETURNING id`, [hd.id, clock.now().toISOString(), stale]); if (!done.length) return;
+      let nh: { holdId: string } | void;
+      try { nh = await payments.reauthorize?.(hd.hold_id, hd.amount_cents); } catch (e) {
+        if (!(e instanceof PaymentError)) { console.error('reauth failed, will retry', hd.id, (e as Error).message); continue; }
+        // The card declined the renewal: that hold is gone. Release it, log it, and ask the friend to hold again. The funded tier is recomputed from what is still held.
+        const gone = await db.tx(async q => { const done = await q(`UPDATE contributions SET status='released', captured_cents=0 WHERE id=$1 AND status='held' RETURNING member_id`, [hd.id]); if (!done.length) return false;
+          await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [hd.bouquet_id, hd.id, hd.amount_cents]);
+          await q('UPDATE members SET hold_notice=$2 WHERE id=$1', [done[0].member_id, 'Your card couldn’t renew the hold. Tap to hold again.']); return true; });
+        if (gone) notify(hd.bouquet_id, 'contribution'); continue; }
+      await db.tx(async q => { const done = await q(`UPDATE contributions SET authorized_at=$2, hold_id=COALESCE($4, hold_id) WHERE id=$1 AND status='held' AND authorized_at < $3 RETURNING id`, [hd.id, clock.now().toISOString(), stale, nh?.holdId ?? null]); if (!done.length) return;
         await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'reauth',$3)`, [hd.bouquet_id, hd.id, hd.amount_cents]); });
     }
     // retry anything a processor error left pending (captures and releases)

@@ -86,3 +86,32 @@ describe('seeded demo', { timeout: 60000 }, () => {
     const me = (await org.get(`/api/bouquets/${b.id}`)).body.me; expect(me.receipt.heldCents).toBe(4000);
   });
 });
+
+describe('a renewal the card declines', { timeout: 60000 }, () => {
+  it('releases that hold (ledger release), tells the friend, drops the funded total, and the hold is never captured', async () => {
+    const { MockVisaPayments } = await import('../src/adapters.js');
+    const visa = new MockVisaPayments(); const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: visa }); const ch = await choose();
+    const price = ch.tiers[0].thresholdCents;
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 2000, cardToken: TOK, last4: '4242', idempotencyKey: `rd0-${b.id}` })).status).toBe(201);
+    ctx.clock.offsetMs = 3 * 864e5;
+    expect((await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: price, cardToken: TOK, last4: '4242', idempotencyKey: `rd1-${b.id}` })).status).toBe(201);
+    const heldSum = async () => Number((await ctx.db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE bouquet_id=$1 AND status='held'`, [b.id]))[0].s);
+    const before = await heldSum();
+    ctx.clock.offsetMs = 6 * 864e5 + 3600e3; visa.declineReauth = true; await ctx.sweep(); visa.declineReauth = false;
+    const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
+    expect(me.contributions[0].status).toBe('released'); expect(me.holdNotice).toMatch(/couldn’t renew the hold/);
+    expect((await ctx.db.query(`SELECT * FROM ledger_events WHERE type='release' AND bouquet_id=$1`, [b.id])).length).toBe(1);
+    expect(await heldSum()).toBe(before - 2000);
+    expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
+    const c0 = (await ctx.db.query(`SELECT c.* FROM contributions c WHERE c.idempotency_key=$1`, [`rd0-${b.id}`]))[0]; expect(c0.status).toBe('released'); expect(c0.captured_cents).toBe(0);
+    ctx.clock.offsetMs = 0;
+  });
+  it('a renewal that works stores the new hold id', async () => {
+    const { ctx, friends, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 2000, cardToken: TOK, last4: '4242', idempotencyKey: `rn-${b.id}` });
+    const [{ hold_id: h0 }] = await ctx.db.query('SELECT hold_id FROM contributions WHERE idempotency_key=$1', [`rn-${b.id}`]);
+    ctx.clock.offsetMs = 6 * 864e5 + 3600e3; await ctx.sweep(); ctx.clock.offsetMs = 0;
+    const [{ hold_id: h1, status }] = await ctx.db.query('SELECT hold_id, status FROM contributions WHERE idempotency_key=$1', [`rn-${b.id}`]);
+    expect(status).toBe('held'); expect(h1).not.toBe(h0);
+  });
+});

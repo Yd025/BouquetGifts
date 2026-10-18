@@ -155,6 +155,7 @@ function Funding({ s, act, setS }: any) {
     </div>
     {b.status === 'funding' && <div className="panel"><h2>Chip in</h2>
       {justIn > 0 && <div className="youin pop" data-testid="you-in"><b>✓ You’re in for {$(justIn)}</b>{last4 ? <> · •••• {last4}</> : ''} · hold only, released {short(b.buyByAt)} if it isn’t bought<button className="ghost sm x" aria-label="Dismiss" onClick={() => setJustIn(0)}>✕</button></div>}
+      {s.me.holdNotice && <div className="holdnotice" role="alert" data-testid="hold-notice"><span>{s.me.holdNotice}</span><button className="btn sm" onClick={() => { setManual(true); setSheet(true); }}>Hold again</button></div>}
       {!quiet && <TopUp key={'t' + wd} s={s} setS={setS} />}
       <ChipInAI key={'c' + wd} bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null, condition: p.condition ? { tierId: p.condition.tierId, baseCents: p.capCents - p.condition.extraCents } : null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
