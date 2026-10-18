@@ -49,4 +49,10 @@ describe('GET /concierge', { timeout: 30000 }, () => {
     const r = (await friends[1].get(`/api/bouquets/${b.id}/concierge`)).body;
     expect(r.source).toBe('gemini'); expect(r.picks[0].why).toMatch(/^Gemini says: /); if (r.picks[1]) expect(r.picks[1].why).not.toMatch(/^Gemini/);
   });
+  it('rejects Gemini wording that drops a friend whose card the pick uses (keeps the rule line naming everyone)', async () => {
+    const ai = Object.assign(new MockAi(), { provider: 'gemini', reword: async () => 'A lovely gift your whole group will adore.' });
+    const { friends, b } = await fundingBouquet(ai);
+    const r = (await friends[1].get(`/api/bouquets/${b.id}/concierge`)).body;
+    expect(r.source).toBe('rules'); expect(r.picks[0].why).toMatch(/Friend\d/);
+  });
 });

@@ -106,7 +106,7 @@ export class GeminiAi extends MockAi {
     try {
       const ask = kind === 'explain'
         ? `Rewrite this payment explanation for one friend in a group gift so it is warm, plain and short (max 3 sentences, second person, no jargon like "pro-rata"). Keep every dollar amount exactly as written and do not add any new amounts, dates or promises. Text: ${text}`
-        : `Rewrite this gift recommendation as one friendly sentence (max 35 words) saying why the gift fits the group. Keep every dollar amount exactly as written and add none. Text: ${text}`;
+        : `Rewrite this gift recommendation as one friendly sentence (max 35 words) saying why the gift fits the group. Keep every friend's name that appears, keep every dollar amount exactly as written and add none. Text: ${text}`;
       const out = (await this.text(ask, 220, 0.4)).replace(/^["']|["']$/g, '').trim();
       return out && out.length <= 600 && keepsFigures(text, out) ? out : null;
     } catch { return null; }

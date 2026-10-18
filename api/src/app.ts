@@ -443,7 +443,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         contributors: [...new Set(st.cards.filter((k: any) => (k.traits as string[]).some(t => c.traits.includes(t))).map((k: any) => k.memberName as string))] as string[],
         tiers: tiers.filter((t: any) => t.candidate_id === c.id).map((t: any) => ({ level: t.level, title: t.title, thresholdCents: t.threshold_cents })) })) });
     let source = 'rules';
-    if (picks[0]) { const w = await ai.reword('concierge', `${picks[0].title}: ${picks[0].why}`); if (w) { picks[0].why = w; source = 'gemini'; } }
+    if (picks[0]) { // Gemini may warm up the wording, but must still name every friend whose card the pick uses (else the rule text stays)
+      const who = (st.cards as any[]).filter(k => (k.traits as string[]).some(t => (st.candidates.find((c: any) => c.id === picks[0].candidateId)?.traits ?? []).includes(t))).map(k => k.memberName as string);
+      const w = await ai.reword('concierge', `${picks[0].title}: ${picks[0].why}`);
+      if (w && who.every(n => w.includes(n))) { picks[0].why = w; source = 'gemini'; } }
     return { picks, source, members: st.members.length };
   }));
   // 4) Top-up plan: close the gap to the next tier across private caps. Rules split it; each friend sees only their own ask;
