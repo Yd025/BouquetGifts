@@ -5,18 +5,29 @@ import { fundingBouquet } from './helpers.js';
 
 describe('gift concierge (rules)', () => {
   const tiers = (a: number, b: number, c: number) => [{ level: 1, title: 'Mug', thresholdCents: a }, { level: 2, title: '+ Map', thresholdCents: b }, { level: 3, title: '+ Stove', thresholdCents: c }];
-  it('ranks by kept cards and votes, and reports the reachable tier + next upgrade without leaking the budget sum', () => {
-    const picks = conciergeRules({ groupBudgetCents: 13000, members: 3, traitKeeps: { 'Sunrise Hiker': 3, 'Coffee Snob': 2, Bookworm: 0 },
-      candidates: [{ id: 'a', title: 'Book Nook', rare: false, traits: ['Bookworm'], votes: 0, citedFriends: ['Jon'], tiers: tiers(3000, 6000, 9000) },
-        { id: 'b', title: 'Trail Café Kit', rare: true, traits: ['Sunrise Hiker', 'Coffee Snob'], votes: 1, citedFriends: ['Jon', 'Ana'], tiers: tiers(6000, 12000, 18000) }] });
-    expect(picks.map(p => p.candidateId)).toEqual(['b', 'a']);
-    expect(picks[0].reachableTier?.level).toBe(2); expect(picks[0].nextTier).toEqual({ level: 3, title: 'Stove', thresholdCents: 18000 });
-    expect(picks[0].why).toMatch(/Sunrise Hiker \(kept ×3\) and Coffee Snob \(kept ×2\)/); expect(picks[0].why).toContain('from Jon and Ana’s cards'); expect(picks[0].why).not.toContain('$130');
-    expect(picks[1].nextTier).toBeNull();
+  const base = { groupBudgetCents: 13000, cardholders: ['Jon', 'Ana', 'Sam'], traitKeeps: { 'Sunrise Hiker': 3, 'Coffee Snob': 2, Bookworm: 1, 'Film Shooter': 0 } };
+  const kit = { id: 'b', title: 'Trail Café Kit', rare: true, traits: ['Sunrise Hiker', 'Coffee Snob'], votes: 1, contributors: ['Jon', 'Ana'], cover: 'u1', tiers: tiers(6000, 12000, 18000) };
+  const nook = { id: 'a', title: 'Book Nook', rare: false, traits: ['Bookworm', 'Cozy Nester'], votes: 0, contributors: ['Sam'], cover: 'u2', tiers: tiers(3000, 6000, 9000) };
+  const trio = { id: 'c', title: 'Trail Book Duo', rare: false, traits: ['Sunrise Hiker', 'Bookworm'], votes: 0, contributors: ['Jon', 'Ana', 'Sam'], cover: 'u3', tiers: tiers(5000, 9000, 20000) };
+  it('ranks, gives every pick a different standout, cites every contributor and labels budget in dollars (never the summed caps)', () => {
+    const picks = conciergeRules({ ...base, candidates: [nook, kit, trio] });
+    expect(picks.map(p => p.candidateId)).toEqual(['b', 'c', 'a']);
+    expect(new Set(picks.map(p => p.standout)).size).toBe(3);
+    expect(picks.find(p => p.candidateId === 'c')!.standout).toBe('The only pick that draws on all 3 friends’ cards.');
+    expect(picks.find(p => p.candidateId === 'a')!.standout).toBe('The only one your budget covers in full today ($90).');
+    expect(picks[0].why).toContain('Uses Jon and Ana’s cards (not Sam’s)'); expect(picks[1].why).toContain('Uses Jon, Ana and Sam’s cards');
+    expect(picks[0].budget).toEqual({ coversCents: 12000, items: 2, totalCents: 18000, items_total: 3, full: false }); expect(picks[0].nextUpgrade).toEqual({ title: 'Stove', priceCents: 18000 });
+    for (const p of picks) expect(JSON.stringify(p)).not.toContain('13000');
   });
-  it('says when even tier 1 is over budget', () => {
-    const [p] = conciergeRules({ groupBudgetCents: 1000, members: 1, traitKeeps: {}, candidates: [{ id: 'x', title: 'Kit', rare: false, traits: ['Maker'], votes: 0, citedFriends: [], tiers: tiers(3000, 6000, 9000) }] });
-    expect(p.reachableTier).toBeNull(); expect(p.why).toMatch(/Even tier 1 \(\$30\) is above/);
+  it('drops near-duplicates (same lead product, or traits already covered by a better pick)', () => {
+    const sub = { ...nook, id: 'd', title: 'Hiker Treasure Box', traits: ['Sunrise Hiker'], contributors: ['Jon', 'Ana'], cover: 'u9' };
+    const samePhoto = { ...nook, id: 'e', title: 'Café Box', traits: ['Coffee Snob', 'Film Shooter'], cover: 'u1' };
+    const ids = conciergeRules({ ...base, candidates: [kit, sub, samePhoto, nook] }).map(p => p.candidateId);
+    expect(ids).toContain('b'); expect(ids).not.toContain('d'); expect(ids).not.toContain('e'); expect(ids).toContain('a');
+  });
+  it('says plainly when even the first item is over budget', () => {
+    const [p] = conciergeRules({ ...base, groupBudgetCents: 1000, candidates: [nook] });
+    expect(p.budget.coversCents).toBe(0); expect(p.nextUpgrade).toEqual({ title: 'Mug', priceCents: 3000 });
   });
 });
 
@@ -29,7 +40,7 @@ describe('GET /concierge', { timeout: 30000 }, () => {
     // keeping a trait card moves gifts built on it up
     const t = fused.traits.find((x: any) => !r.picks[0].why.includes(x.label));
     if (t) { for (const f of friends) await f.post(`/api/bouquets/${b.id}/picks`).send({ traitId: t.id, keep: true });
-      const r2 = (await friends[0].get(`/api/bouquets/${b.id}/concierge`)).body; expect(r2.picks[0].why).toContain(t.label); }
+      const r2 = (await friends[0].get(`/api/bouquets/${b.id}/concierge`)).body; expect(r2.picks.some((p: any) => p.why.includes(t.label))).toBe(true); }
     await choose(); expect((await friends[0].get(`/api/bouquets/${b.id}/concierge`)).status).toBe(409);
   });
   it('uses Gemini wording for the top pick when it keeps the figures', async () => {

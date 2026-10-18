@@ -120,22 +120,56 @@ export function explainRules(f: ExplainFacts): string {
 
 /* ---------- gift concierge ---------- */
 const names = (n: string[]) => n.length < 2 ? n.join('') : `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}`;
-export type ConciergeIn = { candidates: { id: string; title: string; rare: boolean; traits: string[]; votes: number; citedFriends: string[]; tiers: { level: number; title: string; thresholdCents: number }[] }[];
-  traitKeeps: Record<string, number>; groupBudgetCents: number; members: number };
-export type ConciergePick = { candidateId: string; title: string; score: number; reachableTier: { level: number; title: string; thresholdCents: number } | null;
-  nextTier: { level: number; title: string; thresholdCents: number } | null; why: string };
-/** Rank gifts by what the group actually kept and voted for, then check them against everyone's combined budget caps.
- * Only the reachable tier is shown, never the sum, so no one can back out a friend's private budget. */
-export function conciergeRules(x: ConciergeIn): ConciergePick[] {
-  return x.candidates.map(c => {
+type Tier = { level: number; title: string; thresholdCents: number };
+export type ConciergeIn = { candidates: { id: string; title: string; rare: boolean; traits: string[]; votes: number; contributors: string[]; cover?: string | null; tiers: Tier[] }[];
+  traitKeeps: Record<string, number>; groupBudgetCents: number; cardholders: string[] };
+export type ConciergePick = { candidateId: string; title: string; score: number; standout: string; why: string;
+  budget: { coversCents: number; items: number; totalCents: number; items_total: number; full: boolean };
+  nextUpgrade: { title: string; priceCents: number } | null;
+  /** kept for older clients */ reachableTier: Tier | null; nextTier: { level: number; title: string; thresholdCents: number } | null };
+const clean = (t: string) => t.replace(/^\+ /, '');
+/**
+ * Rank gifts by what the group kept and voted for, drop near-duplicates, and give each pick one line on what sets it apart.
+ * Budget lines are in dollars for *this* gift (tier numbers mean different things per gift). Only the covered amount is shown,
+ * never the summed budget caps, so no one can back out a friend's private number.
+ */
+export function conciergeRules(x: ConciergeIn, limit = 3): ConciergePick[] {
+  const scored = x.candidates.map(c => {
     const keeps = c.traits.reduce((a, t) => a + (x.traitKeeps[t] ?? 0), 0);
     const tiers = [...c.tiers].sort((a, b) => a.thresholdCents - b.thresholdCents);
     const reach = [...tiers].reverse().find(t => t.thresholdCents <= x.groupBudgetCents) ?? null;
     const nxt = tiers.find(t => t.thresholdCents > x.groupBudgetCents) ?? null;
-    const fits = reach ? reach.level : 0;
-    const score = keeps * 2 + c.votes * 3 + (c.rare ? 2 : 0) + c.citedFriends.length + fits;
-    const kept = c.traits.filter(t => x.traitKeeps[t]).map(t => `${t} (kept ×${x.traitKeeps[t]})`);
-    const why = `${kept.length ? `Built on ${kept.join(' and ')}` : `Built on ${c.traits.join(' and ')}`}${c.citedFriends.length ? `, from ${names(c.citedFriends)}’s cards` : ''}. ${reach ? `Your group’s combined budget reaches tier ${reach.level} (${money(reach.thresholdCents)}).` : `Even tier 1 (${money(tiers[0]?.thresholdCents ?? 0)}) is above the group’s combined budget so far.`}`;
-    return { candidateId: c.id, title: c.title, score, reachableTier: reach, nextTier: nxt ? { level: nxt.level, title: nxt.title.replace(/^\+ /, ''), thresholdCents: nxt.thresholdCents } : null, why };
-  }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
+    const score = keeps * 2 + c.votes * 3 + (c.rare ? 2 : 0) + c.contributors.length * 2 + (reach ? reach.level : 0);
+    return { c, keeps, tiers, reach, nxt, score, top: tiers[tiers.length - 1]?.thresholdCents ?? 0, start: tiers[0]?.thresholdCents ?? 0 };
+  }).sort((a, b) => b.score - a.score || a.c.title.localeCompare(b.c.title));
+  // near-duplicates: same title, same lead product, or a trait set already covered by a higher-ranked pick
+  const shown: typeof scored = [];
+  for (const s of scored) {
+    if (shown.some(p => p.c.title === s.c.title || (s.c.cover && p.c.cover === s.c.cover) || s.c.traits.every(t => p.c.traits.includes(t)))) continue;
+    shown.push(s); if (shown.length >= limit) break;
+  }
+  const holders = x.cardholders.length;
+  const unique = (s: typeof shown[0], val: (q: typeof shown[0]) => number) => shown.length > 1 && shown.every(q => q === s || val(q) < val(s));
+  const used = new Set<string>();
+  const criteria: [string, (q: typeof shown[0]) => number, (s: typeof shown[0]) => string][] = [
+    ['all', q => q.c.contributors.length, s => s.c.contributors.length === holders && holders > 1 ? `The only pick that draws on all ${holders} friends’ cards.` : `Draws on the most friends’ cards (${s.c.contributors.length} of ${holders}).`],
+    ['full', q => (q.reach && q.reach.thresholdCents === q.top ? 1 : 0), s => `The only one your budget covers in full today (${money(s.top)}).`],
+    ['rare', q => (q.c.rare ? 1 : 0), () => `The only rare fusion: 2+ friends named both of its traits on their own.`],
+    ['kept', q => q.keeps, s => `Its traits were kept most in the deck (×${s.keeps}).`],
+    ['cheap', q => -q.start, s => `Lowest starting price (${money(s.start)}), so it’s funded soonest.`],
+    ['votes', q => q.c.votes, s => `Most votes so far (${s.c.votes}).`],
+  ];
+  return shown.map(s => {
+    let standout = '';
+    for (const [k, val, text] of criteria) if (!used.has(k) && unique(s, val)) { standout = text(s); used.add(k); break; }
+    if (!standout) standout = shown.length === 1 ? 'The clear match for what your group kept.' : `A different direction: ${s.c.traits.join(' + ')}.`;
+    const missing = x.cardholders.filter(n => !s.c.contributors.includes(n));
+    const kept = s.c.traits.filter(t => x.traitKeeps[t]).map(t => `${t} (kept ×${x.traitKeeps[t]})`);
+    const why = `Built on ${kept.length ? kept.join(' and ') : s.c.traits.join(' and ')}. Uses ${s.c.contributors.length ? `${names(s.c.contributors)}’s card${s.c.contributors.length > 1 ? 's' : ''}` : 'nobody’s card directly'}${missing.length && s.c.contributors.length ? ` (not ${names(missing)}’s)` : ''}.`;
+    const items = s.reach ? s.tiers.filter(t => t.thresholdCents <= s.reach!.thresholdCents).length : 0;
+    return { candidateId: s.c.id, title: s.c.title, score: s.score, standout, why,
+      budget: { coversCents: s.reach?.thresholdCents ?? 0, items, totalCents: s.top, items_total: s.tiers.length, full: !!s.reach && s.reach.thresholdCents === s.top },
+      nextUpgrade: s.nxt ? { title: clean(s.nxt.title), priceCents: s.nxt.thresholdCents } : null,
+      reachableTier: s.reach, nextTier: s.nxt ? { level: s.nxt.level, title: clean(s.nxt.title), thresholdCents: s.nxt.thresholdCents } : null };
+  });
 }

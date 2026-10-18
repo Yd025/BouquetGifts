@@ -409,9 +409,12 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const tiers = await db.query('SELECT candidate_id, level, title, threshold_cents FROM gift_tiers WHERE bouquet_id=$1 ORDER BY level', [st.bouquet.id]);
     const [{ total }] = await db.query('SELECT COALESCE(SUM(budget_max_cents),0)::int AS total FROM members WHERE bouquet_id=$1', [st.bouquet.id]);
     const traitKeeps = Object.fromEntries(st.traits.map((t: any) => [t.label, t.keptCount]));
-    const picks = B.conciergeRules({ traitKeeps, groupBudgetCents: Number(total), members: st.members.length,
-      candidates: st.candidates.map((c: any) => ({ id: c.id, title: c.title, rare: c.rare, traits: c.traits, votes: c.votes, citedFriends: c.citedFriends,
-        tiers: tiers.filter((t: any) => t.candidate_id === c.id).map((t: any) => ({ level: t.level, title: t.title, thresholdCents: t.threshold_cents })) })) }).slice(0, 3);
+    const cardholders = [...new Set(st.cards.map((k: any) => k.memberName as string))] as string[];
+    const picks = B.conciergeRules({ traitKeeps, groupBudgetCents: Number(total), cardholders,
+      candidates: st.candidates.map((c: any) => ({ id: c.id, title: c.title, rare: c.rare, traits: c.traits, votes: c.votes, cover: c.product?.url ?? null,
+        // every friend whose card named one of this gift's traits, not only the ones the fusion recorded
+        contributors: [...new Set(st.cards.filter((k: any) => (k.traits as string[]).some(t => c.traits.includes(t))).map((k: any) => k.memberName as string))] as string[],
+        tiers: tiers.filter((t: any) => t.candidate_id === c.id).map((t: any) => ({ level: t.level, title: t.title, thresholdCents: t.threshold_cents })) })) });
     let source = 'rules';
     if (picks[0]) { const w = await ai.reword('concierge', `${picks[0].title}: ${picks[0].why}`); if (w) { picks[0].why = w; source = 'gemini'; } }
     return { picks, source, members: st.members.length };

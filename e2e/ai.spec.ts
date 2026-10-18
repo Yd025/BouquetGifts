@@ -22,8 +22,8 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   const jon = await (await browser.newContext({ storageState: await f0.storageState() })).newPage();
   await jon.goto(`/b/${b.id}`); await expect(jon.getByTestId('concierge')).toBeVisible();
   await jon.getByTestId('concierge-ask').click(); await expect(jon.getByTestId('concierge-pick').first()).toBeVisible();
-  await expect(jon.getByTestId('concierge-tier')).toContainText(/Budget reaches tier \d|Over budget/);
-  await expect(jon.getByTestId('concierge-why')).not.toBeEmpty(); await expect(jon.getByTestId('concierge-source')).toBeVisible();
+  await expect(jon.getByTestId('concierge-tier')).toContainText(/Budget covers|above your budgets/);
+  await expect(jon.getByTestId('concierge-why')).not.toBeEmpty(); await expect(jon.getByTestId('concierge-standout').first()).not.toBeEmpty(); await expect(jon.getByTestId('concierge-source')).toBeVisible();
   await jon.getByTestId('concierge').scrollIntoViewIfNeeded(); await jon.getByTestId('concierge').screenshot({ path: SHOTS + '16a-ai-concierge.png' });
   await jon.getByTestId('concierge-vote').first().click(); await expect(jon.getByTestId('concierge-vote').first()).toHaveText('Voted ✓');
   await ok(org.post(`/api/bouquets/${b.id}/choose`)); // top-voted = the concierge's pick

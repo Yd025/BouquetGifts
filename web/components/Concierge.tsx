@@ -12,8 +12,12 @@ export default function Concierge({ s, act }: { s: any; act: (p: string, body?: 
     {err && <div className="err" role="alert">{err}</div>}
     {r && <div className="cands" style={{ marginTop: 8 }}>{r.picks.map((p: any, i: number) => <div key={p.candidateId} className={`cand ${i === 0 ? 'mine' : ''}`} data-testid="concierge-pick">
       <div className="fusion">{i === 0 ? '★ Top pick' : `#${i + 1}`}</div><h3 style={{ margin: '4px 0' }}>{p.title}</h3>
+      <p style={{ margin: '0 0 4px', fontWeight: 600 }} data-testid="concierge-standout">{p.standout}</p>
       <p style={{ margin: 0 }} data-testid={i === 0 ? 'concierge-why' : undefined}>{p.why}</p>
-      <div className="muted" style={{ fontSize: 13 }} data-testid={i === 0 ? 'concierge-tier' : undefined}>{p.reachableTier ? `Budget reaches tier ${p.reachableTier.level}` : 'Over budget so far'}{p.nextTier ? ` · next upgrade: ${p.nextTier.title} at ${$(p.nextTier.thresholdCents)}` : ' · every tier fits'}</div>
+      <div className="muted" style={{ fontSize: 13, marginTop: 4 }} data-testid={i === 0 ? 'concierge-tier' : undefined}>{p.budget.full
+        ? `Budget covers the whole ${$(p.budget.totalCents)} gift (all ${p.budget.items_total} items)`
+        : p.budget.coversCents ? `Budget covers ${$(p.budget.coversCents)} of ${$(p.budget.totalCents)} (${p.budget.items} of ${p.budget.items_total} items)` : `First item is ${$(p.nextUpgrade?.priceCents ?? 0)}, above your budgets so far`}
+        {p.nextUpgrade && p.budget.coversCents ? ` · ${$(p.nextUpgrade.priceCents)} adds ${p.nextUpgrade.title}` : ''}</div>
       <div className="row" style={{ marginTop: 6 }}><span className="grow" /><button className="sm btn" onClick={() => act('/vote', { candidateId: p.candidateId })} data-testid="concierge-vote">{s.me.vote === p.candidateId ? 'Voted ✓' : 'Vote for this'}</button></div>
     </div>)}</div>}
     {r && <div className="muted" style={{ fontSize: 12, marginTop: 10 }} data-testid="concierge-source">{r.source === 'gemini' ? 'Top pick worded by Gemini · ranking and prices come from Bouquet’s rules' : 'Ranked by Bouquet rules (Gemini offline)'}</div>}
