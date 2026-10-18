@@ -29,7 +29,8 @@ export function amountsIn(text: string): Amt[] {
     if (!hasMoney && /(the|on|by)\s*$/.test(text.slice(Math.max(0, m.index - 4), m.index))) continue; // "on the 15", "by 5"
     if (!hasMoney && /\b(am|pm)\b/i.test(text.slice(m.index + m[0].length, m.index + m[0].length + 4))) continue;
     if (/[:/]$/.test(before)) continue;
-    let v = Number(/,\d{3}/.test(m[2]) ? m[2].replace(/,/g, '') : m[2].replace(',', '.')); // "$1,000" is a thousand; "12,50" is 12.50 if (m[3]) v *= 1000;
+    let v = Number(/,\d{3}/.test(m[2]) ? m[2].replace(/,/g, '') : m[2].replace(',', '.')); // "$1,000" is a thousand; "12,50" is 12.50
+    if (m[3]) v *= 1000; // "1.5k", "$2k"
     out.push({ cents: Math.round(v * 100), at: m.index, end: m.index + m[0].length, cap: false });
   }
   for (const [w, v] of Object.entries(WORDS)) {

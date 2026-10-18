@@ -86,6 +86,7 @@ describe('POST /chip-in/understand', { timeout: 30000 }, () => {
 describe('chip-in parser edge cases', () => {
   it('reads thousands separators and "paid Friday" next to a conditional extra', () => {
     expect(parseChipInRules('$1,000 max', NOW)).toMatchObject({ capCents: 100000 });
+    expect(amountsIn('1.5k max').map(a => a.cents)).toEqual([150000]); expect(amountsIn('$2k').map(a => a.cents)).toEqual([200000]); // the k suffix multiplies
     expect(parseChipInRules('$1,250.50', NOW)).toMatchObject({ softCents: 125050 });
     expect(parseChipInRules('$12,50', NOW)).toMatchObject({ softCents: 1250 });
     expect(parseChipInRules('$30, $40 if it gets the Polaroid, paid Friday', NOW)).toMatchObject({ softCents: 3000, payday: '2026-10-23', conditional: { cents: 4000, phrase: 'Polaroid' } });
