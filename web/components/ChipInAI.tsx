@@ -21,15 +21,15 @@ export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { b
   const p = r?.plan; const payday = p?.payday ? new Date(p.payday + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : null;
   return <div className="aibox" data-testid="chipin-ai">
     <label className="sayit">Just say it <span className="chip aitag" title="Read by AI, then you confirm">AI</span></label>
-    <textarea name="chipinText" data-testid="chipin-text" rows={2} style={{ width: '100%', resize: 'vertical' }} maxLength={500}
-      placeholder="e.g. “$30, or $40 if we get the Polaroid” or “$30 now, $40 max, I get paid Friday”" value={text}
-      onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); understand(); } }} />
-    <div className="row" style={{ marginTop: 6 }}><span className="muted grow" style={{ fontSize: 12 }}>Getting paid soon? Say when, and the rest can wait until then.</span>
-      {canMic && <button className={'ghost mic' + (listening ? ' on' : '')} onClick={mic} disabled={busy} data-testid="chipin-mic" aria-pressed={listening} title="Say it out loud" style={{ marginRight: 6 }}>{listening ? '■ Listening…' : '🎙 Speak'}</button>}
-      <button className="ghost" disabled={busy || !text.trim()} onClick={() => understand()} data-testid="chipin-understand">{busy ? 'Reading…' : 'Continue'}</button></div>
+    <div className="sayrow">
+      <textarea name="chipinText" data-testid="chipin-text" rows={text.length > 30 ? 2 : 1} className="sayinput" maxLength={500}
+        placeholder="e.g. “$30, or $40 if we get the camera”" value={text}
+        onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); understand(); } }} />
+      {canMic && <button className={'ghost mic tap' + (listening ? ' on' : '')} onClick={mic} disabled={busy} data-testid="chipin-mic" aria-pressed={listening} aria-label="Say it out loud" title="Say it out loud">{listening ? '■' : '🎙'}</button>}
+      <button className="ghost tap" disabled={busy || !text.trim()} onClick={() => understand()} data-testid="chipin-understand">{busy ? '…' : 'Go'}</button></div>
     {err && <div className="err" role="alert" data-testid="chipin-error">{err}</div>}
     {p && <div className="readback pop" data-testid="chipin-plan">
-      <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard<span className="sronly" data-testid="chipin-source">{r.source === 'gemini' ? 'read by Gemini' : 'read by Bouquet rules'}</span></div>
+      <div className="muted" style={{ fontSize: 12 }}>Here’s what I heard<span className="sronly" data-testid="chipin-source">{r.source === 'gemini' ? 'read by AI' : 'read by rules'}</span></div>
       {r.choices && <div className="schedule" data-testid="chipin-choices"><b>Which one did you mean by “{p.conditional?.phrase}”?</b>
         <div className="row" style={{ marginTop: 6, flexWrap: 'wrap', gap: 6 }}>{r.choices.map((c: any) => <button key={c.tierId} className="ghost sm" data-testid="chipin-choice" onClick={() => understand(text, c.tierId)}>{c.title}</button>)}</div>
         <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Until you pick, only the {$(p.holdNowCents)} part is planned.</div></div>}
@@ -38,7 +38,7 @@ export default function ChipInAI({ bid, onConfirm, endpoint, confirmLabel }: { b
       <div className="rbgrid">
         <div><span className="muted">Now</span><b data-testid="chipin-soft">{$(p.holdNowCents)}</b></div>
         <div><span className="muted">Max</span><b data-testid="chipin-cap">{$(p.capCents)}</b>{p.condition && <span className="muted" style={{ fontSize: 12 }}>only for the {cap(p.condition.tierTitle)}</span>}</div>
-        <div><span className="muted">{payday ? `More on ${payday.split(',')[0]}` : 'Payday'}</span><b data-testid="chipin-payday">{p.scheduledTopUp ? $(p.scheduledTopUp.cents) : '—'}</b></div></div>
+        {(p.scheduledTopUp || payday) && <div><span className="muted">{p.scheduledTopUp && payday ? `More on ${payday.split(',')[0]}` : 'Payday'}</span><b data-testid="chipin-payday">{p.scheduledTopUp ? $(p.scheduledTopUp.cents) : payday}</b></div>}</div>
       {p.scheduledTopUp && <div className="schedule" data-testid="chipin-schedule"><b>{payday}: up to {$(p.scheduledTopUp.cents)} more</b>, one tap, only if the group still needs it.</div>}
       {!p.condition && <p style={{ margin: '8px 0' }} data-testid="chipin-summary">{p.summary}</p>}
       {p.condition && <p className="sronly" data-testid="chipin-summary">{p.summary}</p>}

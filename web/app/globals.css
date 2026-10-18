@@ -469,3 +469,9 @@ html[data-auto] .cands.reveal > .cand { animation: none; }
 /* SIM-swap protection: a clear red stop, nothing held */
 .simblock{display:flex;gap:10px;align-items:flex-start;background:#fdecec;border:1.5px solid #e04848;color:#8f1d1d;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:14px;line-height:1.4}
 .simblock b{color:#b42323}.simicon{font-size:20px;line-height:1}
+
+/* "Just say it": one compact line (grows to two while typing), mic and Go beside it */
+.sayrow{display:flex;gap:6px;align-items:flex-start}.sayrow .sayinput{flex:1;min-width:0;resize:none;min-height:44px;font-size:16px;line-height:1.35;padding:10px 12px}
+.sayrow button{min-height:44px;min-width:44px;padding:0 12px}
+
+.condbig b span{font-size:inherit;display:inline}
