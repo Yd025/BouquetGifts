@@ -7,7 +7,7 @@ import Overlay from './Overlay';
 const PAL = [['#f7a1c4', '#ffd6e7'], ['#c3a6ff', '#ece2ff'], ['#ffb38a', '#ffe3d1'], ['#8fd3c1', '#d9f5ec'], ['#f5d06f', '#fff3c9'], ['#9ec5ff', '#e0edff']];
 function hash(s: string) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
 export function traitFlower(label: string): FB { const h = hash(label), p = PAL[h % PAL.length];
-  return { petals: 5 + (h % 7), petalColor: p[0], bgColor: p[1], centerColor: ['#f6c34a', '#fff', '#c9a7e8', '#e8735a'][(h >> 3) % 4], rotation: h % 360, layers: 1 + ((h >> 5) % 3), petalShape: (h >> 7) % 2 ? 'round' : 'pointed' }; }
+  return { petals: 5 + (h % 7), petalColor: p[0], bgColor: p[1], centerColor: ['#f6c34a', '#fff', '#c9a7e8', '#e8735a'][(h >>> 3) % 4], rotation: h % 360, layers: 1 + ((h >>> 5) % 3), petalShape: (h >>> 7) % 2 ? 'round' : 'pointed' }; }
 const ICON: Record<string, string> = { 'Sunrise Hiker': '⛰️', 'Coffee Snob': '☕', 'Brunch Royalty': '🥐', Maker: '🛠️', 'Film Shooter': '📷', 'Music Head': '🎧', 'Plant Parent': '🪴', Bookworm: '📚', 'Hates Clutter': '✨', 'Cozy Nester': '🧶' };
 
 export function TraitFace({ t, small = false }: { t: any; small?: boolean }) {
