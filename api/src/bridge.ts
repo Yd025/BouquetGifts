@@ -83,7 +83,7 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   const beforeDeadline = !!d.payday && new Date(d.payday + 'T00:00:00Z').getTime() <= buyBy.getTime();
   const scheduledTopUp = d.payday && later >= 100 && beforeDeadline ? { cents: later, on: d.payday, phrase: d.paydayPhrase ?? d.payday } : null;
   const summary = scheduledTopUp
-    ? `Hold ${money(holdNowCents)} now. On payday (${scheduledTopUp.phrase}), Bouquet offers a one-tap top-up of up to ${money(later)}, only if the group still needs it.`
+    ? `Hold ${money(holdNowCents)} now, and the other ${money(later)} waits for payday (${scheduledTopUp.phrase}).`
     : capCents > softCents
       ? `Hold ${money(holdNowCents)} now. Your private cap is ${money(capCents)}, so Bouquet can suggest a top-up later if the group is close.`
       : `Hold ${money(holdNowCents)}, and that’s your limit.`;
@@ -178,4 +178,35 @@ export function conciergeRules(x: ConciergeIn, limit = 3): ConciergePick[] {
       nextUpgrade: s.nxt ? { title: clean(s.nxt.title), priceCents: s.nxt.thresholdCents } : null,
       reachableTier: s.reach, nextTier: s.nxt ? { level: s.nxt.level, title: clean(s.nxt.title), thresholdCents: s.nxt.thresholdCents } : null };
   });
+}
+
+/* ---------- payday-aware top-up plan ---------- */
+export type TopUpPerson = { id: string; headroomCents: number; payday: string | null; /** already topped up toward this tier: asked again only if needed */ alreadyAsked?: boolean };
+export type TopUpAsk = { cents: number; availableAt: string | null };
+/**
+ * Close the gap to the next tier across friends' *private* caps. Each person only ever sees their own ask.
+ * Friends who can top up now are asked first; friends waiting on payday are scheduled only if the others can't close it.
+ * Asks are proportional to headroom, rounded up to whole dollars where the cap allows, never above anyone's cap, and sum to ≥ the gap.
+ * Null when even everyone's remaining headroom can't reach the next tier (then nobody is nagged).
+ */
+export function planTopUps(gapCents: number, people: TopUpPerson[], now: Date): Map<string, TopUpAsk> | null {
+  if (gapCents <= 0) return new Map();
+  const ready = (p: TopUpPerson) => !p.payday || new Date(p.payday + 'T00:00:00Z').getTime() <= now.getTime();
+  const elig = people.filter(p => p.headroomCents >= 100);
+  // widen the pool step by step: fresh friends who can pay now → plus friends who already topped up → plus payday friends
+  const steps = [elig.filter(p => ready(p) && !p.alreadyAsked), elig.filter(ready), elig];
+  const pool = steps.find(g => g.reduce((a, p) => a + p.headroomCents, 0) >= gapCents) ?? elig;
+  const total = pool.reduce((a, p) => a + p.headroomCents, 0);
+  if (total < gapCents) return null;
+  // largest-remainder split of the gap, proportional to headroom (integer cents)
+  const parts = pool.map(p => { const exact = (p.headroomCents * gapCents) / total; return { p, v: Math.floor(exact), frac: exact - Math.floor(exact) }; });
+  let rem = gapCents - parts.reduce((a, x) => a + x.v, 0);
+  [...parts].sort((a, b) => b.frac - a.frac || a.p.id.localeCompare(b.p.id)).forEach(x => { if (rem > 0 && x.v < x.p.headroomCents) { x.v++; rem--; } });
+  const out = new Map<string, TopUpAsk>();
+  for (const x of parts) {
+    if (x.v <= 0) continue;
+    const v = Math.min(Math.max(100, Math.ceil(x.v / 100) * 100), x.p.headroomCents); // whole dollars where the cap allows; never above the cap
+    out.set(x.p.id, { cents: v, availableAt: ready(x.p) ? null : x.p.payday });
+  }
+  return out;
 }

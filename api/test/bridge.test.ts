@@ -29,7 +29,7 @@ describe('natural-language chip-in (rules)', () => {
     const late = planChipIn({ softCents: 3000, capCents: 4000, payday: '2026-10-30', paydayPhrase: 'the 30th' }, { pledgedCents: 2500, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: null });
     expect(late.holdNowCents).toBe(1500); expect(late.warnings.join(' ')).toMatch(/after the buy-by date/); expect(late.warnings.join(' ')).toMatch(/only \$15 more fits/);
     const ok = planChipIn({ softCents: 3000, capCents: 4000, payday: '2026-10-23', paydayPhrase: 'Friday' }, { pledgedCents: 0, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: 2000, nextTierTitle: 'Mug' });
-    expect(ok.holdNowCents).toBe(3000); expect(ok.summary).toBe('Hold $30 now. On payday (Friday), Bouquet offers a one-tap top-up of up to $10, only if the group still needs it.');
+    expect(ok.holdNowCents).toBe(3000); expect(ok.summary).toBe('Hold $30 now, and the other $10 waits for payday (Friday).');
     expect(ok.scheduledTopUp).toEqual({ cents: 1000, on: '2026-10-23', phrase: 'Friday' }); expect(late.scheduledTopUp).toBeNull(); // payday after the deadline: no schedule
     const noPay = planChipIn({ softCents: 3000, capCents: 4000, payday: null, paydayPhrase: null }, { pledgedCents: 0, buyByAt: '2026-10-24T20:00:00Z', nextTierGapCents: null });
     expect(noPay.scheduledTopUp).toBeNull(); expect(noPay.summary).toMatch(/Your private cap is \$40/); // payday is optional expect(ok.warnings.join(' ')).toMatch(/unlocks Mug/);

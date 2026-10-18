@@ -53,7 +53,17 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   await expect(jon.getByTestId('explain-source')).toBeVisible();
   await jon.waitForTimeout(700); await jon.getByTestId('explain-text').screenshot({ path: SHOTS + '16c-ai-explain-preview.png' });
 
-  // 4) …and after checkout
+  // 4) Top-up plan: Priya (no payday, room under her cap) gets her own one-tap ask; Jon's room updates live, no reload
+  const priya = await (await browser.newContext({ storageState: await f1.storageState() })).newPage();
+  await priya.goto(`/b/${b.id}`); await expect(priya.getByTestId('topup')).toBeVisible();
+  await expect(priya.getByTestId('topup-title')).toHaveText(/^💐 Top up \$\d+\?$/); await expect(priya.getByTestId('topup-message')).toContainText('unlocks');
+  await priya.waitForTimeout(600); await priya.getByTestId('topup').screenshot({ path: SHOTS + '16e-ai-topup.png' });
+  const before = await jon.getByTestId('funded').textContent();
+  await priya.getByTestId('topup-accept').click(); await expect(priya.getByTestId('topup-done')).toBeVisible();
+  await expect(jon.getByTestId('funded')).not.toHaveText(before!, { timeout: 20000 }); // live: WebSocket / SSE / poll
+  await expect(jon.getByTestId('topup')).toHaveCount(0); // Jon's payday is later and Priya covered it: Jon isn't nagged
+
+  // 5) …and after checkout
   await ok(org.post(`/api/bouquets/${b.id}/lock`));
   await jon.reload(); await jon.getByTestId('explain-pay').click();
   await expect(jon.getByTestId('explain-text')).toContainText(/You paid \$[\d.]+ of your \$30 hold/i);

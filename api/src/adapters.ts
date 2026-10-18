@@ -5,19 +5,23 @@ export { MockAi, GeminiAi }; export type { Ai };
 import { traitsFromAnswers, fuse as mockFuse, cardTitle as mockTitle, TraitAgg } from './domain.js';
 
 /* ---------- Payments (mock Visa sandbox; swap for a real processor) ---------- */
-export interface Payments { hold(a: { amountCents: number; cardNumber: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string }>;
+export interface Payments { hold(a: { amountCents: number; cardNumber?: string; token?: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string; token: string }>;
   capture(holdId: string, amountCents: number): Promise<void>; release(holdId: string): Promise<void> }
 export class MockVisaPayments implements Payments {
   holds = new Map<string, { amount: number; state: string }>(); byKey = new Map<string, string>();
-  async hold({ amountCents, cardNumber, idempotencyKey }: any) {
-    const digits = String(cardNumber).replace(/\D/g, '');
+  /** Mock token vault (stand-in for a Visa network token / Click to Pay stored credential): we keep a token, never the card number. */
+  private vault = new Map<string, string>();
+  async hold({ amountCents, cardNumber, token, idempotencyKey }: { amountCents: number; cardNumber?: string; token?: string; idempotencyKey: string }) {
+    const digits = token ? this.vault.get(token) ?? '' : String(cardNumber ?? '').replace(/\D/g, '');
+    if (token && !digits) throw new PaymentError('Saved card is no longer available, please re-enter it');
     if (digits.length < 13 || !luhn(digits)) throw new PaymentError('Card number is invalid');
     if (digits.endsWith('0002')) throw new PaymentError('Card declined (insufficient funds)');
+    const tok = 'vtok_' + crypto.createHash('sha256').update('bouquet-vault|' + digits).digest('hex').slice(0, 20); this.vault.set(tok, digits);
     const existing = this.byKey.get(idempotencyKey);
-    if (existing) return { holdId: existing, last4: digits.slice(-4) };
+    if (existing) return { holdId: existing, last4: digits.slice(-4), token: tok };
     const holdId = 'hold_' + crypto.randomBytes(8).toString('hex');
     this.holds.set(holdId, { amount: amountCents, state: 'held' }); this.byKey.set(idempotencyKey, holdId);
-    return { holdId, last4: digits.slice(-4) };
+    return { holdId, last4: digits.slice(-4), token: tok };
   }
   async capture(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h) { if (amountCents > h.amount) throw new PaymentError('over-capture'); h.state = 'captured'; } }
   async release(holdId: string) { const h = this.holds.get(holdId); if (h) h.state = 'released'; }

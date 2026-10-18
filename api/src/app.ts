@@ -11,6 +11,7 @@ import { Storage, FsStorage, cardSvg } from './storage.js';
 import { coverLevel, productAt, publicProduct, productsFor, syncCatalog } from './catalog.js';
 import * as D from './domain.js';
 import * as B from './bridge.js';
+const money = B.money;
 
 export type Clock = { now(): Date; offsetMs: number };
 export const makeClock = (): Clock => { const c: Clock = { offsetMs: 0, now: () => new Date(Date.now() + c.offsetMs) }; return c; };
@@ -345,6 +346,25 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   }));
 
   /* ---------- contributions (card holds) ---------- */
+  /** One code path for every hold: budget cap, SIM-swap check, mock Visa authorization (card or saved token), ledger. */
+  async function placeHold(bq: any, m: any, amountCents: number, pay: { cardNumber?: string; token?: string }, idempotencyKey: string) {
+    if (bq.status !== 'funding') fail(409, 'Funding is not open');
+    if (deadlinePassed(bq)) fail(409, 'The buy-by deadline has passed');
+    const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
+    if (Number(s) + amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
+    if (amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
+    let hold; try { hold = await payments.hold({ amountCents, ...pay, idempotencyKey }); }
+    catch (e) { if (e instanceof PaymentError) fail(402, e.message); throw e; }
+    await db.tx(async q => {
+      const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
+      if (cur.status !== 'funding') { await payments.release(hold!.holdId); fail(409, 'Funding just closed'); }
+      const cid = id('ctb');
+      await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7)`, [cid, bq.id, m.id, amountCents, hold!.holdId, hold!.last4, idempotencyKey]);
+      await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'hold',$3)`, [bq.id, cid, amountCents]);
+      await q('UPDATE members SET card_token=$2, card_last4=$3 WHERE id=$1', [m.id, hold!.token, hold!.last4]); // token only, never the card number
+    });
+    notify(bq.id, 'contribution');
+  }
   app.post('/api/bouquets/:id/contributions', h(async (req, res) => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     const b = z.object({ amountCents: z.number().int().min(100), cardNumber: z.string(), idempotencyKey: z.string().min(8) }).parse(req.body);
@@ -353,20 +373,13 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (dup) { if (dup.member_id !== m.id) fail(409, 'Idempotency key reuse'); return state(bq.id, uid); }
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
     if (deadlinePassed(bq)) fail(409, 'The buy-by deadline has passed');
+    // cheap checks first (budget, SIM swap) so a bot-check round trip isn't wasted on a hold that can't happen
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
     if (Number(s) + b.amountCents > m.budget_max_cents) fail(400, `That would exceed your budget of $${(m.budget_max_cents / 100).toFixed(2)}`);
     if (b.amountCents >= D.SIM_SWAP_HOLD_THRESHOLD_CENTS && m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently — large holds are paused for your safety');
     await human(req);
-    let hold; try { hold = await payments.hold({ amountCents: b.amountCents, cardNumber: b.cardNumber, idempotencyKey: b.idempotencyKey }); }
-    catch (e) { if (e instanceof PaymentError) fail(402, e.message); throw e; }
-    await db.tx(async q => {
-      const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
-      if (cur.status !== 'funding') { await payments.release(hold!.holdId); fail(409, 'Funding just closed'); }
-      const cid = id('ctb');
-      await q(`INSERT INTO contributions (id,bouquet_id,member_id,amount_cents,hold_id,status,card_last4,idempotency_key) VALUES ($1,$2,$3,$4,$5,'held',$6,$7)`, [cid, bq.id, m.id, b.amountCents, hold!.holdId, hold!.last4, b.idempotencyKey]);
-      await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'hold',$3)`, [bq.id, cid, b.amountCents]);
-    });
-    notify(bq.id, 'contribution'); res.status(201); return state(bq.id, uid);
+    await placeHold(bq, m, b.amountCents, { cardNumber: b.cardNumber }, b.idempotencyKey);
+    res.status(201); return state(bq.id, uid);
   }));
 
   /* ---------- AI between people and payments ---------- */
@@ -419,6 +432,42 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     let source = 'rules';
     if (picks[0]) { const w = await ai.reword('concierge', `${picks[0].title}: ${picks[0].why}`); if (w) { picks[0].why = w; source = 'gemini'; } }
     return { picks, source, members: st.members.length };
+  }));
+  // 4) Top-up plan: close the gap to the next tier across private caps. Rules split it; each friend sees only their own ask;
+  //    one tap re-uses their saved Visa token (no card re-entry). Gemini may word the nudge (figures checked).
+  async function topUpFor(bid: string, me: any) {
+    const bq = await getBouquet(bid); if (bq.status !== 'funding' || deadlinePassed(bq)) return { ask: null, reason: 'Funding is closed' };
+    const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bid]); const { held } = await fundedCents(bid); const nt = D.nextTier(tiers, held);
+    if (!nt) return { ask: null, reason: 'Every tier is already funded' };
+    const people = await db.query(`SELECT m.id, m.budget_max_cents, m.payday, m.card_token, m.topped_tier_id, (SELECT COALESCE(SUM(amount_cents),0)::int FROM contributions c WHERE c.member_id=m.id AND c.status='held') AS held
+      FROM members m WHERE m.bouquet_id=$1 AND m.card_token IS NOT NULL`, [bid]);
+    const plan = B.planTopUps(nt.threshold_cents - held, people.map((p: any) => ({ id: p.id, headroomCents: p.budget_max_cents - Number(p.held), payday: p.payday ? new Date(p.payday).toISOString().slice(0, 10) : null, alreadyAsked: p.topped_tier_id === nt.id })), clock.now());
+    if (!plan) return { ask: null, reason: 'Not reachable within everyone’s caps yet' };
+    const mine = plan.get(me.id); if (!mine) return { ask: null, reason: 'No top-up needed from you' };
+    const tierTitle = nt.title.replace(/^\+ /, '');
+    return { tierId: nt.id, ask: { cents: mine.cents, availableAt: mine.availableAt, tierTitle, tierPriceCents: nt.threshold_cents, last4: me.card_last4, friends: plan.size } };
+  }
+  app.get('/api/bouquets/:id/topup', h(async req => {
+    const uid = auth(req); const bid = String(req.params.id); const m = await requireMember(bid, uid);
+    const r: any = await topUpFor(bid, m); if (!r.ask) return { ask: null, reason: r.reason, source: 'rules' };
+    const a = r.ask; const recipient = (await getBouquet(bid)).recipient_name;
+    const rules = a.availableAt
+      ? `On your payday you could top up ${money(a.cents)} so ${recipient}’s gift reaches ${a.tierTitle} (${money(a.tierPriceCents)} total).`
+      : `Top up ${money(a.cents)} and ${recipient}’s gift unlocks ${a.tierTitle} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ' A few friends are each being asked for a small part, sized to what they said they could do.' : ''}`;
+    const w = await ai.reword('explain', rules);
+    return { ask: { ...a, message: w ?? rules }, source: w ? 'gemini' : 'rules' };
+  }));
+  app.post('/api/bouquets/:id/topup/accept', h(async (req, res) => {
+    const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
+    const { cents, idempotencyKey } = z.object({ cents: z.number().int().min(100), idempotencyKey: z.string().min(8) }).parse(req.body);
+    const dup = (await db.query('SELECT member_id FROM contributions WHERE idempotency_key=$1', [idempotencyKey]))[0];
+    if (dup) { if (dup.member_id !== m.id) fail(409, 'Idempotency key reuse'); return state(bq.id, uid); }
+    const r: any = await topUpFor(bq.id, m);
+    if (!r.ask) fail(409, r.reason); if (r.ask.availableAt) fail(409, `This top-up opens on your payday (${r.ask.availableAt})`);
+    if (r.ask.cents !== cents) fail(409, 'The group changed, so your top-up was recalculated. Please check the new amount.');
+    await placeHold(bq, m, cents, { token: m.card_token }, idempotencyKey);
+    await db.query('UPDATE members SET topped_tier_id=$2 WHERE id=$1', [m.id, r.tierId]);
+    res.status(201); return state(bq.id, uid);
   }));
   /* ---------- lock: capture at highest funded tier, release the rest ---------- */
   async function lock(bid: string) {

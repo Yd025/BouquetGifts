@@ -10,6 +10,7 @@ import GiftStrip from '../../../components/GiftStrip';
 import ChipInAI from '../../../components/ChipInAI';
 import ExplainPay from '../../../components/ExplainPay';
 import Concierge from '../../../components/Concierge';
+import TopUp from '../../../components/TopUp';
 
 const STAGES = [['collecting', 'Cards'], ['fusing', 'Fuse & vote'], ['funding', 'Bloom & fund'], ['purchased', 'Purchased'], ['revealed', 'Revealed']];
 
@@ -132,6 +133,7 @@ function Funding({ s, act, setS }: any) {
         <label>Password</label><input name="claimPassword" type="password" value={claim.password} onChange={e => setClaim({ ...claim, password: e.target.value })} />
         <div style={{ marginTop: 14 }}><button onClick={async () => { setErr(''); try { await api('/auth/claim', { body: claim }); setS(await api(`/bouquets/${b.id}`)); } catch (e: any) { setErr(e.message); } }} data-testid="claim-save">Save my spot</button></div>
       </div> : <>
+        <TopUp s={s} setS={setS} />
         <ChipInAI bid={b.id} onConfirm={async (p: any) => { const r = await api(`/bouquets/${b.id}/budget`, { method: 'PATCH', body: { budgetMinCents: p.softCents, budgetMaxCents: p.capCents, payday: p.payday ?? null } });
           setS(r); setBud({ min: p.softCents / 100, max: p.capCents / 100 }); setAmt(p.holdNowCents / 100); setSheet(true); }} />
         <label>My budget for this gift ($)</label>
@@ -181,6 +183,7 @@ function DemoDrawer({ s, reload }: any) {
         <button className="ghost" disabled={b.status !== 'funding'} onClick={() => run(async () => { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 500, cardNumber: '4000 0000 0000 0002', idempotencyKey: crypto.randomUUID() } }); return 'Hold placed'; })} data-testid="demo-decline">Try a declined card</button>
         <button className="ghost" onClick={() => run(async () => { const r = await api('/dev/clock', { body: { offsetMs: new Date(b.buyByAt).getTime() - Date.now() + 60000 } }); return `Fast-forwarded past the buy-by deadline. ${r.expired} bouquet(s) expired and their holds were released.`; })} data-testid="demo-ff">⏩ Fast-forward past deadline</button>
         <button className="ghost" onClick={() => run(async () => { await api('/dev/clock', { body: { offsetMs: 0 } }); return 'Clock reset to now'; })}>Reset clock</button>
+        {s.me.payday && <button className="ghost" data-testid="demo-payday" onClick={() => run(async () => { await api('/dev/clock', { body: { offsetMs: new Date(s.me.payday + 'T01:00:00Z').getTime() - Date.now() } }); return `Jumped to your payday (${s.me.payday}). Any payday top-up is now one tap.`; })}>📅 Jump to my payday</button>}
         <button className="ghost" disabled={b.status !== 'funding'} data-testid="demo-simswap" onClick={() => run(async () => { await api('/dev/simswap', { body: { bouquetId: b.id } });
           try { await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: 6000, cardNumber: '4242424242424242', idempotencyKey: crypto.randomUUID() } }); return 'Hold went through (no phone on file?)'; }
           finally { await api('/dev/simswap', { body: { bouquetId: b.id, on: false } }); } })}>📵 Simulate SIM-swapped friend</button>

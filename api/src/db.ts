@@ -43,6 +43,9 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS art_key TEXT;
 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'match';
 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS cover_level INT;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS payday DATE;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS card_token TEXT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS card_last4 TEXT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS topped_tier_id TEXT;
 `;
 export async function makeDb(url = process.env.DATABASE_URL): Promise<Db> {
   let db: Db;
