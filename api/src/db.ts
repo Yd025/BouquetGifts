@@ -55,6 +55,9 @@ ALTER TABLE contributions DROP CONSTRAINT IF EXISTS contributions_status_check;
 ALTER TABLE contributions ADD CONSTRAINT contributions_status_check CHECK (status IN ('held','capture_pending','release_pending','captured','released'));
 -- At checkout the processor issues a single-use virtual card per store for exactly the charged amount, so the organizer never handles the group money.
 ALTER TABLE bouquets ADD COLUMN IF NOT EXISTS vcards JSONB;
+-- A checkout whose captures came up short is paused for a person to look at, never shown as bought.
+ALTER TABLE bouquets DROP CONSTRAINT IF EXISTS bouquets_status_check;
+ALTER TABLE bouquets ADD CONSTRAINT bouquets_status_check CHECK (status IN ('draft','collecting','fusing','funding','locked','purchased','revealed','expired','needs_attention'));
 -- Card authorizations lapse after about 7 days, so a hold still waiting on day 6 is re-authorized (sandbox) and logged.
 ALTER TABLE contributions ADD COLUMN IF NOT EXISTS authorized_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE contributions ADD COLUMN IF NOT EXISTS settle_tries INT NOT NULL DEFAULT 0;

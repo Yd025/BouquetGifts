@@ -127,3 +127,27 @@ describe('the SIM-swapped friend', { timeout: 60000 }, () => {
     expect((await ctx.db.query(`SELECT * FROM contributions WHERE bouquet_id=$1 AND idempotency_key=$2`, [b.id, `leo-${b.id}`])).length).toBe(0);
   });
 });
+
+describe('a capture that succeeds but times out', { timeout: 60000 }, () => {
+  it('is recognised as captured (processor asked before giving up); cards go out only after every capture settles, for exactly the total', async () => {
+    const { MockVisaPayments } = await import('../src/adapters.js');
+    class Lost extends MockVisaPayments { async capture(holdId: string, c: number) { await super.capture(holdId, c); throw new Error('timeout'); } }
+    const visa = new Lost(); const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: visa }); await choose();
+    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardToken: TOK, last4: '4242', idempotencyKey: `lt-${i}-${b.id}` })).status).toBe(201);
+    expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
+    expect((await org.get(`/api/bouquets/${b.id}`)).body.bouquet.vcards ?? null).toBeNull(); // captures still pending: no cards yet
+    await ctx.sweep(); await ctx.sweep(); await ctx.sweep();
+    const st = (await org.get(`/api/bouquets/${b.id}`)).body; expect(st.bouquet.status).toBe('purchased');
+    expect(st.bouquet.vcards.reduce((a: number, c: any) => a + c.amountCents, 0)).toBe(st.bouquet.capturedCents);
+    let charged = 0; for (const p of [org, ...friends]) { const r = (await p.get(`/api/bouquets/${b.id}`)).body.me.receipt; expect(r.chargedCents + r.backCents).toBe(r.heldCents); charged += r.chargedCents; }
+    expect(charged).toBe(st.bouquet.capturedCents);
+  });
+  it('a gift whose captures really fail comes up short: it is paused (needs_attention), never bought, and no store cards are issued', async () => {
+    const { MockVisaPayments } = await import('../src/adapters.js');
+    class Broken extends MockVisaPayments { async capture() { throw new Error('processor down'); } }
+    const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: new Broken() }); await choose();
+    for (const [i, p] of [org, ...friends].entries()) await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardToken: TOK, last4: '4242', idempotencyKey: `sf-${i}-${b.id}` });
+    await org.post(`/api/bouquets/${b.id}/lock`); await ctx.sweep(); await ctx.sweep(); await ctx.sweep();
+    const st = (await org.get(`/api/bouquets/${b.id}`)).body; expect(st.bouquet.status).toBe('needs_attention'); expect(st.bouquet.vcards ?? null).toBeNull();
+  });
+});

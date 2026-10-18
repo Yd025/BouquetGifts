@@ -51,6 +51,7 @@ export default function Room({ params }: { params: { id: string } }) {
   const cardsDown = b.status === 'fusing' && !s.candidates?.some((c: any) => c.votes > 0); // friends' cards stay face down until the first gift is made
   const invite = b.inviteUrl ?? (typeof window !== 'undefined' && b.inviteToken ? `${location.origin}/join/${b.inviteToken}` : '');
   return <>
+    {b.status === 'needs_attention' && <div className="panel holdnotice" role="alert" data-testid="needs-attention"><span><b>Checkout is paused.</b> A card payment didn’t go through, so the gift isn’t bought yet and no store has been paid. Nobody is charged more than their hold.</span></div>}
     <div className="panel">
       <div className="row"><div className="grow"><h1 data-testid="room-title">{b.recipientName}’s {String(b.occasion).toLowerCase()} gift</h1>
         <div className="muted">{b.note}</div></div>

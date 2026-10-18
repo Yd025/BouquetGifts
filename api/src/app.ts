@@ -573,6 +573,12 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         // Not pending forever: after MAX_SETTLE_TRIES failed captures, give up on that hold and release it, so the friend is never left in limbo.
         const [{ n }] = await db.query('UPDATE contributions SET settle_tries=settle_tries+1 WHERE id=$1 RETURNING settle_tries AS n', [hd.id]);
         if (hd.status === 'capture_pending' && Number(n) >= MAX_SETTLE_TRIES) {
+          // Before giving up, ask the processor: a capture can succeed and only the answer gets lost (timeout). Then it IS captured.
+          const st = await payments.holdState?.(hd.hold_id).catch(() => 'unknown' as const);
+          if (st === 'captured') { await db.tx(async q => { const done = await q(`UPDATE contributions SET status='captured' WHERE id=$1 AND status='capture_pending' RETURNING id`, [hd.id]); if (!done.length) return;
+              await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'capture',$3)`, [bid, hd.id, hd.captured_cents]);
+              if (hd.amount_cents - hd.captured_cents > 0) await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents - hd.captured_cents]); });
+            continue; }
           try { await payments.release(hd.hold_id); } catch { /* the authorization lapses on its own */ }
           await db.tx(async q => { const done = await q(`UPDATE contributions SET status='released', captured_cents=0 WHERE id=$1 AND status='capture_pending' RETURNING id`, [hd.id]); if (!done.length) return;
             await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents]); });
@@ -615,6 +621,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   async function issueCards(bid: string) {
     const [b] = await db.query('SELECT * FROM bouquets WHERE id=$1', [bid]);
     if (!b || !['purchased', 'revealed'].includes(b.status) || b.vcards || !(b.captured_cents > 0)) return;
+    // Stores are paid only once every capture has settled AND the captured money adds up exactly to the price. Short → paused, never "bought".
+    const [{ pending, got }] = await db.query(`SELECT COUNT(*) FILTER (WHERE status='capture_pending')::int AS pending, COALESCE(SUM(captured_cents) FILTER (WHERE status='captured'),0)::int AS got FROM contributions WHERE bouquet_id=$1`, [bid]);
+    if (Number(pending) > 0) return;
+    if (Number(got) !== Number(b.captured_cents)) { await db.query(`UPDATE bouquets SET status='needs_attention' WHERE id=$1 AND status='purchased'`, [bid]); notify(bid, 'needs_attention'); return; }
     const tiers = (await db.query('SELECT t.*, c.title AS ctitle, c.trait_labels FROM gift_tiers t JOIN candidates c ON c.id=t.candidate_id WHERE t.bouquet_id=$1 AND t.candidate_id=(SELECT candidate_id FROM gift_tiers WHERE id=$2) AND t.threshold_cents <= $3 ORDER BY t.level', [bid, b.captured_tier_id, b.captured_cents]));
     const owed = new Map<string, number>(); let prev = 0;
     for (const t of tiers) { const p = productAt(t.ctitle, t.level, t.trait_labels); const store = p?.store ?? 'the store';
@@ -693,6 +703,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     }
     // retry anything a processor error left pending (captures and releases)
     for (const { bouquet_id } of await db.query(`SELECT DISTINCT bouquet_id FROM contributions WHERE status IN ('capture_pending','release_pending')`)) await settlePending(bouquet_id);
+    for (const { id: pb } of await db.query(`SELECT id FROM bouquets WHERE status='purchased' AND vcards IS NULL`)) await issueCards(pb); // pay the stores once captures have settled
     return due.length;
   }
 

@@ -13,6 +13,8 @@ export interface Payments { hold(a: { amountCents: number; token: string; last4:
   /** Single-use virtual card locked to one merchant for an exact amount (Visa virtual card / Intelligent Commerce in production). */
   /** Refresh an authorization before it lapses (~7 days). */
   reauthorize?(holdId: string, amountCents: number): Promise<{ holdId: string } | void>;
+  /** What the processor says happened to a hold (used before giving up on a capture whose answer was lost). */
+  holdState?(holdId: string): Promise<'held' | 'captured' | 'released' | 'unknown'>;
   issueVirtualCard?(a: { amountCents: number; merchant: string; idempotencyKey: string }): Promise<{ cardId: string; last4: string }> }
 export class MockVisaPayments implements Payments {
   holds = new Map<string, { amount: number; state: string }>(); byKey = new Map<string, string>();
@@ -27,7 +29,8 @@ export class MockVisaPayments implements Payments {
     return { holdId, last4, token };
   }
   async capture(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h) { if (amountCents > h.amount) throw new PaymentError('over-capture'); h.state = 'captured'; } }
-  async release(holdId: string) { const h = this.holds.get(holdId); if (h) h.state = 'released'; }
+  async release(holdId: string) { const h = this.holds.get(holdId); if (h && h.state !== 'captured') h.state = 'released'; }
+  async holdState(holdId: string) { return (this.holds.get(holdId)?.state ?? 'unknown') as 'held' | 'captured' | 'released' | 'unknown'; }
   /** A fresh authorization for the same amount (new hold id); the old one is let go. declineReauth simulates a card that can't renew. */
   declineReauth = false;
   async reauthorize(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (this.declineReauth) throw new PaymentError('Card declined the renewed hold');
