@@ -1,24 +1,29 @@
-# Bouquet Gifts: demo video script (2:00, about 300 spoken words)
+# Bouquet Gifts: demo video script (2:00)
 
-*Setup (not read aloud): follow DEMO_RUNBOOK.md. Phone = Jon (jon@bouquet.gift), laptop = Adelin, the organizer (demo@bouquet.gift), on the seeded Maya gift (its organizer $40 hold is placed when the gift is picked, so Bought reads "You paid $X of your $40 hold"; don't record a fresh gift); all passwords bouquet123. The organizer never uses the Demo tools drawer on camera. Record the deck section first so the gift is funding, then edit the money moment to the front.*
+*Setup (not read aloud): follow DEMO_RUNBOOK.md. Phone = Jon (jon@bouquet.gift), laptop = Adelin, the organizer (demo@bouquet.gift), on the seeded demo gift; all passwords bouquet123. Don't record a fresh gift, and don't open the Demo tools drawer on camera. The chat clip is `gigi-chat/gigi-chat.html` (press Space to start, about 18 s) or the backup `gigi-chat.mp4`. Its friends (Jon, Priya, Sam, Leo) match the demo gift.*
 
-**0:00–0:30 · The money moment** *(phone: Maya's gift. Tap 🎙 next to "Just say it")*
+**0:00–0:04 · Cold open** *(Adelin on camera, casual, maybe looking at her phone)*
+"Oh, it's Gigi's birthday soon. I should get her a gift."
+
+**0:04–0:22 · The group chat** *(cut to the chat clip, full screen, no voiceover. Let it play: the links, "$34 is kinda a lot for me rn", "who's actually ordering it", "i got venmo'd 3 weeks later 💀", and it ends on "link in a sec 🌷")*
+
+**0:22–0:35 · Why** *(Adelin to camera, or over the landing page)*
+"Every group gift goes like that. Someone guesses the gift, fronts the money and chases Venmo for weeks, and the friend on a tight budget feels awkward. So I built Bouquet. Nobody fronts the money, and nobody sees what anyone else gives."
+
+**0:35–0:55 · The deck** *(laptop: draw, keep or pass, put two cards together, the ideas turn over, vote, go with the top pick)*
+"Each friend fills out a quick card about her, and their answers become a deck. Keep or pass, put two cards together, and a real gift turns over, built from the friends who know her best."
+
+**0:55–1:15 · Chipping in** *(phone: tap 🎙 next to "Just say it")*
 Jon says: *"Thirty now, forty-five if we get the [last item on the gift strip]."* (Say the item name shown on screen.)
-"Payment forms want numbers. People talk in conditions. Bouquet reads it back: thirty now, up to forty-five, only for that item. One tap, and the Visa sheet holds thirty dollars. A hold, not a charge. 'You're in for thirty,' pinned at the top."
+"People talk in conditions, not form fields. Bouquet reads it back, and one tap holds thirty dollars on his Visa card. A hold, not a charge. And the gift grows as more friends join."
 
-**0:30–0:45 · Why** *(laptop: the vine grows as Jon's hold lands)*
-"Every group gift has one person who guesses, fronts the money and chases Venmo for weeks. With Bouquet, nobody fronts the money, and nobody sees what anyone else gives."
+**1:15–1:27 · Trust** *(Leo's phone: chip in $60, then the red block)*
+"Leo's number just moved to a new SIM, so Bouquet checks with the carrier first and doesn't place the hold. His card stays safe."
 
-**0:45–1:10 · The deck** *(laptop: draw → keep/pass → put two cards together → the ideas turn over → vote → Go with the top pick)*
-"Each friend fills out a card about Maya. Their answers become a deck. Keep or pass, put two cards together, and a real gift turns over, built from the cards of the friends who know her."
+**1:27–1:45 · Bought** *(laptop: Buy the gift, then the Bought ticket)*
+"At checkout, Bouquet charges only what the gift costs, splits it fairly and releases the rest. Each store gets paid with a one-time Visa card for exactly that amount." (Read the first receipt line on screen if there's time.)
 
-**1:10–1:25 · Trust** *(Leo's phone: chip in $60 → the red block)*
-"Leo's number just moved to a new SIM. Bouquet checks with the carrier first: we didn't place this hold, so his card is protected."
+**1:45–2:00 · The reveal** *(the recipient's link: the pack tears open, cards flip, a memory is read aloud)*
+"She opens a pack of cards from her friends, hears their memories, and finds the gift they grew together. Bouquet: group gifts where everyone chips in their way."
 
-**1:25–1:45 · Bought** *(laptop: Buy the gift → Bought ticket)*
-"At checkout we capture only what the funded gift costs, split fairly, and release the rest. Then Bouquet pays each store with a one-time Visa card: (read the first receipt line on screen, e.g. 'Paid Fellow twenty-two dollars with a one-time Visa card.') Exactly that amount, at that store, once."
-
-**1:45–2:00 · The reveal** *(Maya's link: the pack tears open, cards flip, a memory is read aloud)*
-"Maya opens a pack of cards from her friends, hears their memories, and finds the gift they grew together. Bouquet: group gifts where everyone chips in their way and a one-time Visa card pays the store."
-
-*Mocks, if asked: holds, captures and the one-time Visa cards run on our Visa sandbox; the SIM check isn't live: the Network as Code client is real code, tested against Nokia's simulator; on this deployment the live call is failing (our health check shows it), so it falls back to our simulator, which returns the same result for Nokia's test numbers; Number Verify is mocked.*
+*Mocks, if asked: holds, captures and the one-time Visa cards run on our Visa sandbox. The SIM check uses a real Nokia Network as Code client, but the live call fails on this deployment, so it falls back to a simulator that gives the same answer for Nokia's test numbers. Number Verify is mocked.*
