@@ -324,6 +324,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     let cid = req.body?.candidateId as string | undefined;
     if (!cid) cid = (await db.query(`SELECT c.id FROM candidates c LEFT JOIN votes v ON v.candidate_id=c.id WHERE c.bouquet_id=$1 GROUP BY c.id, c.rare, c.title ORDER BY COUNT(v.member_id) DESC, c.rare DESC, c.title LIMIT 1`, [bq.id]))[0]?.id;
     if (!cid || !(await db.query('SELECT 1 FROM candidates WHERE id=$1 AND bouquet_id=$2', [cid, bq.id])).length) fail(404, 'Unknown gift');
+    // The organizer can break a tie, but can't pick a gift the group voted against.
+    const tally = await db.query(`SELECT c.id, COUNT(v.member_id)::int AS n FROM candidates c LEFT JOIN votes v ON v.candidate_id=c.id WHERE c.bouquet_id=$1 GROUP BY c.id`, [bq.id]);
+    const top = Math.max(0, ...tally.map((t: any) => Number(t.n))); const mine = Number(tally.find((t: any) => t.id === cid)?.n ?? 0);
+    if (mine < top) fail(409, `That gift has ${mine} vote${mine === 1 ? '' : 's'}; the top pick has ${top}. Pick a top-voted gift, or ask friends to change their votes.`);
     await db.tx(async q => {
       await q('DELETE FROM gift_tiers WHERE bouquet_id=$1 AND candidate_id<>$2', [bq.id, cid]);
       await q(`UPDATE bouquets SET status='funding', chosen_candidate_id=$2 WHERE id=$1`, [bq.id, cid]);
@@ -587,7 +591,13 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     return state(bq.id, uid);
   }));
   app.post('/api/bouquets/:id/lock', h(async req => {
-    const uid = auth(req); await requireOrganizer(String(req.params.id), uid);
+    const uid = auth(req); const bq = await requireOrganizer(String(req.params.id), uid);
+    // Before the deadline the organizer can't check out on their own money alone while friends are in the room.
+    if (bq.status === 'funding') {
+      const holders = (await db.query(`SELECT DISTINCT m.role FROM contributions c JOIN members m ON m.id=c.member_id WHERE c.bouquet_id=$1 AND c.status='held'`, [bq.id])).map((r: any) => r.role);
+      const [{ n }] = await db.query('SELECT COUNT(*)::int AS n FROM members WHERE bouquet_id=$1', [bq.id]);
+      if (holders.length && holders.every((r: string) => r === 'organizer') && Number(n) > 1) fail(409, 'Only your own hold is in so far. Wait for at least one friend to chip in before checking out.');
+    }
     await lock(String(req.params.id)); notify(String(req.params.id), 'purchased'); return state(String(req.params.id), uid);
   }));
 
