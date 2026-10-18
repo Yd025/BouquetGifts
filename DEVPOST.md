@@ -9,13 +9,39 @@ Every friend group has one person who ends up organizing the gift. They guess wh
 Bouquet is a group gift played as a card game.
 - **Start a gift:** set the recipient, the occasion and when it has to arrive. Bouquet works out a **buy-by deadline**.
 - **Invite:** the link opens one simple screen on your phone: the gift, how much it costs and who's in, then **Chip in**. No account or app needed.
-- **Card:** each friend answers a few quick questions, one per screen, drawn from a deck so every card is different. Their answers become a card with its own title, like *The Caffeinated Sunrise Hiker*, and its own flower art.
-- **Keep, pass, make a gift:** everyone's answers become a deck of trait cards. Swipe to keep or pass, then combine two cards to make a gift: *Sunrise Hiker + Coffee Snob* becomes a summit pour-over kit. Rare gifts only unlock when 2+ friends agree, and every gift is made of real products from real stores.
+- **Your card:** each friend answers a short quiz, one question per screen. Everyone gets the same few shared questions, then random ones drawn from a deck, so no two cards are alike. Your answers become a trait card with its own title, like *The Caffeinated Sunrise Hiker*, stat chips like *Sunrise Hiker ×2*, and your own flower on the back. One question, "which gift would annoy them?", quietly rules out bad gifts.
+- **Keep, pass, make a gift:** everyone's traits go into one shared deck. Swipe right to keep a card, left to pass. Then drag two kept cards together to make a gift: *Sunrise Hiker + Coffee Snob* becomes a summit pour-over kit. Gift ideas stay face down until the first gift is made, so the deck decides what people see. Cards turn rare when 2 friends agree and legendary at 3, and every gift shows whose cards made it. The gift you make is your vote.
 - **Bloom:** each friend sets **their own private budget** and places a **Visa hold**, not a charge. The gift grows in tiers as people join (a pour-over set, then a grinder, then beans), and the bouquet on screen grows with it. Nobody sees anyone else's amount.
 - **Change your mind:** take your money back before checkout, or the organizer can cancel and release every hold.
 - **Checkout:** holds are charged only up to the highest tier the group fully funded, split fairly, and the rest goes back to each card: *"You paid $30 of your $50 hold · $20 went back to your card."* Each store is paid with a one-time Visa card, so the organizer never touches friends' money. If the deadline passes, everyone gets their money back.
 - **Reveal:** the recipient tears open a pack. Each card turns a trait into a compliment ("You chase every sunrise") and a narrator reads each friend's memory aloud, ending in a garland of confetti.
 - **Built for phones** and comes with a **Demo tools** drawer for judges: try a declined card, a stolen phone number, skipping past the deadline, or reset the demo.
+
+### The journey
+
+```mermaid
+flowchart TD
+  subgraph S1["Collecting"]
+    A["Organizer starts a bouquet"] --> B["Shares the invite link"]
+    B --> C["Friends join, no app needed"]
+    C --> D["Card quiz: shared and random questions"]
+    D --> E["Each friend gets a trait card"]
+  end
+  subgraph S2["Fusing"]
+    F["Keep or pass trait cards"] --> G["Two cards make a gift idea"]
+    G --> H["Group votes on the gift"]
+  end
+  subgraph S3["Funding"]
+    I["Friends just say what they can chip in"] --> J["Private budget, Visa hold, not a charge"]
+    J --> K["Gift grows tier by tier"]
+  end
+  E --> F
+  H --> I
+  K --> L{"Bought by the deadline?"}
+  L -- yes --> M["Purchased: fair split charged, the rest released"]
+  L -- no --> X["Expired: every hold released"]
+  M --> N["Revealed: recipient opens the pack"]
+```
 
 ### AI between people and payments (Visa: Reimagine Shopping)
 Group payments break down where people talk like people and payment systems want numbers. Bouquet puts Gemini in those gaps, while plain rules own every dollar.
@@ -34,6 +60,22 @@ I built Bouquet with a team of 10 Grok Bot agents: two idea pitchers, an archite
 - **Stopping on time.** The loop stopped early Sunday morning. In the last round, the six critics scored it 84–89 out of 100.
 
 ## Tech stack
+```mermaid
+flowchart LR
+  U["Browser"] --> T["Cloudflare Tunnel<br/>bouquetgiftsfrom.us"]
+  U -- "WebSocket" --> TL["Cloudflare Tunnel<br/>live.bouquetgiftsfrom.us"]
+  T --> W["Next.js web :3000"]
+  W -- "proxies /api" --> A["Express + TypeScript API :4000"]
+  TL --> R["Live room: Cloudflare Worker<br/>+ Durable Object per bouquet"]
+  A -- "publishes updates" --> R
+  A --> DB[("Postgres")]
+  A --> G["Gemini: text and TTS"]
+  A --> V["Visa sandbox (mock)"]
+  A --> N["Nokia NaC SIM Swap<br/>falls back to simulator"]
+  A --> TS["Cloudflare Turnstile"]
+  A --> S["R2 or local storage<br/>product photos"]
+```
+
 - **Frontend:** Next.js 14 with hand-drawn SVG and CSS-only animation that stays smooth on a phone.
 - **API:** Express + TypeScript on Postgres. Money is stored in whole cents in an append-only ledger, and double taps can never stack holds.
 - **Live room:** a Cloudflare Worker with one Durable Object per bouquet, so votes, funding and the reveal show up for everyone instantly.
