@@ -218,12 +218,14 @@ describe('guest join, lazy account, organizer-only invite, art, compliments, sim
     // demo SIM swap blocks big holds for that friend
     await g.patch(`/api/bouquets/${b.id}/budget`).send({ budgetMinCents: 0, budgetMaxCents: 20000 });
     expect((await g.post('/api/dev/simswap').send({ bouquetId: b.id })).status).toBe(200);
-    // demo time travel is members-only and bounded; resetting the demo is the demo organizer's alone
-    expect((await request(app).post('/api/dev/clock').send({ offsetMs: 1000, bouquetId: b.id })).status).toBe(401);
-    expect((await g.post('/api/dev/clock').send({ offsetMs: -5, bouquetId: b.id })).status).toBe(400);
-    expect((await g.post('/api/dev/clock').send({ offsetMs: 1000, bouquetId: 'bq_nope' })).status).toBeGreaterThanOrEqual(403);
+    // demo shortcuts: no server-wide clock; moving a deadline is the organizer's alone, resetting the demo is the demo organizer's alone
+    expect((await request(app).post('/api/dev/clock').send({ offsetMs: 1000, bouquetId: b.id })).status).toBe(404);
+    expect((await request(app).post('/api/dev/deadline').send({ bouquetId: b.id })).status).toBe(401);
+    expect((await g.post('/api/dev/deadline').send({ bouquetId: b.id })).status).toBe(403);
+    expect((await g.post('/api/dev/sweep').send({ bouquetId: b.id })).status).toBe(403);
     expect((await g.post('/api/dev/reset-demo').send({})).status).toBe(403);
     expect((await request(app).post('/api/dev/sweep')).status).toBe(401);
+    expect((await org.get(`/api/bouquets/${b.id}`)).body.bouquet.status).toBe('funding');
     const blocked = await g.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 6000, cardNumber: VISA, idempotencyKey: 'guest-key-2' });
     expect(blocked.status).toBe(423); expect(blocked.body.error).toMatch(/SIM/);
     await g.post('/api/dev/simswap').send({ bouquetId: b.id, on: false });

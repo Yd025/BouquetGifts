@@ -713,22 +713,28 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
 
   /* ---------- demo fake clock ---------- */
   if (deps.demo ?? process.env.DEMO_MODE === '1') {
-    // Demo-only time travel: signed-in members only, bounded to [0, 60 days] ahead, and undone by /api/dev/reset-demo.
-    app.post('/api/dev/clock', h(async req => {
-      const uid = auth(req); const b = z.object({ offsetMs: z.number().min(0).max(60 * 864e5), bouquetId: z.string() }).parse(req.body ?? {});
-      await requireMember(b.bouquetId, uid); clock.offsetMs = b.offsetMs; const n = await sweep(); return { now: clock.now(), offsetMs: clock.offsetMs, expired: n }; }));
+    // Demo shortcuts never move a server-wide clock: they only touch the caller's own gift (organizer) or the caller's own payday.
+    app.post('/api/dev/deadline', h(async req => {
+      const uid = auth(req); const b = z.object({ bouquetId: z.string() }).parse(req.body ?? {}); await requireOrganizer(b.bouquetId, uid);
+      const moved = await db.query(`UPDATE bouquets SET buy_by_at=$2 WHERE id=$1 AND status IN ('collecting','fusing','funding') RETURNING id`, [b.bouquetId, new Date(clock.now().getTime() - 60000).toISOString()]);
+      if (!moved.length) fail(409, 'This gift is already bought or closed');
+      return { expired: await sweep() }; }));
+    app.post('/api/dev/payday', h(async req => {
+      const uid = auth(req); const b = z.object({ bouquetId: z.string() }).parse(req.body ?? {}); const m = await requireMember(b.bouquetId, uid);
+      const today = clock.now().toISOString().slice(0, 10); await db.query('UPDATE members SET payday=$2 WHERE id=$1', [m.id, today]); notify(b.bouquetId, 'contribution');
+      return { payday: today }; }));
     app.post('/api/dev/simswap', h(async req => {
       const uid = auth(req); const bid = z.object({ bouquetId: z.string(), on: z.boolean().default(true) }).parse(req.body);
       const m = await requireMember(bid.bouquetId, uid); if (!m.phone) fail(400, 'No phone on file');
       if (!(network as any).markSwapped) fail(400, 'Only available with the mock network');
       (network as any).markSwapped(m.phone, bid.on); return { phone: m.phone, swapped: bid.on };
     }));
-    app.post('/api/dev/sweep', h(async req => { auth(req); return { expired: await sweep() }; }));
+    app.post('/api/dev/sweep', h(async req => { const uid = auth(req); const b = z.object({ bouquetId: z.string() }).parse(req.body ?? {}); await requireOrganizer(b.bouquetId, uid); return { expired: await sweep() }; }));
     // Fresh demo: only the demo organizer. Releases every hold on the old demo bouquet(s), resets the clock, and seeds a new ready "Maya" bouquet.
     app.post('/api/dev/reset-demo', h(async req => {
       const uid = auth(req); if (uid !== 'usr_demo') fail(403, 'Only the demo organizer can reset the demo');
-      clock.offsetMs = 0;
-      for (const { id: bid } of await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND recipient_name='Maya' AND status NOT IN ('expired')`, [uid])) {
+      // Only the seeded demo gift(s) are reset; anything a person created in the demo account is left alone.
+      for (const { id: bid } of await db.query(`SELECT id FROM bouquets WHERE organizer_id=$1 AND is_demo AND status NOT IN ('expired')`, [uid])) {
         await db.tx(async q => { await q('SELECT id FROM bouquets WHERE id=$1 FOR UPDATE', [bid]);
           await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE bouquet_id=$1 AND status='held'`, [bid]);
           await q(`UPDATE bouquets SET status='expired' WHERE id=$1`, [bid]); });
@@ -736,6 +742,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         notify(bid, 'expired');
       }
       const id = await seedDemoBouquet(`http://127.0.0.1:${req.socket.localPort}`, deps.internalToken ?? '');
+      await db.query('UPDATE bouquets SET is_demo=true WHERE id=$1', [id]);
       return { bouquetId: id };
     }));
   }

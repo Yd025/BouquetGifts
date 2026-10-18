@@ -11,4 +11,4 @@ if (process.env.SEED !== '0') await seed(db);
 setInterval(() => sweep().catch(console.error), Number(process.env.SWEEP_MS ?? 10000));
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => { console.log(`Bouquet API on :${port}`);
-  if (process.env.SEED_DEMO !== '0') seedDemoBouquet(`http://127.0.0.1:${port}`, internalToken).catch(e => console.warn('demo seed skipped:', e.message)); });
+  if (process.env.SEED_DEMO !== '0') seedDemoBouquet(`http://127.0.0.1:${port}`, internalToken).then(id => db.query('UPDATE bouquets SET is_demo=true WHERE id=$1', [id])).catch(e => console.warn('demo seed skipped:', e.message)); });
