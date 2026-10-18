@@ -17,10 +17,10 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await ok(org.post(`/api/bouquets/${b.id}/fuse`)); await ok(org.post(`/api/bouquets/${b.id}/choose`));
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); const p = await ctx.newPage();
   await p.goto(`/join/${b.inviteToken}`);
-  await expect(p.getByTestId('chip-first')).toBeVisible(); await expect(p.getByRole('heading', { level: 1 })).toContainText('Olive’s getting Maya');
-  await expect(p.getByTestId('cf-meta')).toContainText(/\$\d+ for everything.*0 of 2 in.*buy by/);
-  await p.getByTestId('cf-amt-40').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Hold $40 with Visa');
-  await expect(p.getByTestId('cf-fine')).toContainText('Most you’d pay: $40');
+  await expect(p.getByTestId('chip-first')).toBeVisible(); await expect(p.getByRole('heading', { level: 1 })).toContainText('Chip in on Maya’s gift');
+  await expect(p.getByTestId('cf-meta')).toContainText(/\$\d+ for the whole gift.*Be the first to chip in.*open until/);
+  await p.getByTestId('cf-amt-40').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Chip in $40');
+  await expect(p.getByTestId('cf-fine')).toContainText('never more than $40');
   await p.fill('input[name=displayName]', 'Priya'); await p.fill('input[name=phone]', '+12065550199');
   for (const sel of ['input[name=displayName]', 'input[name=phone]', 'input[name=card]', '[data-testid=cf-amount]']) // no iOS zoom on focus
     expect(await p.locator(sel).evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
