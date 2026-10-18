@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { api, $ } from '../lib/api';
 /** AI gift concierge: the group's kept cards + votes + combined budget caps → a ranked pick, why it fits, and what the next upgrade costs. */
-export default function Concierge({ s, act }: { s: any; act: (p: string, body?: any) => Promise<void> }) {
+export default function Concierge({ s, act, locked = false }: { s: any; act: (p: string, body?: any) => Promise<void>; locked?: boolean }) {
   const [r, setR] = useState<any>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const ask = async () => { setErr(''); setBusy(true); try { setR(await api(`/bouquets/${s.bouquet.id}/concierge`)); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
   return <div className="panel" data-testid="concierge">
     <div className="row"><h2 className="grow" style={{ margin: 0 }}>Not sure? Get a suggestion</h2>
-      <button className="ghost" onClick={ask} disabled={busy} data-testid="concierge-ask">{busy ? 'Thinking…' : r ? 'Ask again' : 'Pick for us'}</button></div>
-    <p className="muted" style={{ fontSize: 13 }}>Looks at the cards your group kept and the votes, and ranks the gifts. Prices assume everyone goes up to their limit. Nobody’s own number is shown.</p>
+      <button className="ghost" onClick={ask} disabled={busy || locked} title={locked ? 'Make the first gift in the deck first' : undefined} data-testid="concierge-ask">{busy ? 'Thinking…' : r ? 'Ask again' : 'Pick for us'}</button></div>
+    {locked && <p className="muted" style={{ fontSize: 13, marginBottom: 0 }} data-testid="concierge-locked">Opens after your group makes its first gift in the deck.</p>}<p className="muted" style={{ fontSize: 13 }}>Looks at the cards your group kept and the votes, and ranks the gifts. Prices assume everyone goes up to their limit. Nobody’s own number is shown.</p>
     {err && <div className="err" role="alert">{err}</div>}
     {r && <div className="cands" style={{ marginTop: 8 }}>{r.picks.map((p: any, i: number) => <div key={p.candidateId} className={`cand ${i === 0 ? 'mine' : ''}`} data-testid="concierge-pick">
       <div className="fusion">{i === 0 ? '★ Top pick' : `#${i + 1}`}</div><h3 style={{ margin: '4px 0' }}>{p.title}</h3>

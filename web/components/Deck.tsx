@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, $ } from '../lib/api';
 import { Flower, FB } from './Art';
 import Overlay from './Overlay';
@@ -102,7 +102,7 @@ export default function Deck({ s, setS, act, concierge }: any) {
           {fusing.cand.product ? <img className="prodimg" src={fusing.cand.product.photoUrl} alt={fusing.cand.product.name} /> : <GiftArt traits={fusing.cand.traits} />}
           <h2>{fusing.cand.title}</h2><p className="muted">{fusing.cand.description}</p><div className="muted cite">{fusing.cand.traits.join(' + ')} · from {fusing.cand.citedFriends.join(', ')}</div>
           <button onClick={() => setFusing(null)} data-testid="fuse-close">Add to the gift ideas →</button></div>}</div></Overlay>}
-    {concierge}
+    {concierge && React.isValidElement(concierge) ? React.cloneElement(concierge as React.ReactElement<any>, { locked: !revealed }) : concierge}
     {!revealed && <><h3 style={{ marginTop: 26 }}>Gift ideas · face down until someone makes a gift</h3>
       <p className="muted" style={{ marginTop: 0 }}>Every card you keep moves the match bar on the idea it fits. Put two kept cards together and the ideas turn over.</p>
       <div className="cands" data-testid="facedown-ideas">{byMatch.map(({ c, kept }: any, i: number) =>
@@ -121,6 +121,6 @@ export default function Deck({ s, setS, act, concierge }: any) {
           <span className="citeface"><Flower fb={s.members.find((m: any) => m.id === k.memberId)?.flowerBack ?? traitFlower(k.title)} size={26} /></span><small>{k.memberName}</small></span> : null; })}</div>
         <p className="muted" style={{ margin: 0 }}>{c.description}</p><div className="muted" style={{ fontSize: 13 }}>From the cards of {c.citedFriends.join(', ')}</div>
         <div className="row"><div className="grow"><b data-testid="votes">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><div className="tally"><div style={{ width: `${(c.votes / Math.max(1, s.members.length)) * 100}%` }} /></div></div><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div></>}
-    {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} data-testid="choose">Go with the top pick →</button></div>}
+    {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} disabled={!revealed} title={revealed ? undefined : 'Make the first gift in the deck to turn the ideas over'} data-testid="choose">Go with the top pick →</button>{!revealed && <span className="muted" style={{ marginLeft: 10, fontSize: 13 }}>Make the first gift in the deck first</span>}</div>}
   </div>;
 }

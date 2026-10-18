@@ -16,7 +16,8 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
     const qs = (await ok(f.get(`/api/bouquets/${b.id}/questions`))).questions;
     await ok(f.post(`/api/bouquets/${b.id}/cards`, { data: { answers: Object.fromEntries(qs.map((q: any) => [q.id, 0])) } }));
   }
-  await ok(org.post(`/api/bouquets/${b.id}/fuse`));
+  const fz = await ok(org.post(`/api/bouquets/${b.id}/fuse`));
+  await ok(f0.post(`/api/bouquets/${b.id}/vote`, { data: { candidateId: fz.candidates[0].id } })); // the suggestion opens after the first gift (a vote)
 
   // 1) Concierge during the deck stage
   const jon = await (await browser.newContext({ storageState: await f0.storageState() })).newPage();

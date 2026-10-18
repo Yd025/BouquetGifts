@@ -48,6 +48,7 @@ export default function Room({ params }: { params: { id: string } }) {
   const act = async (path: string, body?: any, method?: string) => { setErr(''); try { setS(await api(`/bouquets/${params.id}${path}`, { body: body ?? {}, method })); } catch (e: any) { setErr(e.message); } };
   if (!s) return <div className="panel">{err || 'Loading…'}</div>;
   const b = s.bouquet; const idx = STAGES.findIndex(x => x[0] === b.status);
+  const cardsDown = b.status === 'fusing' && !s.candidates?.some((c: any) => c.votes > 0); // friends' cards stay face down until the first gift is made
   const invite = b.inviteUrl ?? (typeof window !== 'undefined' && b.inviteToken ? `${location.origin}/join/${b.inviteToken}` : '');
   return <>
     <div className="panel">
@@ -73,7 +74,7 @@ export default function Room({ params }: { params: { id: string } }) {
     {['funding', 'purchased', 'revealed', 'expired'].includes(b.status) && s.tiers.length > 0 && <Funding s={s} act={act} setS={setS} />}
     {['purchased', 'revealed'].includes(b.status) && <Purchased s={s} />}
     <DemoDrawer s={s} reload={load} />
-    {s.cards.length > 0 && b.status !== 'collecting' && <div className="panel"><h2>The cards</h2><div className="cards flipall">{s.cards.map((c: any, i: number) => <div key={c.id} style={{ animationDelay: `${i * 120}ms` }} className="flipin"><TraitCard card={c} /></div>)}</div></div>}
+    {s.cards.length > 0 && b.status !== 'collecting' && <div className="panel"><h2>The cards</h2>{cardsDown && <p className="muted" style={{ marginTop: 0 }} data-testid="cards-down">Face down until the deck’s first gift is made. No peeking.</p>}<div className={`cards ${cardsDown ? '' : 'flipall'}`}>{s.cards.map((c: any, i: number) => <div key={c.id} style={{ animationDelay: `${i * 120}ms` }} className={cardsDown ? 'cardwrap' : 'flipin'} data-facedown={cardsDown ? '1' : undefined}><TraitCard card={c} flipped={!cardsDown} />{cardsDown && <small className="cardname">{c.memberName}’s card</small>}</div>)}</div></div>}
   </>;
 }
 

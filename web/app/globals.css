@@ -459,3 +459,6 @@ html[data-auto] .cands.reveal > .cand { animation: none; }
 
 /* a hold the card couldn't renew */
 .holdnotice{display:flex;gap:12px;align-items:center;justify-content:space-between;background:#fff1f1;border:1px solid #f3b3b3;color:#8a1f1f;border-radius:12px;padding:10px 14px;margin:6px 0 12px;font-size:14px}
+
+/* friends' cards face down until the first gift */
+.cardwrap{display:flex;flex-direction:column;align-items:center;gap:6px}.cardname{font-size:13px;color:#7a6470}
