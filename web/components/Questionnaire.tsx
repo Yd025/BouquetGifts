@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { Flower, TraitCard } from './Art';
 import Overlay from './Overlay';
@@ -10,11 +10,17 @@ export default function Questionnaire({ s, setS, onMint }: any) {
   const [qs, setQs] = useState<any[]>([]); const [ans, setAns] = useState<Record<string, number>>({}); const [i, setI] = useState(0);
   const [story, setStory] = useState(''); const [err, setErr] = useState(''); const [mint, setMint] = useState<any>(null); const [phase, setPhase] = useState(0);
   useEffect(() => { api(`/bouquets/${bid}/questions`).then(x => setQs(x.questions)); }, [bid]);
+  // Keep a draft so a refresh doesn't lose your answers (this browser only, cleared once the card is minted).
+  const key = `bq-q-${bid}-${s.me.id}`; const restored = useRef(false);
+  useEffect(() => { if (!qs.length || restored.current) return; restored.current = true;
+    try { const d = JSON.parse(localStorage.getItem(key) ?? 'null'); if (d) { const ok = Object.fromEntries(Object.entries(d.ans ?? {}).filter(([id]) => qs.some((q: any) => q.id === id))) as Record<string, number>;
+      setAns(ok); setI(Math.min(Object.keys(ok).length, qs.length)); setStory(String(d.story ?? '')); } } catch { /* ignore a bad draft */ } }, [qs, key]);
+  useEffect(() => { if (restored.current && !mint) localStorage.setItem(key, JSON.stringify({ ans, story })); }, [ans, story, key, mint]);
   const total = qs.length + 1; const q = qs[i]; const answered = Object.keys(ans).length;
   const choose = (k: number) => { setAns(a => ({ ...a, [q.id]: k })); setTimeout(() => setI(x => Math.min(x + 1, qs.length)), 260); };
   const submit = async () => { setErr('');
     try { onMint?.(); const r = await api(`/bouquets/${bid}/cards`, { body: { answers: ans, story: story || undefined } }); const card = r.cards.find((c: any) => c.memberId === s.me.id);
-      setMint({ r, card }); setPhase(0); setTimeout(() => setPhase(1), 700); setTimeout(() => setPhase(2), 1300); } catch (e: any) { setErr(e.message); setS(await api(`/bouquets/${bid}`)); } };
+      localStorage.removeItem(key); setMint({ r, card }); setPhase(0); setTimeout(() => setPhase(1), 700); setTimeout(() => setPhase(2), 1300); } catch (e: any) { setErr(e.message); setS(await api(`/bouquets/${bid}`)); } };
   if (!qs.length || !fb) return <div className="muted">Shuffling your cards…</div>;
   const growFb = { ...fb, petals: Math.max(3, Math.round(fb.petals * Math.min(1, (answered + 1) / qs.length))), layers: answered >= qs.length - 1 ? fb.layers : 1 };
   return <div className="qn">
