@@ -21,7 +21,7 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await expect(p.getByTestId('cf-meta')).toContainText(/\$\d+ for everything.*0 of 2 in.*buy by/);
   await p.getByTestId('cf-amt-40').click(); await expect(p.getByTestId('cf-hold')).toHaveText('Hold $40 with Visa');
   await expect(p.getByTestId('cf-fine')).toContainText('Most you’d pay: $40');
-  await p.fill('input[name=displayName]', 'Lena'); await p.fill('input[name=phone]', '+12065550199');
+  await p.fill('input[name=displayName]', 'Priya'); await p.fill('input[name=phone]', '+12065550199');
   for (const sel of ['input[name=displayName]', 'input[name=phone]', 'input[name=card]', '[data-testid=cf-amount]']) // no iOS zoom on focus
     expect(await p.locator(sel).evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
   for (const sel of ['[data-testid=cf-amt-40]', '[data-testid=cf-hold]']) expect((await p.locator(sel).boundingBox())!.height).toBeGreaterThanOrEqual(44);
