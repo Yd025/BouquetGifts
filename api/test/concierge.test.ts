@@ -11,7 +11,7 @@ describe('gift concierge (rules)', () => {
         { id: 'b', title: 'Trail Café Kit', rare: true, traits: ['Sunrise Hiker', 'Coffee Snob'], votes: 1, citedFriends: ['Jon', 'Ana'], tiers: tiers(6000, 12000, 18000) }] });
     expect(picks.map(p => p.candidateId)).toEqual(['b', 'a']);
     expect(picks[0].reachableTier?.level).toBe(2); expect(picks[0].nextTier).toEqual({ level: 3, title: 'Stove', thresholdCents: 18000 });
-    expect(picks[0].why).toMatch(/Sunrise Hiker \(kept ×3\) and Coffee Snob \(kept ×2\)/); expect(picks[0].why).not.toContain('$130');
+    expect(picks[0].why).toMatch(/Sunrise Hiker \(kept ×3\) and Coffee Snob \(kept ×2\)/); expect(picks[0].why).toContain('from Jon and Ana’s cards'); expect(picks[0].why).not.toContain('$130');
     expect(picks[1].nextTier).toBeNull();
   });
   it('says when even tier 1 is over budget', () => {

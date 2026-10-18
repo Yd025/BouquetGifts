@@ -117,6 +117,7 @@ export function explainRules(f: ExplainFacts): string {
 }
 
 /* ---------- gift concierge ---------- */
+const names = (n: string[]) => n.length < 2 ? n.join('') : `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}`;
 export type ConciergeIn = { candidates: { id: string; title: string; rare: boolean; traits: string[]; votes: number; citedFriends: string[]; tiers: { level: number; title: string; thresholdCents: number }[] }[];
   traitKeeps: Record<string, number>; groupBudgetCents: number; members: number };
 export type ConciergePick = { candidateId: string; title: string; score: number; reachableTier: { level: number; title: string; thresholdCents: number } | null;
@@ -132,7 +133,7 @@ export function conciergeRules(x: ConciergeIn): ConciergePick[] {
     const fits = reach ? reach.level : 0;
     const score = keeps * 2 + c.votes * 3 + (c.rare ? 2 : 0) + c.citedFriends.length + fits;
     const kept = c.traits.filter(t => x.traitKeeps[t]).map(t => `${t} (kept ×${x.traitKeeps[t]})`);
-    const why = `${kept.length ? `Built on ${kept.join(' and ')}` : `Built on ${c.traits.join(' and ')}`}${c.citedFriends.length ? `, from ${c.citedFriends.join(', ')}’s cards` : ''}. ${reach ? `Your group’s combined budget reaches tier ${reach.level} (${money(reach.thresholdCents)}).` : `Even tier 1 (${money(tiers[0]?.thresholdCents ?? 0)}) is above the group’s combined budget so far.`}`;
+    const why = `${kept.length ? `Built on ${kept.join(' and ')}` : `Built on ${c.traits.join(' and ')}`}${c.citedFriends.length ? `, from ${names(c.citedFriends)}’s cards` : ''}. ${reach ? `Your group’s combined budget reaches tier ${reach.level} (${money(reach.thresholdCents)}).` : `Even tier 1 (${money(tiers[0]?.thresholdCents ?? 0)}) is above the group’s combined budget so far.`}`;
     return { candidateId: c.id, title: c.title, score, reachableTier: reach, nextTier: nxt ? { level: nxt.level, title: nxt.title.replace(/^\+ /, ''), thresholdCents: nxt.thresholdCents } : null, why };
   }).sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 }
