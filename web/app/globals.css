@@ -23,7 +23,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
 .muted { color: var(--muted); } .row { display:flex; gap: 14px; align-items:center; flex-wrap: wrap; } .grow { flex:1; }
 .hero { display:grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items:center; padding: 40px 0; }
 .hero h1 { font-size: 58px; line-height: 1.02; } .hero p.lead { font-size: 19px; color: var(--muted); line-height:1.55; }
-.steps { display:grid; grid-template-columns: repeat(5, 1fr); gap: 14px; } .step { background:#fff; border-radius: 18px; padding: 18px; border:1px solid #fbe1ec; }
+.steps { display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; } .step { background:#fff; border-radius: 18px; padding: 18px; border:1px solid #fbe1ec; }
 .step b { font-family: Fraunces, serif; font-size: 22px; color: var(--rose); display:block; }
 .stage { display:flex; gap:6px; margin: 6px 0 22px; flex-wrap: wrap; }
 .stage span { padding: 6px 14px; border-radius: 999px; background:#fff; border: 1px solid #f3d0df; font-size: 13px; color: var(--muted); }
@@ -65,7 +65,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
 .dots { display:flex; gap:6px; } .dots i { width: 9px; height:9px; border-radius: 50%; background:#f3d0df; } .dots i.on { background: var(--rose); }
 .pop { animation: pop .7s cubic-bezier(.3,1.7,.5,1); } @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .list { display:grid; gap: 12px; } .item { display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius: 16px; padding: 16px 20px; border: 1px solid #fbe1ec; }
-@media (max-width: 800px) { .hero, .grid2 { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr 1fr; } .hero h1 { font-size: 42px; } .opts { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .hero, .grid2 { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr; } .hero h1 { font-size: 42px; } .opts { grid-template-columns: 1fr; } }
 /* ---------- deck game ---------- */
 .table { display:grid; grid-template-columns: 170px 1fr 170px; gap: 18px; align-items:start; margin-top: 18px; }
 .pile { display:flex; flex-direction:column; align-items:center; gap: 8px; } .pile-label { font-size: 13px; color: var(--muted); font-weight:600; }

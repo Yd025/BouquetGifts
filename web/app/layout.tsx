@@ -1,6 +1,6 @@
 import './globals.css';
 import Nav from '../components/Nav';
-export const metadata = { title: 'Bouquet — gifts grown by friends' };
+export const metadata = { title: 'Bouquet — chip in on a gift together' };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body><Nav /><main>{children}</main><footer>Made with petals at DubHacks ’26 · Visa · T-Mobile · Cloudflare · Google Gemini</footer></body></html>;
+  return <html lang="en"><body><Nav /><main>{children}</main></body></html>;
 }

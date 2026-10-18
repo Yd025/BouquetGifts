@@ -5,8 +5,8 @@ test('profile, nav links and 404 page', async ({ page }) => {
   await expect(page).toHaveURL(/dashboard/);
   await page.getByTestId('nav-user').click(); await expect(page.getByTestId('profile-title')).toBeVisible();
   await page.screenshot({ path: '../screenshots/15-profile.png' });
-  await page.getByRole('link', { name: 'New bouquet' }).click(); await expect(page).toHaveURL(/\/new/);
-  await page.goto('/'); await expect(page.getByTestId('before-after')).toBeVisible();
+  await page.getByRole('link', { name: 'New gift' }).click(); await expect(page).toHaveURL(/\/new/);
+  await page.goto('/'); await expect(page.getByTestId('how')).toBeVisible();
   await page.goto('/definitely-not-here'); await expect(page.getByTestId('not-found')).toBeVisible();
   await page.screenshot({ path: '../screenshots/16-not-found.png' });
   // no dead links on public pages
