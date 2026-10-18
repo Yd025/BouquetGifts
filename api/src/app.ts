@@ -106,8 +106,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   const requireOrganizer = async (bid: string, uid: string) => { const b = await getBouquet(bid); if (b.organizer_id !== uid) fail(403, 'Only the organizer can do that'); return b; };
   const deadlinePassed = (b: any) => clock.now().getTime() > new Date(b.buy_by_at).getTime();
 
-  /** One source for "your share": held = every hold you placed, charged = what was captured (or is being captured), back = the rest. */
-  const myReceipt = (rows: any[]) => { const heldCents = rows.reduce((a, c) => a + c.amount_cents, 0);
+  /** One source for "your share": held = holds that are active, captured, or released as change at checkout (not withdrawn or declined ones), charged = what was captured (or is being captured), back = the rest. */
+  const counts = (c: any) => !c.voided && ['held', 'capture_pending', 'captured', 'release_pending', 'released'].includes(c.status);
+  const myReceipt = (all: any[]) => { const rows = all.filter(counts); const heldCents = rows.reduce((a, c) => a + c.amount_cents, 0);
     const chargedCents = rows.filter(c => c.status === 'captured' || c.status === 'capture_pending').reduce((a, c) => a + (c.captured_cents ?? 0), 0);
     return { heldCents, chargedCents, backCents: heldCents - chargedCents }; };
   async function state(bid: string, uid: string) {
@@ -121,7 +122,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const candidates = await db.query(`SELECT c.*, (SELECT COUNT(*)::int FROM votes v WHERE v.candidate_id=c.id) AS votes FROM candidates c WHERE bouquet_id=$1 ORDER BY rare DESC, title`, [bid]);
     const myVote = (await db.query('SELECT candidate_id FROM votes WHERE bouquet_id=$1 AND member_id=$2', [bid, me.id]))[0]?.candidate_id ?? null;
     const tiers = await db.query('SELECT * FROM gift_tiers WHERE bouquet_id=$1 ORDER BY level', [bid]);
-    const myContribs = await db.query('SELECT id,amount_cents,status,captured_cents,card_last4,created_at FROM contributions WHERE member_id=$1 ORDER BY created_at', [me.id]);
+    const myContribs = await db.query('SELECT id,amount_cents,status,captured_cents,card_last4,created_at,voided FROM contributions WHERE member_id=$1 ORDER BY created_at', [me.id]);
     const [meUser] = await db.query('SELECT is_guest FROM users WHERE id=$1', [uid]);
     const f = await fundedCents(bid);
     const total = b.status === 'purchased' || b.status === 'revealed' ? f.captured : f.held;
@@ -662,7 +663,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const n = await db.tx(async q => {
       const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
       if (cur.status !== 'funding') fail(409, 'You can only take your money back before the gift is bought');
-      const rows = await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE member_id=$1 AND status='held' RETURNING id`, [m.id]);
+      const rows = await q(`UPDATE contributions SET status='release_pending', captured_cents=0, voided=true WHERE member_id=$1 AND status='held' RETURNING id`, [m.id]);
       if (!rows.length) fail(409, 'You have no hold to withdraw');
       await q('UPDATE members SET condition_tier_id=NULL, condition_base_cents=NULL WHERE id=$1', [m.id]);
       return rows.length; });
@@ -711,7 +712,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       try { nh = await payments.reauthorize?.(hd.hold_id, hd.amount_cents); } catch (e) {
         if (!(e instanceof PaymentError)) { console.error('reauth failed, will retry', hd.id, (e as Error).message); continue; }
         // The card declined the renewal: that hold is gone. Release it, log it, and ask the friend to hold again. The funded tier is recomputed from what is still held.
-        const gone = await db.tx(async q => { const done = await q(`UPDATE contributions SET status='released', captured_cents=0 WHERE id=$1 AND status='held' RETURNING member_id`, [hd.id]); if (!done.length) return false;
+        const gone = await db.tx(async q => { const done = await q(`UPDATE contributions SET status='released', captured_cents=0, voided=true WHERE id=$1 AND status='held' RETURNING member_id`, [hd.id]); if (!done.length) return false;
           await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [hd.bouquet_id, hd.id, hd.amount_cents]);
           await q('UPDATE members SET hold_notice=$2 WHERE id=$1', [done[0].member_id, 'Your card couldn’t renew the hold. Tap to hold again.']); return true; });
         if (gone) notify(hd.bouquet_id, 'contribution'); continue; }

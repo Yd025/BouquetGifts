@@ -100,6 +100,7 @@ describe('a renewal the card declines', { timeout: 60000 }, () => {
     ctx.clock.offsetMs = 6 * 864e5 + 3600e3; visa.declineReauth = true; await ctx.sweep(); visa.declineReauth = false;
     const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
     expect(me.contributions[0].status).toBe('released'); expect(me.holdNotice).toMatch(/couldn’t renew the hold/);
+    expect(me.receipt.heldCents).toBe(0); // a declined hold is not counted as held on the receipt
     expect((await ctx.db.query(`SELECT * FROM ledger_events WHERE type='release' AND bouquet_id=$1`, [b.id])).length).toBe(1);
     expect(await heldSum()).toBe(before - 2000);
     expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
@@ -172,5 +173,20 @@ describe('no gap oracle while amounts are private', { timeout: 60000 }, () => {
     await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardToken: TOK, last4: '4242', idempotencyKey: `tg1-${b.id}` });
     const r = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body;
     if (r.ask) { expect(r.ask.cents).not.toBe(price - 2234); expect(r.ask.message).not.toContain(`$${((price - 2234) / 100).toFixed(2)}`); }
+  });
+});
+
+describe('the receipt counts only holds that stayed in', { timeout: 60000 }, () => {
+  it('a withdrawn hold is not in "held": withdraw $15, hold $20 again, buy → held $20, charged + back = $20', async () => {
+    const { org, friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose(); const price = ch.tiers[0].thresholdCents;
+    const hold = (p: any, amountCents: number, k: string) => p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents, cardToken: TOK, last4: '4242', idempotencyKey: `${k}-${b.id}` });
+    expect((await hold(friends[0], 1500, 'rc0')).status).toBe(201);
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions/withdraw`)).status).toBe(200);
+    expect((await friends[0].get(`/api/bouquets/${b.id}`)).body.me.receipt.heldCents).toBe(0);
+    expect((await hold(friends[0], 2000, 'rc1')).status).toBe(201);
+    expect((await hold(friends[1], price, 'rc2')).status).toBe(201);
+    expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
+    const r = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me.receipt;
+    expect(r.heldCents).toBe(2000); expect(r.chargedCents + r.backCents).toBe(2000);
   });
 });
