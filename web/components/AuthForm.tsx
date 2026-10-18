@@ -4,12 +4,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { api } from '../lib/api';
+import LandingBouquet from './LandingBouquet';
 function Form({ mode }: { mode: 'login' | 'signup' }) {
   const r = useRouter(); const next = useSearchParams().get('next') || '/dashboard';
   const [f, setF] = useState({ name: '', email: '', password: '' }); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const submit = async (e: any) => { e.preventDefault(); setErr(''); setBusy(true);
     try { await api(`/auth/${mode}`, { body: f }); r.push(next); r.refresh(); } catch (x: any) { setErr(x.message); } finally { setBusy(false); } };
-  return <div className="panel narrow"><h1>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+  return <div className="panel narrow auth"><div className="auth-art" aria-hidden><LandingBouquet /></div><h1>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
     <p className="muted">{mode === 'login' ? 'Log in to see your gifts.' : 'It takes a few seconds.'}</p>
     <form onSubmit={submit}>
       {mode === 'signup' && <><label>Your name</label><input name="name" required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} /></>}

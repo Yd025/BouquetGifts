@@ -396,3 +396,16 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
 .cf-amts button { border-radius: 22px 22px 22px 6px; }
 .cf-meta b { font-family: Fraunces, Georgia, serif; font-size: 17px; }
 .chip-first h1, [data-testid="chip-first"] h1 { font-size: clamp(30px, 6vw, 40px); letter-spacing: -.03em; line-height: 1.05; }
+/* ---------- auth + reveal pack ---------- */
+.auth { position: relative; padding-top: 34px; }
+.auth-art { position: absolute; right: -26px; top: -54px; width: 120px; transform: rotate(14deg); pointer-events: none; }
+.auth-art .lb { width: 120px; }
+.auth h1 { font-size: 38px; letter-spacing: -.03em; max-width: 8em; }
+@media (max-width: 800px) { .auth-art { right: -6px; top: -40px; width: 90px; } .auth-art .lb { width: 90px; } }
+.bigpack { background-image: linear-gradient(115deg, #0000 30%, #ffffff8c 45%, #0000 60%), linear-gradient(160deg,#ffd6e7,#e9dcff); background-size: 300% 100%, 100% 100%; background-repeat: no-repeat; animation: foil 3.2s ease-in-out infinite; }
+@keyframes foil { 0% { background-position: 120% 0, 0 0; } 60%, 100% { background-position: -40% 0, 0 0; } }
+@keyframes packFloat { from { transform: translateY(0) rotate(-1.5deg); } to { transform: translateY(-8px) rotate(1.5deg); } }
+@media (hover: hover) { .bigpack:not(:disabled):hover { box-shadow: 0 30px 70px #e2588f66; } }
+.bigpack.tear { animation: shake .3s 2; }
+@media (hover: hover) { .opt:hover { border-color: var(--pink); transform: translateY(-1px); box-shadow: 0 6px 14px #e2588f1a; } }
+.opt.sel { animation: optPick .35s cubic-bezier(.3,1.8,.5,1); } @keyframes optPick { 50% { transform: scale(1.03); } }
