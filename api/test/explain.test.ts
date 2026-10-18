@@ -51,14 +51,12 @@ describe('GET /explain', { timeout: 30000 }, () => {
     // only two holders: a holder never sees the exact group total (they could back out the other's amount)
     expect(st.totals.blurred).toBe(true); expect(co.releaseCents).toBeNull(); expect(st.totals.heldCents).toBe(co.chargeCents);
     expect(pre.text).not.toContain('the group holds'); expect(pre.text).toContain('group total stays private'); expect(pre.text).toContain(`${$(co.chargeCents)} in total and that is fully funded`);
-    // the organizer (not holding) sees the full reconciliation
+    // the organizer is private too with only two holders: they see funded items, never a total that reveals someone's amount
     const ost = (await org.get(`/api/bouquets/${b.id}`)).body; const opre = (await org.get(`/api/bouquets/${b.id}/explain`)).body;
-    expect(ost.totals.blurred).toBe(false); expect(ost.totals.heldCents).toBe(a + c);
-    expect(co.chargeCents).toBeLessThanOrEqual(ost.totals.heldCents); expect(opre.text).toContain(`costs ${$(co.chargeCents)} in total and the group holds ${$(ost.totals.heldCents)}, so that is fully funded`);
-    if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`the other ${$(ost.totals.heldCents - co.chargeCents)} is released`);
+    expect(ost.totals.blurred).toBe(true); expect(ost.totals.heldCents).toBe(co.chargeCents); expect(opre.text).not.toContain($(a + c)); expect(opre.text).not.toContain($(a)); expect(opre.text).not.toContain($(c));
     // every per-person share adds up to exactly the amount that will be captured
     const shares = await Promise.all([friends[0], friends[1], org].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.totals.checkout.myChargeCents));
-    expect(shares.reduce((p: number, x: number) => p + x, 0)).toBeGreaterThanOrEqual(co.chargeCents); // "at most" caps cover the charge; exact sum is checked after buying in money.test expect(pre.text).toContain('if Org checks out now'); void org;
+    expect(shares.every((x: any) => x === null)).toBe(true); // two holders: nobody, organizer included, sees an exact share; the exact sum is checked after buying in money.test expect(pre.text).toContain('if Org checks out now'); void org;
     await org.post(`/api/bouquets/${b.id}/lock`);
     const after = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
     const paid = me.contributions.reduce((x: number, k: any) => x + (k.captured_cents ?? 0), 0);

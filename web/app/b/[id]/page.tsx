@@ -168,10 +168,10 @@ function Funding({ s, act, setS }: any) {
         {s.me.contributions.length > 0 && <div className="list" style={{ marginTop: 16 }}>{s.me.contributions.map((c: any) => <div className="item" key={c.id}><span>Card •••• {c.card_last4}</span><span>{$(c.amount_cents)} · {({ held: 'on hold', captured: 'paid', released: 'returned', capture_pending: 'paying…', release_pending: 'returning…' } as any)[c.status] ?? c.status}</span></div>)}</div>}
       </>}
       {err && <div className="err toast" role="alert" data-testid="pay-error">{err}</div>}
-      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). With only two of you in, the exact split stays private until it’s bought.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
+      {co && co.myHeldCents > 0 && <div className="goal" data-testid="my-share">{co.atMost ? <>If it’s bought now, you pay <b>at most {$(co.myHeldCents)}</b> (your hold). Until 3 friends are in, the exact split stays private until it’s bought.</> : <>If it’s bought now, you pay <b>{$(co.myChargeCents)}</b> of your {$(co.myHeldCents)} hold{co.myHeldCents > co.myChargeCents ? <> and {$(co.myHeldCents - co.myChargeCents)} goes back to your card</> : ''}.</>}</div>}
       {!s.me.isGuest && <ExplainPay bid={b.id} />}
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
-        <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · amounts stay private</div>
+        <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} in · {s.totals.blurred ? 'amounts stay private until 3+ friends are in' : 'nobody sees anyone’s amount'}</div>
         <div className="who">{s.members.map((m: any) => <div className="wrow" key={m.id} data-testid="who-row"><Flower fb={m.flowerBack} size={24} /><span className="grow">{m.id === s.me.id ? `${m.displayName} (you)` : m.displayName}{m.role === 'organizer' ? ' ★' : ''}</span>
           <span className={`st ${m.holding ? 'on' : ''}`}>{m.holding ? '✓ in' : 'not yet'}</span></div>)}</div>
         <div className="dl" data-testid="deadline-box"><b>{countdown(b.buyByAt, s.now)}</b> to buy (until {short(b.buyByAt)}). If it isn’t bought by then, every hold comes off and nobody pays.</div></div>

@@ -126,7 +126,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const myHolds = liveHolds.filter((h: any) => h.member_id === me.id);
     // Two holders: an exact group total would let each work out the other's private amount. Show tier progress instead.
     const holderIds = b.status === 'funding' ? new Set((await db.query(`SELECT DISTINCT member_id FROM contributions WHERE bouquet_id=$1 AND status='held'`, [bid])).map((r: any) => r.member_id)) : new Set();
-    const blurred = holderIds.size === 2 && holderIds.has(me.id);
+    // With one or two people holding, any total would reveal someone's amount, so everyone (organizer included) sees only funded items.
+    const blurred = b.status === 'funding' && holderIds.size > 0 && holderIds.size <= 2;
     const shownTotal = blurred ? (D.highestFundedTier(tiers, total)?.threshold_cents ?? 0) : total;
     return {
       now: clock.now().toISOString(),
@@ -154,7 +155,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         checkout: previewTier ? { tierId: previewTier.id, tierLevel: previewTier.level, chargeCents: previewTier.threshold_cents, releaseCents: blurred ? null : f.held - previewTier.threshold_cents,
           holders: new Set(liveHolds.map((h: any) => h.member_id)).size,
           myHeldCents: myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0), atMost: blurred,
-          myChargeCents: blurred ? myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0) : myHolds.reduce((a: number, h: any) => a + (previewAlloc.get(h.id) ?? 0), 0) } : null },
+          myChargeCents: blurred ? null : myHolds.reduce((a: number, h: any) => a + (previewAlloc.get(h.id) ?? 0), 0) } : null },
     };
   }
 
@@ -540,12 +541,21 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   /** Settle pending holds with the processor, outside any DB transaction (no row locks held across a network call).
    *  Each row moves pending → final with a guarded UPDATE, so a retry (or a second caller) never writes the ledger twice.
    *  A processor error leaves the row pending; the next lock/sweep/withdraw call retries it. */
+  const MAX_SETTLE_TRIES = 3;
   async function settlePending(bid: string) {
     const rows = await db.query(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status IN ('capture_pending','release_pending') ORDER BY id`, [bid]);
     let failed = 0;
     for (const hd of rows) {
       try { if (hd.status === 'capture_pending') await payments.capture(hd.hold_id, hd.captured_cents); else await payments.release(hd.hold_id); }
-      catch (e) { failed++; console.error('settle failed, will retry', hd.id, (e as Error).message); continue; }
+      catch (e) { failed++; console.error('settle failed, will retry', hd.id, (e as Error).message);
+        // Not pending forever: after MAX_SETTLE_TRIES failed captures, give up on that hold and release it, so the friend is never left in limbo.
+        const [{ n }] = await db.query('UPDATE contributions SET settle_tries=settle_tries+1 WHERE id=$1 RETURNING settle_tries AS n', [hd.id]);
+        if (hd.status === 'capture_pending' && Number(n) >= MAX_SETTLE_TRIES) {
+          try { await payments.release(hd.hold_id); } catch { /* the authorization lapses on its own */ }
+          await db.tx(async q => { const done = await q(`UPDATE contributions SET status='released', captured_cents=0 WHERE id=$1 AND status='capture_pending' RETURNING id`, [hd.id]); if (!done.length) return;
+            await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'release',$3)`, [bid, hd.id, hd.amount_cents]); });
+        }
+        continue; }
       await db.tx(async q => {
         const fin = hd.status === 'capture_pending' ? 'captured' : 'released';
         const done = await q(`UPDATE contributions SET status=$3 WHERE id=$1 AND status=$2 RETURNING id`, [hd.id, hd.status, fin]); if (!done.length) return;
@@ -645,6 +655,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       await settlePending(bid);
       notify(bid, 'expired');
     }
+    // retry anything a processor error left pending (captures and releases)
+    for (const { bouquet_id } of await db.query(`SELECT DISTINCT bouquet_id FROM contributions WHERE status IN ('capture_pending','release_pending')`)) await settlePending(bouquet_id);
     return due.length;
   }
 

@@ -29,7 +29,7 @@ describe('one money source per person', { timeout: 60000 }, () => {
     expect((await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: c, cardNumber: VISA, idempotencyKey: `t1-${b.id}` })).status).toBe(201);
     for (const [f, held] of [[friends[0], a], [friends[1], c]] as const) {
       const co = (await f.get(`/api/bouquets/${b.id}`)).body.totals.checkout;
-      expect(co.atMost).toBe(true); expect(co.myChargeCents).toBe(held); expect(co.myHeldCents).toBe(held);
+      expect(co.atMost).toBe(true); expect(co.myChargeCents).toBeNull(); expect(co.myHeldCents).toBe(held);
       const ex = (await f.get(`/api/bouquets/${b.id}/explain`)).body;
       expect(ex.receipt.mode).toBe('atmost'); expect(ex.receipt.chargedCents).toBe(held); expect(ex.rules).toContain('at most');
     }
@@ -47,5 +47,21 @@ describe('paying the store', { timeout: 60000 }, () => {
     await org.post(`/api/bouquets/${b.id}/lock`); // a repeat checkout does not issue another card
     const led = await ctx.db.query(`SELECT * FROM ledger_events WHERE bouquet_id=$1 AND type='vcard'`, [b.id]);
     expect(led.length).toBe(cards.length); expect(led.reduce((a: number, e: any) => a + e.amount_cents, 0)).toBe(st.bouquet.capturedCents);
+  });
+});
+
+describe('a capture that keeps failing', { timeout: 60000 }, () => {
+  it('is retried by the sweep, then released instead of staying pending forever', async () => {
+    const { MockVisaPayments } = await import('../src/adapters.js');
+    class Broken extends MockVisaPayments { tries = 0; async capture() { this.tries++; throw new Error('processor down'); } }
+    const visa = new Broken(); const { ctx, org, friends, b, choose } = await fundingBouquet(new MockAi(), { payments: visa }); await choose();
+    for (const [i, p] of [org, ...friends].entries()) expect((await p.post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: [4000, 6000, 6000][i], cardNumber: VISA, idempotencyKey: `x-${i}-${b.id}` })).status).toBe(201);
+    expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
+    expect((await friends[0].get(`/api/bouquets/${b.id}`)).body.me.contributions.some((c: any) => c.status === 'capture_pending')).toBe(true);
+    await ctx.sweep(); await ctx.sweep();
+    const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
+    expect(me.contributions.every((c: any) => c.status === 'released' || c.status === 'captured')).toBe(true);
+    expect(me.receipt.chargedCents + me.receipt.backCents).toBe(me.receipt.heldCents);
+    expect(visa.tries).toBeGreaterThanOrEqual(3);
   });
 });

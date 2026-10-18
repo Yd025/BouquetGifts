@@ -52,13 +52,14 @@ export default function Motion() {
 }
 
 /** Counts money up from the last shown value. Shows the final value immediately when motion is reduced. */
+/** Counts in whole dollars while moving and lands on the exact cents, so a paused frame never shows an odd amount like $36.26. */
 export function useCountUp(target: number, ms = 700) {
   const [v, setV] = useState(target);
   const from = useRef(target);
   useEffect(() => {
     if (calm() || navigator.webdriver || from.current === target) { from.current = target; setV(target); return; }
     const a = from.current, t0 = performance.now(); let raf = 0;
-    const step = (t: number) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); setV(Math.round(a + (target - a) * e)); if (k < 1) raf = requestAnimationFrame(step); else from.current = target; };
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); setV(k < 1 ? Math.round((a + (target - a) * e) / 100) * 100 : target); if (k < 1) raf = requestAnimationFrame(step); else from.current = target; };
     raf = requestAnimationFrame(step); return () => { cancelAnimationFrame(raf); from.current = target; };
   }, [target, ms]);
   return v;
