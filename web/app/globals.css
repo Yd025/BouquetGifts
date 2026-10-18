@@ -373,3 +373,26 @@ button:active:not(:disabled), .btn:active { transform: scale(.97); transition-du
 @keyframes drawIn { from { transform: translate(-230px, -10px) rotate(-14deg) scale(.62); opacity: .4; } }
 .drawn .cardface { box-shadow: 0 22px 44px #9b5a7a3d; }
 .slot-card { display: inline-block; width: 30px; height: 42px; border-radius: 6px; border: 2.5px solid currentColor; transform: rotate(-8deg); box-shadow: 6px 2px 0 -2px #fff, 7px 2px 0 0 currentColor; opacity: .7; }
+/* ---------- editorial + organic system ---------- */
+.panel { border-radius: 30px 30px 30px 12px; }
+.panel:nth-of-type(2n) { border-radius: 30px 12px 30px 30px; }
+.panel h2 { letter-spacing: -.02em; }
+[data-testid="room-title"] { font-size: clamp(30px, 4.6vw, 46px); letter-spacing: -.03em; line-height: 1.02; }
+/* stages read as one stem: a bud per step that opens as the gift moves along */
+.stage { position: relative; gap: 0; margin: 10px 0 20px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.stage::-webkit-scrollbar { display: none; }
+.stage span { position: relative; background: none; border: 0; padding: 22px 14px 0 0; font-size: 12.5px; white-space: nowrap; flex: 1 1 0; min-width: 72px; color: var(--muted); }
+.stage span::before { content: ''; position: absolute; left: 0; right: 0; top: 8px; height: 2.5px; background: #f0d7e3; }
+.stage span.done::before, .stage span.on::before { background: #6f9f7e; }
+.stage span.on::before { background: linear-gradient(90deg, #6f9f7e 40%, #f0d7e3 40%); }
+.stage span.on { background: none; color: var(--ink); font-weight: 700; border: 0; } .stage span.done { background: none; color: var(--ink); }
+.stage .bud { position: absolute; left: 0; top: 2px; width: 14px; height: 14px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff; border: 2.5px solid #f0d7e3; z-index: 1; transition: all .4s cubic-bezier(.3,1.7,.5,1); }
+.stage span.done .bud { background: #f7a1c4; border-color: #e2588f; border-radius: 50%; }
+.stage span.on .bud { background: #e2588f; border-color: #e2588f; width: 18px; height: 18px; top: 0; left: -2px; border-radius: 50%; box-shadow: 0 0 0 5px #e2588f22; animation: budPulse 2.4s ease-in-out infinite; }
+@keyframes budPulse { 50% { box-shadow: 0 0 0 9px #e2588f11; } }
+/* invite: the gift as a tilted polaroid, petal-shaped amount choices */
+.cf-photo { background: #fff; padding: 10px 10px 26px; border-radius: 6px; box-shadow: 0 14px 30px #9b5a7a2e; transform: rotate(-2.2deg); margin: 14px 0 16px; transition: transform .4s cubic-bezier(.3,1.6,.5,1); }
+@media (hover: hover) { .cf-photo:hover { transform: rotate(0) scale(1.02); } }
+.cf-amts button { border-radius: 22px 22px 22px 6px; }
+.cf-meta b { font-family: Fraunces, Georgia, serif; font-size: 17px; }
+.chip-first h1, [data-testid="chip-first"] h1 { font-size: clamp(30px, 6vw, 40px); letter-spacing: -.03em; line-height: 1.05; }

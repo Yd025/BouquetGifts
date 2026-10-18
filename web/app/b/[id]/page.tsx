@@ -59,7 +59,7 @@ export default function Room({ params }: { params: { id: string } }) {
             <div className="muted">Open until {short(b.buyByAt)}</div></>}</div></div>
       <div className={'live' + (demoMode ? ' sronly' : '')} data-testid="live" data-mode={live.mode} title={live.mode === 'connecting' ? 'Connecting…' : 'Updates live'}>
         <span className={'dot ' + live.mode} />{live.mode === 'websocket' ? `Live${live.online.length ? ` · ${live.online.length} here now` : ''}` : live.mode === 'sse' ? 'Live' : 'Connecting…'}</div>
-      <div className="stage">{STAGES.map(([k, l], i) => <span key={k} className={i === idx ? 'on' : i < idx ? 'done' : ''}>{i + 1}. {l}</span>)}</div>
+      <div className="stage">{STAGES.map(([k, l], i) => <span key={k} className={i === idx ? 'on' : i < idx ? 'done' : ''} aria-current={i === idx ? 'step' : undefined}><i className="bud" aria-hidden />{l}</span>)}</div>
       <div className="members">{s.members.map((m: any) => <div className="member" key={m.id}><Flower fb={m.flowerBack} size={28} />{m.displayName}{m.role === 'organizer' && ' ★'}
         {m.networkVerified && <span className="badge soft" title="Phone check passed">✓ phone</span>}{m.hasCard && <span className="chip">✓ card</span>}</div>)}</div>
       {b.isOrganizer && ['collecting', 'fusing', 'funding'].includes(b.status) && <div style={{ marginTop: 16 }}><label>Invite friends with this link</label>
