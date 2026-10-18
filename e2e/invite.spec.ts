@@ -26,7 +26,7 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
     expect(await p.locator(sel).evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
   for (const sel of ['[data-testid=cf-amt-40]', '[data-testid=cf-hold]']) expect((await p.locator(sel).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  await p.screenshot({ path: '../screenshots/05b-invite-chipin-mobile.png', fullPage: true });
+  await p.screenshot({ path: '../screenshots/05b-invite-chipin-mobile.png', fullPage: true, style: '#fx-layer{visibility:hidden !important}' });
   await p.getByTestId('cf-hold').click();
   await expect(p).toHaveURL(new RegExp(`/b/${b.id}`)); await expect(p.getByTestId('late-card')).toBeVisible();
   const st = await (await ctx.request.get(`/api/bouquets/${b.id}`)).json();
@@ -39,7 +39,7 @@ test('invite → one screen → $40 hold as a guest on a 390px phone → optiona
   await expect(p.getByTestId('mint-done')).toBeInViewport();
   const done = (await p.getByTestId('mint-done').boundingBox())!; const card = (await p.getByTestId('minted-card').boundingBox())!;
   expect(await p.evaluate(([x, y]) => (document.elementFromPoint(x, y) as HTMLElement)?.closest('[data-testid=mint-done]') !== null, [done.x + done.width / 2, done.y + done.height / 2])).toBe(true);
-  void card; await p.screenshot({ path: '../screenshots/08c-card-minted-mobile.png' });
+  void card; await p.screenshot({ path: '../screenshots/08c-card-minted-mobile.png', style: '#fx-layer{visibility:hidden !important}' });
   await p.getByTestId('mint-done').click(); await expect(p.getByTestId('late-card')).toHaveCount(0);
   expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });

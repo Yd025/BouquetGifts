@@ -4,7 +4,7 @@ const SHOTS = '../screenshots/';
 const expectLoaded = async (img: any) => { await expect(img).toBeVisible(); await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.complete && e.naturalWidth > 0)).toBe(true); };
 const uniq = Date.now();
 // the 🎬 Judge demo button is position:fixed; a full-page capture paints it mid-page over content, so product shots hide it (10d shows it on purpose)
-const NOFAB = '.drawer{visibility:hidden !important}';
+const NOFAB = '.drawer,#fx-layer{visibility:hidden !important}';
 const ADJ: Record<string, string> = { 'Sunrise Hiker': 'Trail-Ready', 'Coffee Snob': 'Caffeinated', 'Brunch Royalty': 'Brunch-Loving', Maker: 'Crafty', 'Film Shooter': 'Grainy', 'Music Head': 'Rhythm-Driven', 'Plant Parent': 'Green-Thumbed', Bookworm: 'Well-Read', 'Hates Clutter': 'Minimalist', 'Cozy Nester': 'Cozy' }; // mirrors api/src/domain.ts
 // wait for every finite CSS animation on the element, its subtree and its ancestors (so a screenshot never catches a fade-in)
 const settle = (loc: any) => loc.evaluate(async (el: Element) => { const anims = [...el.getAnimations({ subtree: true })];

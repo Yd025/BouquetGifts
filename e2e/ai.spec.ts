@@ -1,7 +1,7 @@
 import { test, expect, request as pwRequest, APIRequestContext } from '@playwright/test';
 // AI between people and payments: concierge pick → natural-language chip-in → plain-language explainer, before and after checkout.
 // Setup goes through the API (fast); the three AI features are driven in the browser. Works with Gemini on or off (rules fallback).
-const SHOTS = '../screenshots/'; const NOFAB = '.drawer{visibility:hidden !important}';
+const SHOTS = '../screenshots/'; const NOFAB = '.drawer,#fx-layer{visibility:hidden !important}';
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000'; const uniq = Date.now();
 const HUMAN = { 'x-turnstile-token': 'XXXX.DUMMY.TOKEN.XXXX' }; // Cloudflare's always-pass test keys accept any token
 async function user(name: string) { const r = await pwRequest.newContext({ baseURL: BASE });
