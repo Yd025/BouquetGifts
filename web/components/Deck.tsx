@@ -38,6 +38,10 @@ export default function Deck({ s, setS, act }: any) {
   const [sel, setSel] = useState<string[]>([]); const [fusing, setFusing] = useState<any>(null); const [err, setErr] = useState('');
   const start = useRef<number | null>(null);
   const cur = s.traits.find((t: any) => t.id === drawn);
+  // Ideas stay face down until the first gift is made (a fusion casts a vote); until then, keeps fill each idea's match bar.
+  const revealed = s.candidates.some((c: any) => c.votes > 0);
+  const keptLabels = hand.map((t: any) => t.label);
+  const byMatch = s.candidates.map((c: any) => ({ c, kept: c.traits.filter((l: string) => keptLabels.includes(l)) })).sort((a: any, b: any) => b.kept.length - a.kept.length);
   const call = async (p: string, method: string, body?: any) => { setErr(''); try { const r = await api(`/bouquets/${bid}${p}`, { method, body }); setS(r); return r; } catch (e: any) { setErr(e.message); } };
   const draw = () => { if (drawn || !remaining.length) return; setDrawn(remaining[0].id); setFlipped(false); setDx(0); setFly(0); setTimeout(() => setFlipped(true), 30); };
   const decide = async (keep: boolean) => { if (!cur || fly) return; setFly(keep ? 1 : -1); const id = cur.id;
@@ -98,8 +102,16 @@ export default function Deck({ s, setS, act }: any) {
           {fusing.cand.product ? <img className="prodimg" src={fusing.cand.product.photoUrl} alt={fusing.cand.product.name} /> : <GiftArt traits={fusing.cand.traits} />}
           <h2>{fusing.cand.title}</h2><p className="muted">{fusing.cand.description}</p><div className="muted cite">{fusing.cand.traits.join(' + ')} · from {fusing.cand.citedFriends.join(', ')}</div>
           <button onClick={() => setFusing(null)} data-testid="fuse-close">Add to the gift ideas →</button></div>}</div></Overlay>}
-    <h3 style={{ marginTop: 26 }}>Gift ideas · vote for your favorite</h3>
-    <div className="cands">{[...s.candidates].sort((x: any, y: any) => y.votes - x.votes).map((c: any) =>
+    {!revealed && <><h3 style={{ marginTop: 26 }}>Gift ideas · face down until someone makes a gift</h3>
+      <p className="muted" style={{ marginTop: 0 }}>Every card you keep moves the match bar on the idea it fits. Put two kept cards together and the ideas turn over.</p>
+      <div className="cands" data-testid="facedown-ideas">{byMatch.map(({ c, kept }: any, i: number) =>
+        <div key={c.id} className="cand facedown" data-testid="candidate" data-facedown="1">
+          <div className="fdback" aria-hidden><Flower fb={traitFlower(c.id + 'idea')} size={64} /></div>
+          <b>Gift idea {i + 1}</b>
+          <div className="matchbar" aria-label={`${kept.length} of ${c.traits.length} traits kept`}><div style={{ width: `${(kept.length / Math.max(1, c.traits.length)) * 100}%` }} /></div>
+          <small data-testid="match-note">{kept.length ? kept.map((l: string) => `${l} kept`).join(' · ') + ` · +${kept.length}` : 'No match yet'}</small></div>)}</div></>}
+    {revealed && <><h3 style={{ marginTop: 26 }}>Gift ideas · vote for your favorite</h3>
+    <div className="cands reveal">{[...s.candidates].sort((x: any, y: any) => y.votes - x.votes).map((c: any) =>
       <div key={c.id} className={`cand ${s.me.vote === c.id ? 'mine' : ''} ${c.rare ? 'holo' : ''}`} data-testid="candidate">
         <div className="fusion">{c.traits.join(' + ')} <span className={`chip kind-${c.kind}`} data-testid="kind">{({ rare: 'Rare find', match: 'Good match', safe: 'Safe pick', wildcard: 'Wildcard' } as any)[c.kind] ?? 'Fusion'}</span></div>{c.product ? <img className="prodimg" src={c.product.photoUrl} alt={c.product.name} data-testid="cand-photo" /> : <GiftArt traits={c.traits} />}<h3>{c.title}</h3>
         {c.product ? <a className="prodlink" href={c.product.url} target="_blank" rel="noreferrer" title={`${c.product.name} on ${c.product.store}`}>{c.product.label ?? c.product.name}{c.products?.length > 1 ? ` + ${c.products.length - 1} more` : ''}</a> : <span className="prodlink none">Group-curated box · no catalog product yet</span>}
@@ -107,7 +119,7 @@ export default function Deck({ s, setS, act }: any) {
           <svg className="citeline" viewBox="0 0 20 30" aria-hidden><path d="M10 0 V30" stroke="#e2588f" strokeDasharray="3 3" /></svg>
           <span className="citeface"><Flower fb={s.members.find((m: any) => m.id === k.memberId)?.flowerBack ?? traitFlower(k.title)} size={26} /></span><small>{k.memberName}</small></span> : null; })}</div>
         <p className="muted" style={{ margin: 0 }}>{c.description}</p><div className="muted" style={{ fontSize: 13 }}>From the cards of {c.citedFriends.join(', ')}</div>
-        <div className="row"><div className="grow"><b data-testid="votes">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><div className="tally"><div style={{ width: `${(c.votes / Math.max(1, s.members.length)) * 100}%` }} /></div></div><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div>
+        <div className="row"><div className="grow"><b data-testid="votes">{c.votes} vote{c.votes === 1 ? '' : 's'}</b><div className="tally"><div style={{ width: `${(c.votes / Math.max(1, s.members.length)) * 100}%` }} /></div></div><button className="sm btn" onClick={() => act('/vote', { candidateId: c.id })} data-testid="vote">{s.me.vote === c.id ? 'Voted ✓' : 'Vote'}</button></div></div>)}</div></>}
     {s.bouquet.isOrganizer && <div style={{ marginTop: 20 }}><button onClick={() => act('/choose')} data-testid="choose">Go with the top pick →</button></div>}
   </div>;
 }

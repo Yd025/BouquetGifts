@@ -54,7 +54,7 @@ test('demo account login works', async ({ page }) => {
 });
 
 test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
-  const org = await signup(browser, 'Olivia');
+  const org = await signup(browser, 'Adelin');
   await expect(org).toHaveURL(/dashboard/); await org.screenshot({ path: SHOTS + '03-dashboard.png' });
   await org.getByTestId('new-bouquet').click(); await expect(org).toHaveURL(/\/new/); await org.waitForLoadState('networkidle');
   await org.fill('input[name=recipientName]', 'Maya'); await org.fill('textarea', 'Maya turns 25! Let’s make it special.');
@@ -96,8 +96,8 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   await expect(org.getByTestId('deck')).toBeVisible();
   await expect(org.getByTestId('draw-slot')).toContainText('Draw a card'); await expect(org.getByTestId('discard-pile')).toContainText('discard');
   const cardTitles = await org.locator('.cards h3').allTextContents(); expect(cardTitles).toHaveLength(3); expect(new Set(cardTitles).size).toBe(3); // no look-alike cards
-  for (const c of await org.getByTestId('candidate').all()) { await expect(c.getByTestId('cand-art')).toHaveCount(0); await expectLoaded(c.getByTestId('cand-photo')); // every gift shows a real product photo
-    await expect(c.locator('a.prodlink')).toHaveAttribute('href', /^https:\/\/[a-z.]+\/products\//); }
+  // ideas stay face down until someone makes a gift: no photos or titles to anchor on yet
+  for (const c of await org.getByTestId('candidate').all()) { await expect(c).toHaveAttribute('data-facedown', '1'); await expect(c.getByTestId('cand-photo')).toHaveCount(0); }
   await org.waitForTimeout(1100); await org.screenshot({ path: SHOTS + '09-deck.png', fullPage: true, style: NOFAB });
   // Friend 0 plays the deck: draw, keep, draw, discard, undo, keep, then fuse two hand cards with buttons.
   const p0 = friends[0]; await p0.reload();
@@ -116,6 +116,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   await expect(p0.getByTestId('discard-pile').locator('.stackcard')).toHaveCount(1);
   // Keep any cards still in the deck, then try pairs until one fuses (a rare pair without consensus is correctly refused).
   while (await p0.getByTestId('deck').isEnabled()) { await p0.getByTestId('deck').click(); await p0.getByTestId('keep').click(); await p0.waitForTimeout(450); }
+  await expect(p0.getByTestId('match-note').filter({ hasText: 'kept' }).first()).toBeVisible(); // keeps move the matching ideas' bars
   const n = await p0.getByTestId('hand-card').count(); let fused = false;
   for (let a = 0; a < n && !fused; a++) for (let b = a + 1; b < n && !fused; b++) {
     for (const i of [0, 1, 2, 3, 4].slice(0, n)) if ((await p0.getByTestId('hand-card').nth(i).getAttribute('aria-pressed')) === 'true') await p0.getByTestId('hand-card').nth(i).click();
@@ -127,7 +128,9 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   expect(fused).toBe(true);
   await expect(p0.getByTestId('fused-gift')).toBeInViewport(); await expect(p0.getByTestId('fuse-close')).toBeInViewport();
   await settle(p0.getByTestId('fused-gift')); await expectCrisp(p0.getByTestId('fused-gift')); await p0.screenshot({ path: SHOTS + '09d-fusion.png' });
-  await p0.getByTestId('fuse-close').click(); await expect(p0.getByText('Voted ✓')).toBeVisible();
+  await p0.getByTestId('fuse-close').click(); await expect(p0.getByText('Voted ✓')).toBeVisible(); await expect(p0.getByTestId('facedown-ideas')).toHaveCount(0); // the first gift turns the ideas over
+  for (const c of await p0.getByTestId('candidate').all()) { await expect(c.getByTestId('cand-art')).toHaveCount(0); await expectLoaded(c.getByTestId('cand-photo')); // every gift shows a real product photo
+    await expect(c.locator('a.prodlink')).toHaveAttribute('href', /^https:\/\/[a-z.]+\/products\//); }
   for (const f of friends.slice(1)) { await f.reload(); await f.getByTestId('deck').click(); await f.getByTestId('keep').click(); await expect(f.getByTestId('hand-card')).toHaveCount(1);
     // Priya and Sam back the top named-recipe gift when there is one, so it wins 2–1 (every gift has a real product photo now).
     const named = f.getByTestId('candidate').filter({ hasNotText: /Duo Box|Treasure Box/ }); // answers are seeded per member, so a named recipe isn't guaranteed
@@ -146,7 +149,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   expect(await org.getByTestId('tier').first().locator('a[href^="https://"]').first().getAttribute('href')).toMatch(/^https:\/\/[a-z.]+\/products\//);
   const amounts = [50, 40, 45]; let pops = 0;
   for (const [k, f] of friends.entries()) {
-    await f.reload(); await expect(f.getByTestId('claim')).toBeVisible();
+    await f.reload(); await expect(f.getByTestId('chipin-text')).toBeVisible(); await expect(f.getByTestId('claim')).toHaveCount(0); // no sign-up wall: guests chip in first
     if (k === 0) { await settle(f.locator('.cards')); await expect(f.locator('.cards h3')).toHaveCount(3); await f.screenshot({ path: SHOTS + '10a-guest-claim.png', fullPage: true, style: NOFAB }); }
     if (k === 0) { // chip order follows the card title: most answers first, and among equal counts the trait the title names comes first
       const bad = await f.locator('.cards .cardface.front').evaluateAll((els, adj) => els.flatMap(el => {
@@ -156,8 +159,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
         return chips.slice(1).flatMap((c, i) => c.n > chips[i].n || (c.n === chips[i].n && named(c.label) && !named(chips[i].label)) ? [`${title}: ${chips[i].label} before ${c.label}`] : []);
       }), ADJ);
       expect(bad).toEqual([]); }
-    await f.fill('input[name=claimEmail]', `${names[k].toLowerCase()}${uniq}@e2e.io`); await f.fill('input[name=claimPassword]', 'password123'); await f.getByTestId('claim-save').click();
-    await f.fill('input[name=budgetMax]', '70'); await f.getByTestId('save-budget').click();
+    await f.getByTestId('enter-amounts').click(); await f.fill('input[name=budgetMax]', '70'); await f.getByTestId('save-budget').click();
     if (k === 2) { // in a real 1280px viewport the Judge button sits in the page margin, clear of every panel
       const fab = (await f.getByTestId('demo-toggle').boundingBox())!; expect(fab.width).toBeLessThanOrEqual(48);
       const panelRight = await f.evaluate(() => Math.max(...[...document.querySelectorAll('main .panel')].filter(e => !e.closest('.drawer')).map(e => e.getBoundingClientRect().right)));
@@ -172,6 +174,10 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     await f.getByTestId('pay-confirm').click(); await expect(f.getByText('Card •••• 4242', { exact: true }).first()).toBeVisible();
     await expect(f.getByTestId('pay-sheet')).toHaveCount(0); expect(await f.evaluate(() => document.body.style.overflow)).toBe(''); // lock released on close
     await expect(f.getByTestId('hold')).toHaveText(`Add $${amounts[k]} more`); // a second hold reads as adding, not replacing
+    await expect(f.getByTestId('you-in')).toContainText(`You’re in for $${amounts[k]}`); await expect(f.getByTestId('you-in')).toContainText('•••• 4242');
+    // saving an account is optional and comes after the hold
+    await f.getByTestId('claim').locator('summary').click(); await f.fill('input[name=claimEmail]', `${names[k].toLowerCase()}${uniq}@e2e.io`); await f.fill('input[name=claimPassword]', 'password123');
+    await f.getByTestId('claim-save').click(); await expect(f.getByTestId('claim')).toHaveCount(0);
     if (await f.getByTestId('unlock-pop').waitFor({ timeout: 2500 }).then(() => true, () => false)) { pops++; if (pops === 1) await f.screenshot({ path: SHOTS + '10c-unlock-pop.png', fullPage: true, style: NOFAB }); }
   }
   expect(pops).toBeGreaterThan(0);
@@ -184,7 +190,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   const f2 = friends[2]; await f2.reload(); await expect(f2.getByTestId('tier')).toHaveCount(nTiers); await expect(f2.getByTestId('funded')).toContainText('$135'); const unlocked = await f2.getByTestId('tier').and(f2.locator('.unlocked')).count();
   await expect(f2.getByTestId('gift-strip').locator('[data-unlocked="1"]')).toHaveCount(unlocked); // lit tiles = unlocked tiers
   await expect(f2.getByTestId('who-row')).toHaveCount(4); await expect(f2.getByTestId('whos-in')).toContainText('3 of 4 in'); await expect(f2.getByTestId('whos-in')).not.toContainText('$');
-  await expect(f2.getByTestId('checkout-preview')).toContainText(/Buying now costs \$\d+/);
+  await expect(f2.getByTestId('checkout-preview')).toContainText(/it costs \$\d+/);
   const fundedText = (await f2.getByTestId('funded').textContent())!;
   if (/fully funded/.test(fundedText)) await expect(f2.getByTestId('checkout-preview')).toContainText(/Fully funded.*goes back to their cards/); // over the goal: say what happens to the extra
   await expect(f2.getByTestId('my-share')).toContainText(/you pay \$[\d.]+ of your \$45 hold/);
