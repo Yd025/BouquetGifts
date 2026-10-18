@@ -128,7 +128,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       me: { id: me.id, isGuest: !!meUser?.is_guest, role: me.role, displayName: me.display_name, budgetMinCents: me.budget_min_cents, budgetMaxCents: me.budget_max_cents, payday: me.payday ? new Date(me.payday).toISOString().slice(0, 10) : null, networkVerified: me.network_verified,
         hasCard: cards.some((c: any) => c.member_id === me.id), vote: myVote, contributions: myContribs },
       members: members.map((m: any) => ({ id: m.id, displayName: m.display_name, role: m.role, networkVerified: m.network_verified, flowerBack: m.flower_back,
-        hasCard: cards.some((c: any) => c.member_id === m.id), pledgedCents: Number(m.pledged), budgetMaxCents: m.budget_max_cents })),
+        hasCard: cards.some((c: any) => c.member_id === m.id), holding: Number(m.pledged) > 0 })), // never another friend's amount or cap
       cards: cards.map((c: any) => ({ id: c.id, memberId: c.member_id, memberName: name.get(c.member_id), title: c.title, traits: c.traits, story: c.story,
         stats: D.orderStatsForTitle(c.stats ?? (c.traits as string[]).map(l => ({ label: l, count: 1 })), c.title), artUrl: c.art_key ? `/api/media/${c.art_key}` : null,
         flowerBack: members.find((m: any) => m.id === c.member_id)?.flower_back })),

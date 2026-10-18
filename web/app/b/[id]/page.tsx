@@ -104,7 +104,7 @@ function Funding({ s, act, setS }: any) {
   useEffect(() => { const cur = s.totals.currentTier;
     if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(`+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
     prevTier.current = cur; prevTotal.current = total; }, [s.totals.currentTier, total]);
-  const petals = s.members.filter((m: any) => m.pledgedCents > 0); const co = b.status === 'funding' ? s.totals.checkout : null;
+  const petals = s.members.filter((m: any) => m.holding); const co = b.status === 'funding' ? s.totals.checkout : null;
   const pay = async (card: string, human: string | null) => { setErr('');
     try { setS(await api(`/bouquets/${b.id}/contributions`, { body: { amountCents: Math.round(amt * 100), cardNumber: card, idempotencyKey: crypto.randomUUID() }, human })); return true; }
     catch (e: any) { setErr(e.message); return true; } };
@@ -151,7 +151,7 @@ function Funding({ s, act, setS }: any) {
       <div className="side" data-testid="whos-in"><h3>Who’s in</h3>
         <div className="muted" style={{ fontSize: 13 }}>{petals.length} of {s.members.length} holding · everyone’s amount and budget stay private</div>
         <div className="who">{s.members.map((m: any) => <div className="wrow" key={m.id} data-testid="who-row"><Flower fb={m.flowerBack} size={24} /><span className="grow">{m.id === s.me.id ? `${m.displayName} (you)` : m.displayName}{m.role === 'organizer' ? ' ★' : ''}</span>
-          <span className={`st ${m.pledgedCents > 0 ? 'on' : ''}`}>{m.pledgedCents > 0 ? '✓ holding' : 'no hold yet'}</span></div>)}</div>
+          <span className={`st ${m.holding ? 'on' : ''}`}>{m.holding ? '✓ holding' : 'no hold yet'}</span></div>)}</div>
         <div className="dl" data-testid="deadline-box">⏳ <b>{countdown(b.buyByAt, s.now)}</b> to check out (buy by {new Date(b.buyByAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, leaving {b.shipBufferDays} days to ship). If nobody checks out in time, every hold is released and no one is charged.</div></div>
       {b.isOrganizer && <div style={{ marginTop: 22, borderTop: '1px dashed #f3d0df', paddingTop: 18 }}><h3>Ready to check out?</h3>
         <p className="muted">{co ? <>Checking out now buys tier {co.tierLevel} and charges {$(co.chargeCents)} split fairly across everyone’s holds{co.releaseCents > 0 ? `; the extra ${$(co.releaseCents)} is released` : ''}.</> : 'Once the first tier is fully funded you can check out. Everyone pays a fair share of the best funded tier, and anything extra goes back to them.'}</p>

@@ -120,6 +120,8 @@ describe('bouquet lifecycle', () => {
     expect(views.reduce((a, v) => a + v.totals.checkout.myChargeCents, 0)).toBe(top); // shares add up to exactly the top tier
     views.forEach((v, i) => { expect(v.totals.checkout.myHeldCents).toBe(amounts[i]); expect(v.totals.checkout.myChargeCents).toBeLessThanOrEqual(amounts[i]); });
     expect(views[0].members.every((m: any) => !('budgetMinCents' in m))).toBe(true);
+    for (const v of views) for (const m of v.members) { // no friend's amount or cap ever reaches another friend's browser
+      expect(m).not.toHaveProperty('pledgedCents'); expect(m).not.toHaveProperty('budgetMaxCents'); expect(m).not.toHaveProperty('budgetMinCents'); expect(typeof m.holding).toBe('boolean'); }
     expect((await org.post(`/api/bouquets/${b.id}/lock`)).status).toBe(200);
     for (const [i, f] of friends.entries()) { const me = (await f.get(`/api/bouquets/${b.id}`)).body;
       expect(me.me.contributions.reduce((a: number, c: any) => a + (c.captured_cents ?? 0), 0)).toBe(views[i].totals.checkout.myChargeCents); expect(me.totals.checkout).toBeNull(); }
