@@ -244,3 +244,4 @@ input:focus, textarea:focus { outline: none; border-color: var(--pink); box-shad
 .topup.ok{background:#eefaf3;border-color:#bfe8cf}
 .mic.on{background:#ffe4e4;border-color:#e55;color:#b00}
 .rbgrid [data-testid=chipin-cap-cond]{display:block}
+.topup-group{margin-top:8px;font-size:14px}

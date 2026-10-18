@@ -233,28 +233,30 @@ export type TopUpPerson = { id: string; headroomCents: number; payday: string | 
 export type TopUpAsk = { cents: number; availableAt: string | null };
 /**
  * Close the gap to the next tier across friends' *private* caps. Each person only ever sees their own ask.
- * Friends who can top up now are asked first; friends waiting on payday are scheduled only if the others can't close it.
- * Asks are proportional to headroom, rounded up to whole dollars where the cap allows, never above anyone's cap, and sum to ≥ the gap.
- * Null when even everyone's remaining headroom can't reach the next tier (then nobody is nagged).
+ * Fair split: proportional to each friend's remaining room (cap − what they already hold), so nobody gets the whole gap dumped on them
+ * while others have room. Friends who can pay now are asked first, and friends who already topped up toward this tier are left out
+ * unless the others can't close it. Payday friends are scheduled only if needed.
+ * Asks are whole dollars, never above anyone's remaining room, and sum to the gap rounded up to the next whole dollar (overshoot < $1 in total).
+ * Null when even everyone's remaining room can't reach the next tier (then nobody is nagged).
  */
 export function planTopUps(gapCents: number, people: TopUpPerson[], now: Date): Map<string, TopUpAsk> | null {
   if (gapCents <= 0) return new Map();
   const ready = (p: TopUpPerson) => !p.payday || new Date(p.payday + 'T00:00:00Z').getTime() <= now.getTime();
-  const elig = people.filter(p => p.headroomCents >= 100);
-  // widen the pool step by step: fresh friends who can pay now → plus friends who already topped up → plus payday friends
-  const steps = [elig.filter(p => ready(p) && !p.alreadyAsked), elig.filter(ready), elig];
-  const pool = steps.find(g => g.reduce((a, p) => a + p.headroomCents, 0) >= gapCents) ?? elig;
-  const total = pool.reduce((a, p) => a + p.headroomCents, 0);
-  if (total < gapCents) return null;
-  // largest-remainder split of the gap, proportional to headroom (integer cents)
-  const parts = pool.map(p => { const exact = (p.headroomCents * gapCents) / total; return { p, v: Math.floor(exact), frac: exact - Math.floor(exact) }; });
-  let rem = gapCents - parts.reduce((a, x) => a + x.v, 0);
-  [...parts].sort((a, b) => b.frac - a.frac || a.p.id.localeCompare(b.p.id)).forEach(x => { if (rem > 0 && x.v < x.p.headroomCents) { x.v++; rem--; } });
+  const room = (p: TopUpPerson) => Math.floor(Math.max(0, p.headroomCents) / 100); // whole dollars of remaining room
+  const elig = people.filter(p => room(p) >= 1);
+  const covers = (g: TopUpPerson[]) => g.reduce((a, p) => a + room(p), 0) * 100 >= gapCents;
+  const fresh = elig.filter(p => ready(p) && !p.alreadyAsked), nowAll = elig.filter(ready);
+  // widen the pool: friends who can pay now and haven't topped up toward this tier yet → everyone who can pay now → plus payday friends
+  const steps = [fresh, nowAll, elig];
+  const pool = steps.find(g => g.length && covers(g)) ?? null;
+  if (!pool) return null;
+  const units = Math.ceil(gapCents / 100); const total = pool.reduce((a, p) => a + room(p), 0);
+  // largest-remainder split of whole dollars, proportional to remaining room; a share never exceeds that friend's room because units ≤ total
+  const parts = pool.map(p => { const exact = (room(p) * units) / total; return { p, v: Math.floor(exact), frac: exact - Math.floor(exact) }; });
+  let rem = units - parts.reduce((a, x) => a + x.v, 0);
+  [...parts].sort((a, b) => b.frac - a.frac || a.p.id.localeCompare(b.p.id)).forEach(x => { if (rem > 0 && x.v < room(x.p)) { x.v++; rem--; } });
+  for (const x of parts) if (rem > 0 && x.v < room(x.p)) { const add = Math.min(rem, room(x.p) - x.v); x.v += add; rem -= add; }
   const out = new Map<string, TopUpAsk>();
-  for (const x of parts) {
-    if (x.v <= 0) continue;
-    const v = Math.min(Math.max(100, Math.ceil(x.v / 100) * 100), x.p.headroomCents); // whole dollars where the cap allows; never above the cap
-    out.set(x.p.id, { cents: v, availableAt: ready(x.p) ? null : x.p.payday });
-  }
+  for (const x of parts) if (x.v > 0) out.set(x.p.id, { cents: x.v * 100, availableAt: ready(x.p) ? null : x.p.payday });
   return out;
 }

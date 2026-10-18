@@ -465,7 +465,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const a = r.ask; const recipient = (await getBouquet(bid)).recipient_name;
     const rules = a.availableAt
       ? `On your payday you could top up ${money(a.cents)} so ${recipient}’s gift reaches ${a.tierTitle} (${money(a.tierPriceCents)} total).`
-      : `Top up ${money(a.cents)} and ${recipient}’s gift unlocks ${a.tierTitle} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ' A few friends are each being asked for a small part, sized to what they said they could do.' : ''}`;
+      : `Top up ${money(a.cents)} and ${recipient}’s gift unlocks ${a.tierTitle} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ` The rest is split fairly across ${a.friends - 1} other friend${a.friends > 2 ? 's' : ''}, each within what they said they could do.` : ''}`;
     const w = await ai.reword('explain', rules);
     return { ask: { ...a, message: w ?? rules }, source: w ? 'gemini' : 'rules' };
   }));
@@ -477,6 +477,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const r: any = await topUpFor(bq.id, m);
     if (!r.ask) fail(409, r.reason); if (r.ask.availableAt) fail(409, `This top-up opens on your payday (${r.ask.availableAt})`);
     if (r.ask.cents !== cents) fail(409, 'The group changed, so your top-up was recalculated. Please check the new amount.');
+    // One tap re-uses a saved card, so always run the carrier SIM Swap check first, whatever the amount (account-takeover guard).
+    if (m.phone && await network.simSwappedRecently(m.phone)) fail(423, 'Your SIM was changed recently, so one-tap top-ups are paused for your safety. Re-verify your phone to continue.');
     await placeHold(bq, m, cents, { token: m.card_token }, idempotencyKey);
     await db.query('UPDATE members SET topped_tier_id=$2 WHERE id=$1', [m.id, r.tierId]);
     res.status(201); return state(bq.id, uid);

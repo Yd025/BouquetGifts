@@ -11,9 +11,19 @@ describe('top-up planner', () => {
       const gap = 1 + ((k * 31337) % 12000); const total = people.reduce((a, p) => a + p.headroomCents, 0);
       const plan = planTopUps(gap, people, NOW);
       if (total < gap) { expect(plan).toBeNull(); continue; }
-      const asks = [...plan!.values()].map(a => a.cents); expect(asks.reduce((a, x) => a + x, 0)).toBeGreaterThanOrEqual(gap);
+      const asks = [...plan!.values()].map(a => a.cents); const sum = asks.reduce((a, x) => a + x, 0);
+      expect(sum).toBeGreaterThanOrEqual(gap); expect(sum - gap).toBeLessThan(100); // sums to the gap, rounded up to a whole dollar at most once
+      expect(asks.every(c => c % 100 === 0)).toBe(true);
       for (const [id, a] of plan!) { expect(a.cents).toBeLessThanOrEqual(people.find(p => p.id === id)!.headroomCents); expect(a.cents).toBeGreaterThanOrEqual(100); }
     }
+  });
+  it('never dumps the gap on one friend: shares follow remaining room, each within its cap', () => {
+    const p = [{ id: 'jon', headroomCents: 1000, payday: null }, { id: 'priya', headroomCents: 4000, payday: null }, { id: 'sam', headroomCents: 5000, payday: null }];
+    const plan = planTopUps(3000, p, NOW)!;
+    expect([...plan.keys()].sort()).toEqual(['jon', 'priya', 'sam']);
+    expect(plan.get('jon')!.cents).toBe(300); expect(plan.get('priya')!.cents).toBe(1200); expect(plan.get('sam')!.cents).toBe(1500);
+    for (const x of p) expect(plan.get(x.id)!.cents).toBeLessThanOrEqual(x.headroomCents);
+    expect(planTopUps(10001, p, NOW)).toBeNull(); // $100.01 > $100 of room in total: unreachable, nobody is asked
   });
   it('asks people who can pay now first, and schedules payday friends only when needed', () => {
     const p = [{ id: 'a', headroomCents: 1000, payday: null }, { id: 'b', headroomCents: 3000, payday: null }, { id: 'c', headroomCents: 2000, payday: '2026-10-23' }];
@@ -41,6 +51,11 @@ describe('GET /topup + one-tap accept', { timeout: 30000 }, () => {
     expect((await org.get(`/api/bouquets/${b.id}/topup`)).body.ask).toBeNull(); // organizer never held: not asked
     // stale amount is refused, then the right one goes through with no card number (token)
     expect((await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents + 100, idempotencyKey: 'acc-x-' + b.id })).status).toBe(409);
+    // the one-tap top-up re-uses a saved card, so the carrier SIM Swap check runs first whatever the amount
+    await friends[0].post('/api/dev/simswap').send({ bouquetId: b.id });
+    const blocked = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-sw-' + b.id });
+    expect(blocked.status).toBe(423); expect(blocked.body.error).toMatch(/SIM was changed/);
+    await friends[0].post('/api/dev/simswap').send({ bouquetId: b.id, on: false });
     const ok0 = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-0-' + b.id }); expect(ok0.status).toBe(201);
     const again = await friends[0].post(`/api/bouquets/${b.id}/topup/accept`).send({ cents: r0.ask.cents, idempotencyKey: 'acc-0-' + b.id }); expect(again.status).toBe(200); // idempotent
     const r1b = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body; // recalculated after Jon's top-up
