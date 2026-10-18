@@ -1,5 +1,7 @@
 # Bouquet Gifts ✿ — gifts grown by everyone who loves them
 
+**Try it: [bouquetgiftsfrom.us](https://bouquetgiftsfrom.us)** · demo login `demo@bouquet.gift` / `bouquet123` (friends: `jon@`, `priya@`, `sam@bouquet.gift`, same password)
+
 ## Inspiration
 Every friend group has one person who ends up organizing the gift. They guess what to buy, put it on their own card, and then spend three weeks chasing Venmo requests. The rest of the group knows things that would have made the gift better ("she's been shooting film all summer"), but none of it gets to the person buying it. Group-gift tools only collect money. We wanted to change the whole shopping journey for a group buying together: how they discover the gift, decide on it, pay for it, and give it.
 

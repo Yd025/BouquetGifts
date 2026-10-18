@@ -2,6 +2,8 @@
 
 DubHacks ’26 · **Visa: Reimagine Shopping** · side tracks: T-Mobile, Cloudflare
 
+**Try it: [bouquetgiftsfrom.us](https://bouquetgiftsfrom.us)** · demo login `demo@bouquet.gift` / `bouquet123` (friends: `jon@`, `priya@`, `sam@bouquet.gift`, same password)
+
 ## The problem
 Group gifts break at every step. One person **guesses** the gift alone, **fronts** the money, and **chases** Venmo for weeks.
 Group-gift sites only collect money, and video-montage apps only collect messages. Nobody helps the group *decide*, and the person who organized it ends up paying for whatever is short.

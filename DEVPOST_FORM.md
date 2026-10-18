@@ -3,6 +3,10 @@
 ## Project name
 Bouquet Gifts
 
+## Try it links
+- https://bouquetgiftsfrom.us (live demo; log in with demo@bouquet.gift / bouquet123)
+- https://github.com/Yd025/BouquetGifts
+
 ## Elevator pitch
 Group gifts where friends just say what they can chip in ("$30, or $42 if we get the record"), AI turns it into fair Visa holds, and nobody fronts the money.
 
