@@ -112,7 +112,7 @@ export function groundedAmount(cents: number, text: string) { return amountsIn(t
 /** Turn an understood draft into what we'll do: the hold amount (never above budget room), warnings, and a read-back sentence. */
 export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt: string; nextTierGapCents: number | null; nextTierTitle?: string | null;
   /** The tier the conditional phrase matched (if any), and how far the group is from it right now. */
-  conditionTier?: { id: string; title: string; isNext: boolean; gapCents: number } | null; /** the phrase matched several tiers: the UI asks which */ ambiguous?: boolean }): ChipInPlan {
+  conditionTier?: { id: string; title: string; isNext: boolean; gapCents: number | null } | null; /** the phrase matched several tiers: the UI asks which */ ambiguous?: boolean }): ChipInPlan {
   let capCents = Math.max(100, Math.min(d.capCents, 1_000_000)); const softCents = Math.max(100, Math.min(d.softCents, capCents));
   const warnings: string[] = []; const buyBy = new Date(ctx.buyByAt);
   let condition: ChipInPlan['condition'] = null;
@@ -120,12 +120,12 @@ export function planChipIn(d: ChipInDraft, ctx: { pledgedCents: number; buyByAt:
   if (d.conditional && ctx.conditionTier && d.conditional.cents > capCents) {
     const extra = d.conditional.cents - capCents; const t = ctx.conditionTier;
     // Holding the extra right now only makes sense if it actually finishes that tier now; otherwise it waits for a targeted top-up.
-    const unlocksNow = t.isNext && t.gapCents > 0 && Math.max(0, d.conditional.cents - ctx.pledgedCents) >= t.gapCents;
+    const unlocksNow = t.isNext && t.gapCents != null && t.gapCents > 0 && Math.max(0, d.conditional.cents - ctx.pledgedCents) >= t.gapCents;
     condition = { cents: d.conditional.cents, extraCents: extra, tierId: t.id, tierTitle: t.title, unlocksNow };
     capCents = d.conditional.cents;
   }
   const room = Math.max(0, capCents - ctx.pledgedCents);
-  const holdNowCents = condition?.unlocksNow ? Math.min(room, Math.max(softCents, ctx.conditionTier!.gapCents)) : Math.min(softCents, condition ? Math.max(0, d.capCents - ctx.pledgedCents) : room);
+  const holdNowCents = condition?.unlocksNow ? Math.min(room, Math.max(softCents, ctx.conditionTier!.gapCents ?? 0)) : Math.min(softCents, condition ? Math.max(0, d.capCents - ctx.pledgedCents) : room);
   const byDay = buyBy.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   if (d.payday && new Date(d.payday + 'T23:59:59Z').getTime() > buyBy.getTime())
     warnings.push(`Your payday (${d.paydayPhrase ?? d.payday}) is after the buy-by date (${byDay}). A hold isn’t a charge, but checkout can happen before you’re paid, so only hold what you’re comfortable with today.`);
@@ -188,7 +188,7 @@ export function explainRules(f: ExplainFacts): string {
   const mine = f.myHeldCents && f.groupHidden ? `For ${f.recipient}’s gift: if ${who} now, you pay at most your ${money(f.myHeldCents)} hold, and anything you don’t need goes back to your card.` : f.myHeldCents ? `For ${f.recipient}’s gift: if ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
   // Wording matters as much as maths here: always "costs X, group holds Y (Y ≥ X)", then what is captured and what is released.
   const charge = f.chargeCents ?? 0, spare = f.heldCents - charge;
-  if (f.groupHidden) return `${mine} Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and that is fully funded, so the cards would be charged exactly ${money(charge)}, split in proportion to each hold, and anything above that is released. (Only two friends are holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That’s everything on the list.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;
+  if (f.groupHidden) return `${mine} Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and that is fully funded, so the cards would be charged exactly ${money(charge)}, split in proportion to each hold, and anything above that is released. (${f.holders === 1 ? 'Only one friend is' : 'Only two friends are'} holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That’s everything on the list.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;
   const why = `Why: ${firstN(f.tierLevel, f.tierTitle)} ${money(charge)} in total and the group holds ${money(f.heldCents)}, so that is fully funded. The cards would be charged exactly ${money(charge)}, split in proportion to each hold${spare > 0 ? `, and the other ${money(spare)} is released` : ', using every hold in full'}.${f.nextTierGapCents ? ` ${f.nextTierTitle} would need ${money(f.nextTierGapCents)} more in holds.` : ' That’s everything on the list.'}`;
   return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
 }

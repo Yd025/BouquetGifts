@@ -447,7 +447,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   // 1) Natural-language chip-in: "about $30, $40 max, paid Friday" → soft amount, private cap, payday → a plan the person confirms.
   //    Gemini only reads the sentence; amounts are checked against what they wrote, and nothing is held until they press the Visa button.
   /** Shared by the room (signed-in member) and the invite page (not joined yet, so nothing pledged). */
-  async function understandChipIn(bq: any, pledgedCents: number, body: any) {
+  /** hideGap: never let the reply depend on how far the group is from a tier (with 1-2 holders, or from the open invite link, that gap would reveal someone's private amount). */
+  async function understandChipIn(bq: any, pledgedCents: number, body: any, hideGap = true) {
     if (bq.status !== 'funding') fail(409, 'Funding is not open');
     const { text, conditionTierId } = z.object({ text: z.string().trim().min(1, 'Tell us what you can chip in').max(500), conditionTierId: z.string().optional() }).parse(body);
     const now = clock.now(); const fromAi = await ai.understandChipIn(text, now); const ruled = B.parseChipInRules(text, now);
@@ -459,14 +460,15 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const matches = draft!.conditional ? (conditionTierId ? tiers.filter((t: any) => t.id === conditionTierId) : B.matchTiers(draft!.conditional.phrase, tiers, nt)) : [];
     const ct = matches.length === 1 ? matches[0] : null;
     const choices = matches.length > 1 ? matches.map((t: any) => ({ tierId: t.id, title: t.title.replace(/^\+ /, ''), priceCents: t.threshold_cents })) : null;
-    const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: Math.max(0, ct.threshold_cents - held) } : null;
-    const plan = B.planChipIn(draft!, { pledgedCents, buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
+    const conditionTier = ct ? { id: ct.id, title: ct.title.replace(/^\+ /, ''), isNext: ct.id === nt?.id, gapCents: hideGap ? null : Math.max(0, ct.threshold_cents - held) } : null;
+    const plan = B.planChipIn(draft!, { pledgedCents, buyByAt: new Date(bq.buy_by_at).toISOString(), nextTierGapCents: nt && !hideGap ? nt.threshold_cents - held : null, nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, conditionTier, ambiguous: !!choices });
     return { heard: text, plan, choices, source: fromAi && !ruled?.conditional ? 'gemini' : 'rules' };
   }
   app.post('/api/bouquets/:id/chip-in/understand', h(async req => {
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     const [{ s }] = await db.query(`SELECT COALESCE(SUM(amount_cents),0)::int AS s FROM contributions WHERE member_id=$1 AND status='held'`, [m.id]);
-    return understandChipIn(bq, Number(s), req.body);
+    const [{ h }] = await db.query(`SELECT COUNT(DISTINCT member_id)::int AS h FROM contributions WHERE bouquet_id=$1 AND status='held'`, [bq.id]);
+    return understandChipIn(bq, Number(s), req.body, Number(h) > 0 && Number(h) <= 2);
   }));
   // The invite page's "Just say it" box: anyone holding the invite link, before joining. Light per-IP limit since it can call the AI.
   const sayHits = new Map<string, number[]>();
@@ -474,7 +476,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const ip = String(req.headers['cf-connecting-ip'] ?? req.ip ?? ''); const now = Date.now(); const hits = (sayHits.get(ip) ?? []).filter(t => now - t < 60000);
     if (hits.length >= 20) fail(429, 'Too many tries. Please wait a minute.'); hits.push(now); sayHits.set(ip, hits);
     const [bq] = await db.query('SELECT * FROM bouquets WHERE invite_token=$1', [String(req.params.token)]); if (!bq) fail(404, 'This invite link is not valid');
-    return understandChipIn(bq, 0, req.body);
+    return understandChipIn(bq, 0, req.body, true); // the open invite link never sees a gap
   }));
   // 2) Plain-language payment explainer: the rules compute every figure for *this* person; Gemini may only reword it (every $ kept, none added).
   app.get('/api/bouquets/:id/explain', h(async req => {
@@ -527,6 +529,12 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     if (!plan) return { ask: null, reason: 'Not reachable within everyone’s caps yet' };
     const mine = plan.get(me.id); if (!mine) return { ask: null, reason: 'No top-up needed from you' };
     const tierTitle = nt.title.replace(/^\+ /, '');
+    // With fewer than 3 holders an exact gap-based ask would reveal the others' amounts: ask for up to the item's own price instead (pro-rata capture means nobody pays more than the item costs).
+    const [{ h }] = await db.query(`SELECT COUNT(DISTINCT member_id)::int AS h FROM contributions WHERE bouquet_id=$1 AND status='held'`, [bid]);
+    if (Number(h) < 3) { const prev = tiers.filter((t: any) => t.level < nt.level).reduce((a: number, t: any) => Math.max(a, t.threshold_cents), 0);
+      const me2 = people.find((p: any) => p.id === me.id); const head = me2 ? Math.max(0, me2.budget_max_cents - Number(me2.held)) : 0;
+      const cents = Math.min(head, nt.threshold_cents - prev); if (cents < 100) return { ask: null, reason: 'No top-up needed from you' };
+      return { tierId: nt.id, rounded: true, ask: { cents, availableAt: mine.availableAt, tierTitle, tierPriceCents: nt.threshold_cents, last4: me.card_last4, friends: plan.size } }; }
     return { tierId: nt.id, ask: { cents: mine.cents, availableAt: mine.availableAt, tierTitle, tierPriceCents: nt.threshold_cents, last4: me.card_last4, friends: plan.size } };
   }
   app.get('/api/bouquets/:id/topup', h(async req => {
@@ -535,6 +543,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const a = r.ask; const recipient = (await getBouquet(bid)).recipient_name;
     const rules = a.availableAt
       ? `On your payday, ${money(a.cents)} more gets ${recipient}’s gift to ${a.tierTitle} (${money(a.tierPriceCents)} total).`
+      : r.rounded ? `Holding up to ${money(a.cents)} more helps unlock ${a.tierTitle} for ${recipient}. Nobody pays more than the items cost; the rest comes back.`
       : `${money(a.cents)} more unlocks ${a.tierTitle} for ${recipient} (${money(a.tierPriceCents)} total).${a.friends > 1 ? ' The rest is split fairly, each friend within their own limit.' : ''}`;
     const w = await ai.reword('explain', rules);
     return { ask: { ...a, message: w ?? rules }, source: w ? 'gemini' : 'rules' };

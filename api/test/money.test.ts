@@ -151,3 +151,26 @@ describe('a capture that succeeds but times out', { timeout: 60000 }, () => {
     const st = (await org.get(`/api/bouquets/${b.id}`)).body; expect(st.bouquet.status).toBe('needs_attention'); expect(st.bouquet.vcards ?? null).toBeNull();
   });
 });
+
+describe('no gap oracle while amounts are private', { timeout: 60000 }, () => {
+  it('with one holder, the room and the invite-link "Just say it" never reveal how far the group is from a tier', async () => {
+    const request = (await import('supertest')).default;
+    const { ctx, friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose(); const price = ch.tiers[0].thresholdCents;
+    const odd = Math.min(price - 101, 12345); expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: odd, cardToken: TOK, last4: '4242', idempotencyKey: `go-${b.id}` })).status).toBe(201);
+    const gap = price - odd; const gapStr = `$${(gap / 100).toFixed(2).replace(/\.00$/, '')}`;
+    for (const amt of [gap, gap + 100, 50000]) {
+      const said = `$${(amt / 100).toFixed(2)}`;
+      const room = (await friends[1].post(`/api/bouquets/${b.id}/chip-in/understand`).send({ text: said })).body;
+      const inv = (await request(ctx.app).post(`/api/join/${b.inviteToken}/chip-in/understand`).send({ text: said })).body;
+      for (const r of [room, inv]) { expect(JSON.stringify(r.plan.warnings)).not.toMatch(/unlocks/); expect(r.plan.condition?.unlocksNow ?? false).toBe(false); }
+    }
+    const ex = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; expect(ex.rules).toContain('Only one friend is holding'.slice(0, 0)); expect(ex.rules).not.toContain(gapStr);
+  });
+  it('top-ups with fewer than 3 holders ask for up to the item price, not the exact gap', async () => {
+    const { friends, b, choose } = await fundingBouquet(new MockAi()); const ch = await choose(); const price = ch.tiers[0].thresholdCents;
+    await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1234, cardToken: TOK, last4: '4242', idempotencyKey: `tg0-${b.id}` });
+    await friends[1].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 1000, cardToken: TOK, last4: '4242', idempotencyKey: `tg1-${b.id}` });
+    const r = (await friends[1].get(`/api/bouquets/${b.id}/topup`)).body;
+    if (r.ask) { expect(r.ask.cents).not.toBe(price - 2234); expect(r.ask.message).not.toContain(`$${((price - 2234) / 100).toFixed(2)}`); }
+  });
+});
