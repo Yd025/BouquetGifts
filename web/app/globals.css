@@ -440,3 +440,19 @@ h1, h2, h3, .step b { font-variant-numeric: lining-nums; }
 @keyframes ideaFlip { from { transform: perspective(800px) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cands.reveal > .cand { animation: none; } .matchbar > div { transition: none; } }
 html[data-auto] .cands.reveal > .cand { animation: none; }
+/* phones: no keyboard hints, readable hand, stage labels that fit, 44px targets, demo button clear of content */
+@media (hover: none), (pointer: coarse) { .kbdhint { display: none; } }
+@media (max-width: 520px) {
+  .hand { flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+  .handcard { margin: 0; width: calc(33% - 8px); height: auto; min-height: 120px; transform: none !important; } .handcard.sel { transform: translateY(-6px) !important; }
+  .stage span { min-width: 0; padding-right: 4px; white-space: normal; line-height: 1.2; font-size: 11.5px; }
+  main { padding-bottom: 72px; }
+}
+.navr a, .navr button { min-height: 44px; display: inline-flex; align-items: center; }
+.cprice { font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; font-family: Inter, system-ui, sans-serif; margin: -2px 0 4px; }
+/* the unlock toast sits low so it never covers the gift title */
+.unlockpop { top: auto; bottom: 28px; }
+.deckpanel > [data-testid="concierge"] { box-shadow: none; margin: 22px 0 0; border: 1px dashed #f0d3e0; background: #fffafc; }
+/* landing petals live in the side margins, never over the headline or the divider */
+.lp-float i:nth-child(1) { top: 3%; left: 1.5%; } .lp-float i:nth-child(2) { top: 26%; left: 96%; } .lp-float i:nth-child(3) { top: 58%; left: 1%; }
+.lp-float i:nth-child(4) { top: 72%; left: 95.5%; } .lp-float i:nth-child(5) { top: 90%; left: 2%; }

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '../lib/api';
+import { api, $ } from '../lib/api';
 import { Flower, FB } from './Art';
 import Overlay from './Overlay';
 
@@ -28,7 +28,7 @@ function GiftArt({ traits }: { traits: string[] }) {
     <Flower fb={traitFlower(l)} size={traits.length > 1 ? 92 : 120} /><span className="ticon">{ICON[l] ?? '✿'}</span></span>)}</div>;
 }
 
-export default function Deck({ s, setS, act }: any) {
+export default function Deck({ s, setS, act, concierge }: any) {
   const bid = s.bouquet.id;
   const order = useMemo(() => [...s.traits].sort((a: any, b: any) => (hash(s.me.id + a.id) - hash(s.me.id + b.id))), [s.me.id, s.traits.length]);
   const remaining = order.map((o: any) => s.traits.find((t: any) => t.id === o.id)).filter((t: any) => t && t.myPick === null);
@@ -78,16 +78,16 @@ export default function Deck({ s, setS, act }: any) {
             <div className="cardface front tfront"><TraitFace t={cur} />
               {dx > 40 && <div className="stamp keep">KEEP</div>}{dx < -40 && <div className="stamp toss">PASS</div>}</div></div>
         </div> : <div className={`slot ${remaining.length ? '' : 'done'}`} data-testid="draw-slot">{remaining.length
-          ? <><div className="slot-icon"><span className="slot-card" /></div><b>Draw a card</b><span>Tap the deck or press <kbd>Space</kbd></span><span className="muted">{remaining.length} trait card{remaining.length === 1 ? '' : 's'} from your friends’ answers</span></>
+          ? <><div className="slot-icon"><span className="slot-card" /></div><b>Draw a card</b><span>Tap the deck<span className="kbdhint"> or press <kbd>Space</kbd></span></span><span className="muted">{remaining.length} trait card{remaining.length === 1 ? '' : 's'} from your friends’ answers</span></>
           : <><div className="slot-icon">✿</div><b>All sorted</b><span>{hand.length >= 2 ? 'Now pick two kept cards to make a gift ↓' : 'Keep at least two cards to make a gift. Undo to rethink.'}</span></>}</div>}
         {cur && <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
           <button className="ghost" onClick={() => decide(false)} data-testid="discard">✕ Pass</button><button onClick={() => decide(true)} data-testid="keep">♥ Keep</button></div>}
       </div>
       <div className="pile"><div className="pile-label">Discard · {discards.length}</div>
-        <div className="stack discard" data-testid="discard-pile">{!discards.length && <div className="pile-hint">Swipe left<br />or press ←<br />to discard</div>}{discards.slice(-3).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ transform: `rotate(${(i - 1) * 9}deg)` }}><div className="mini"><TraitFace t={t} small /></div></div>)}</div></div>
+        <div className="stack discard" data-testid="discard-pile">{!discards.length && <div className="pile-hint">Swipe left<span className="kbdhint"><br />or press ←</span><br />to discard</div>}{discards.slice(-3).map((t: any, i: number) => <div key={t.id} className="stackcard" style={{ transform: `rotate(${(i - 1) * 9}deg)` }}><div className="mini"><TraitFace t={t} small /></div></div>)}</div></div>
     </div>
     <div className="handwrap"><div className="row"><h3 className="grow">Your hand · {hand.length}</h3>
-      <span className="muted">Pick two (or drag one onto another) to make a gift</span>
+      <span className="muted">Pick two<span className="kbdhint"> (or drag one onto another)</span> to make a gift</span>
       <button disabled={sel.length !== 2} onClick={() => fuse(sel)} data-testid="fuse-hand">Make a gift ({sel.length}/2)</button></div>
       <div className={`hand ${hand.length ? '' : 'empty'}`} data-testid="hand">{hand.map((t: any, i: number) => { const mid = (hand.length - 1) / 2, on = sel.includes(t.id);
         return <button key={t.id} className={`handcard ${on ? 'sel' : ''}`} data-testid="hand-card" aria-pressed={on} draggable
@@ -102,6 +102,7 @@ export default function Deck({ s, setS, act }: any) {
           {fusing.cand.product ? <img className="prodimg" src={fusing.cand.product.photoUrl} alt={fusing.cand.product.name} /> : <GiftArt traits={fusing.cand.traits} />}
           <h2>{fusing.cand.title}</h2><p className="muted">{fusing.cand.description}</p><div className="muted cite">{fusing.cand.traits.join(' + ')} · from {fusing.cand.citedFriends.join(', ')}</div>
           <button onClick={() => setFusing(null)} data-testid="fuse-close">Add to the gift ideas →</button></div>}</div></Overlay>}
+    {concierge}
     {!revealed && <><h3 style={{ marginTop: 26 }}>Gift ideas · face down until someone makes a gift</h3>
       <p className="muted" style={{ marginTop: 0 }}>Every card you keep moves the match bar on the idea it fits. Put two kept cards together and the ideas turn over.</p>
       <div className="cands" data-testid="facedown-ideas">{byMatch.map(({ c, kept }: any, i: number) =>
@@ -113,7 +114,7 @@ export default function Deck({ s, setS, act }: any) {
     {revealed && <><h3 style={{ marginTop: 26 }}>Gift ideas · vote for your favorite</h3>
     <div className="cands reveal">{[...s.candidates].sort((x: any, y: any) => y.votes - x.votes).map((c: any) =>
       <div key={c.id} className={`cand ${s.me.vote === c.id ? 'mine' : ''} ${c.rare ? 'holo' : ''}`} data-testid="candidate">
-        <div className="fusion">{c.traits.join(' + ')} <span className={`chip kind-${c.kind}`} data-testid="kind">{({ rare: 'Rare find', match: 'Good match', safe: 'Safe pick', wildcard: 'Wildcard' } as any)[c.kind] ?? 'Fusion'}</span></div>{c.product ? <img className="prodimg" src={c.product.photoUrl} alt={c.product.name} data-testid="cand-photo" /> : <GiftArt traits={c.traits} />}<h3>{c.title}</h3>
+        <div className="fusion">{c.traits.join(' + ')} <span className={`chip kind-${c.kind}`} data-testid="kind">{({ rare: 'Rare find', match: 'Good match', safe: 'Safe pick', wildcard: 'Wildcard' } as any)[c.kind] ?? 'Fusion'}</span></div>{c.product ? <img className="prodimg" src={c.product.photoUrl} alt={c.product.name} data-testid="cand-photo" /> : <GiftArt traits={c.traits} />}<h3>{c.title}</h3>{c.products?.length > 0 && <div className="cprice" data-testid="cand-price">{$(c.products[0].priceCents)} to start{c.products.length > 1 ? ` · ${$(c.products.reduce((t: number, p: any) => t + (p?.priceCents ?? 0), 0))} for everything` : ''}</div>}
         {c.product ? <a className="prodlink" href={c.product.url} target="_blank" rel="noreferrer" title={`${c.product.name} on ${c.product.store}`}>{c.product.label ?? c.product.name}{c.products?.length > 1 ? ` + ${c.products.length - 1} more` : ''}</a> : <span className="prodlink none">Group-curated box · no catalog product yet</span>}
         <div className="cited" data-testid="cited">{c.citedCardIds.map((cid: string) => { const k = s.cards.find((x: any) => x.id === cid); return k ? <span key={cid} className="citecard" title={`${k.memberName}: ${k.title}`}>
           <svg className="citeline" viewBox="0 0 20 30" aria-hidden><path d="M10 0 V30" stroke="#e2588f" strokeDasharray="3 3" /></svg>

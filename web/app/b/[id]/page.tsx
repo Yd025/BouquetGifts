@@ -69,8 +69,7 @@ export default function Room({ params }: { params: { id: string } }) {
       {err && <div className="err" role="alert">{err}</div>}
     </div>
     {b.status === 'collecting' && <Collecting s={s} act={act} setS={setS} />}
-    {b.status === 'fusing' && <Deck s={s} setS={setS} act={act} />}
-    {b.status === 'fusing' && <Concierge s={s} act={act} />}
+    {b.status === 'fusing' && <Deck s={s} setS={setS} act={act} concierge={<Concierge s={s} act={act} />} />}
     {['funding', 'purchased', 'revealed', 'expired'].includes(b.status) && s.tiers.length > 0 && <Funding s={s} act={act} setS={setS} />}
     {['purchased', 'revealed'].includes(b.status) && <Purchased s={s} />}
     <DemoDrawer s={s} reload={load} />
