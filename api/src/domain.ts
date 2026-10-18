@@ -31,6 +31,27 @@ export const QUESTIONS: Question[] = [
   { id: 'r5', kind: 'random', prompt: 'Their weekend side quest is…', options: [
     { label: 'Repotting something', trait: 'Plant Parent' }, { label: 'Developing a roll of film', trait: 'Film Shooter' },
     { label: 'Building or fixing things', trait: 'Maker' }, { label: 'Finding the best croissant', trait: 'Brunch Royalty' } ] },
+  { id: 'r6', kind: 'random', prompt: 'Their dream dinner party is…', options: [
+    { label: 'A feast they cooked themselves', trait: 'Home Chef' }, { label: 'A picnic at the end of a trail', trait: 'Sunrise Hiker' },
+    { label: 'Hot pot, extra spicy', trait: 'Spice Chaser' }, { label: 'Cocktails they shook themselves', trait: 'Mixologist' } ] },
+  { id: 'r7', kind: 'random', prompt: 'Their ideal quiet night is…', options: [
+    { label: 'A pot of loose-leaf tea', trait: 'Tea Lover' }, { label: 'Stargazing after a long hike', trait: 'Sunrise Hiker' },
+    { label: 'Every candle in the house lit', trait: 'Candle Collector' }, { label: 'A 1000-piece puzzle', trait: 'Puzzle Solver' } ] },
+  { id: 'r8', kind: 'random', prompt: 'At a party they are the one…', options: [
+    { label: 'Planning tomorrow’s sunrise hike', trait: 'Sunrise Hiker' }, { label: 'Running the board games', trait: 'Game Night Host' },
+    { label: 'Who baked the cookies', trait: 'Baker' }, { label: 'Guarding the dessert table', trait: 'Sweet Tooth' } ] },
+  { id: 'r9', kind: 'random', prompt: 'Their best friend might secretly be…', options: [
+    { label: 'Their hiking boots', trait: 'Sunrise Hiker' }, { label: 'Their dog', trait: 'Dog Person' },
+    { label: 'Their cat', trait: 'Cat Person' }, { label: 'The birds at the feeder', trait: 'Bird Watcher' } ] },
+  { id: 'r10', kind: 'random', prompt: 'Their idea of self-care is…', options: [
+    { label: 'A sunrise trail run', trait: 'Sunrise Hiker' }, { label: 'A yoga class', trait: 'Yogi' },
+    { label: 'A full spa night at home', trait: 'Spa Devotee' }, { label: 'Sketching for hours', trait: 'Artist' } ] },
+  { id: 'r11', kind: 'random', prompt: 'Their next trip is…', options: [
+    { label: 'A national park road trip', trait: 'Sunrise Hiker' }, { label: 'A weekend of camping', trait: 'Happy Camper' },
+    { label: 'Anywhere with a new passport stamp', trait: 'Globetrotter' }, { label: 'A famous garden tour', trait: 'Gardener' } ] },
+  { id: 'r12', kind: 'random', prompt: 'Their desk always has…', options: [
+    { label: 'A nice notebook and a good pen', trait: 'Stationery Nerd' }, { label: 'A trail map pinned above it', trait: 'Sunrise Hiker' },
+    { label: 'Every charger and gadget', trait: 'Tech Lover' }, { label: 'A half-finished drawing', trait: 'Artist' } ] },
 ];
 
 /** Deterministic PRNG (mulberry32) from a string seed. */
@@ -70,7 +91,8 @@ export function avoidsFromAnswers(answers: Record<string, number>): string[] {
 }
 /** The card title always comes from the friend's own top two traits, so it matches the chips. */
 const ADJ: Record<string, string> = { 'Sunrise Hiker': 'Trail-Ready', 'Coffee Snob': 'Caffeinated', 'Brunch Royalty': 'Brunch-Loving', Maker: 'Crafty', 'Film Shooter': 'Grainy',
-  'Music Head': 'Rhythm-Driven', 'Plant Parent': 'Green-Thumbed', Bookworm: 'Well-Read', 'Hates Clutter': 'Minimalist', 'Cozy Nester': 'Cozy' };
+  'Music Head': 'Rhythm-Driven', 'Plant Parent': 'Green-Thumbed', Bookworm: 'Well-Read', 'Hates Clutter': 'Minimalist', 'Cozy Nester': 'Cozy',
+  'Tea Lover': 'Tea-Steeped', 'Home Chef': 'Saucy', Baker: 'Flour-Dusted', 'Sweet Tooth': 'Sugar-Coated', 'Spice Chaser': 'Fiery', 'Stationery Nerd': 'Ink-Stained', 'Puzzle Solver': 'Clever', 'Game Night Host': 'Competitive', 'Candle Collector': 'Candlelit', 'Spa Devotee': 'Pampered', Yogi: 'Zen', 'Happy Camper': 'Outdoorsy', Globetrotter: 'Jet-Setting', 'Dog Person': 'Dog-Loving', 'Cat Person': 'Cat-Loving', Gardener: 'Garden-Grown', 'Bird Watcher': 'Bird-Watching', Mixologist: 'Shaken', Artist: 'Artsy', 'Tech Lover': 'Plugged-In' };
 export function cardTitle(traits: string[]) {
   if (!traits.length) return 'The Mystery';
   return traits[1] ? `The ${ADJ[traits[1]] ?? ''} ${traits[0]}`.replace('  ', ' ') : `The ${traits[0]}`;
@@ -96,13 +118,15 @@ export function uniqueCardTitle(traits: string[], taken: string[]) {
 }
 /** Theme words for generic gifts, so titles read like gifts ("Bookshelf & Trailhead Duo Box") rather than repeating trait names. */
 export const THEME: Record<string, string> = { 'Sunrise Hiker': 'Trailhead', 'Coffee Snob': 'Café', 'Brunch Royalty': 'Brunch', Maker: 'Workshop', 'Film Shooter': 'Darkroom',
-  'Music Head': 'Listening', 'Plant Parent': 'Greenhouse', Bookworm: 'Bookshelf', 'Hates Clutter': 'Minimalist', 'Cozy Nester': 'Cozy Corner' };
+  'Music Head': 'Listening', 'Plant Parent': 'Greenhouse', Bookworm: 'Bookshelf', 'Hates Clutter': 'Minimalist', 'Cozy Nester': 'Cozy Corner',
+  'Tea Lover': 'Teahouse', 'Home Chef': 'Kitchen', Baker: 'Bakery', 'Sweet Tooth': 'Sweet Shop', 'Spice Chaser': 'Hot Sauce', 'Stationery Nerd': 'Writing Desk', 'Puzzle Solver': 'Puzzle Table', 'Game Night Host': 'Game Night', 'Candle Collector': 'Candlelight', 'Spa Devotee': 'Spa Day', Yogi: 'Studio', 'Happy Camper': 'Campsite', Globetrotter: 'Passport', 'Dog Person': 'Dog Park', 'Cat Person': 'Cat Nap', Gardener: 'Garden Shed', 'Bird Watcher': 'Birdsong', Mixologist: 'Cocktail Hour', Artist: 'Art Studio', 'Tech Lover': 'Gadget' };
 export const theme = (t: string) => THEME[t] ?? t;
 export const duoTitle = (a: string, b: string) => { const [x, y] = [a, b].sort(); return `${theme(x)} & ${theme(y)} Duo Box`; };
 /** Recipient-side: trait names become compliments. */
 export const COMPLIMENTS: Record<string, string> = { 'Sunrise Hiker': 'You chase every sunrise', 'Coffee Snob': 'Your taste is impeccable', 'Brunch Royalty': 'You make weekends feel like holidays',
   Maker: 'You build beautiful things', 'Film Shooter': 'You see the world in golden hour', 'Music Head': 'You’re the soundtrack of every road trip', 'Plant Parent': 'You make everything grow',
-  Bookworm: 'You live a thousand lives', 'Hates Clutter': 'You keep life beautifully simple', 'Cozy Nester': 'You make every place feel like home' };
+  Bookworm: 'You live a thousand lives', 'Hates Clutter': 'You keep life beautifully simple', 'Cozy Nester': 'You make every place feel like home',
+  'Tea Lover': 'You make every pause feel like a ritual', 'Home Chef': 'You feed everyone you love', Baker: 'You make every day a little sweeter', 'Sweet Tooth': 'Life is sweeter with you around', 'Spice Chaser': 'You bring the heat', 'Stationery Nerd': 'Your words stay with people', 'Puzzle Solver': 'You always find the missing piece', 'Game Night Host': 'You turn any night into a party', 'Candle Collector': 'You set the mood wherever you go', 'Spa Devotee': 'You glow from the inside out', Yogi: 'You bring calm to every room', 'Happy Camper': 'You make every night under the stars better', Globetrotter: 'You make the whole world feel close', 'Dog Person': 'Every dog knows you’re one of the good ones', 'Cat Person': 'You have nine lives’ worth of charm', Gardener: 'You help everything bloom', 'Bird Watcher': 'You notice the little things', Mixologist: 'You make every night a celebration', Artist: 'You color the world in', 'Tech Lover': 'You make the future look easy' };
 export const compliment = (t: string) => COMPLIMENTS[t] ?? `You’re one of a kind`;
 
 export type Recipe = { traits: [string, string]; rare: boolean; title: string; description: string; tags?: string[];
@@ -123,6 +147,28 @@ export const RECIPES: Recipe[] = [
     tiers: [{ title: 'Precision tool roll', threshold_cents: 5000 }, { title: '+ workshop class', threshold_cents: 12000 }, { title: '+ desktop project kit', threshold_cents: 20000 }] },
   { traits: ['Brunch Royalty', 'Music Head'], rare: false, title: 'Brunch & Beats Day', tags: ['clutter'], description: 'A Sunday Morning mug, a greatest-hits record and a turntable for slow brunches at home.',
     tiers: [{ title: 'Brunch for two', threshold_cents: 6000 }, { title: '+ show tickets', threshold_cents: 15000 }, { title: '+ hotel night', threshold_cents: 30000 }] },
+  { traits: ['Tea Lover', 'Brunch Royalty'], rare: false, title: 'Matcha Morning Set', description: 'Ceremonial matcha, a glass tea cup and Japanese tea bonbons for slow weekend mornings.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Home Chef', 'Game Night Host'], rare: false, title: 'Pizza & Games Night', description: 'A pizza-night olive oil set and two party games for a night in with friends.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Happy Camper', 'Sweet Tooth'], rare: false, title: 'Campfire Cocoa Night', description: 'Peppermint hot chocolate, a backpacker cup and a candle lantern for cold nights outside.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Spa Devotee', 'Candle Collector'], rare: false, title: 'Candlelit Bath Ritual', description: 'A two-wick candle, an organic bath towel and a body-care routine for a proper bath night.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Artist', 'Globetrotter'], rare: false, title: 'Sketchbook Getaway', description: 'Paint markers, a zip pouch and a small shoulder bag for sketching on the road.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Tech Lover', 'Stationery Nerd'], rare: false, title: 'Everyday Carry Upgrade', description: 'A writing journal, a braided charging cable and a magnetic card wallet for everyday carry.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Bird Watcher', 'Gardener'], rare: false, title: 'Backyard Bird Garden', description: 'Wild bird seed, a terracotta planter and a terracotta birdhouse for a backyard full of birds.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Spice Chaser', 'Home Chef'], rare: false, title: 'Hot Pot Party', description: 'A hot pot base, Sichuan noodles and a set of rice bowls for a spicy dinner at home.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Yogi', 'Tea Lover'], rare: false, title: 'Studio Calm Kit', description: 'Grip socks, green tea and a thick Pilates mat for calm mornings.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Film Shooter', 'Globetrotter'], rare: false, title: 'Half-Frame Travel Kit', description: 'A half-frame film camera, extra film and a clear travel pouch for shooting on every trip.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
+  { traits: ['Bookworm', 'Puzzle Solver'], rare: false, title: 'Literary Puzzle Night', description: 'A puzzle printed with a classic novel, a book tote and a candle for literary nights in.',
+    tiers: [{ title: 'Starter', threshold_cents: 4000 }, { title: '+ add-on', threshold_cents: 9000 }, { title: '+ upgrade', threshold_cents: 16000 }] },
 ];
 
 // Real-product tiers from the curated catalog override the placeholder tiers above.

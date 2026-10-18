@@ -15,4 +15,4 @@ export function countdown(iso: string, nowIso?: string) {
   return d ? `${d}d ${h}h left` : `${h}h ${m}m left`;
 }
 
-export const ICON: Record<string, string> = { 'Sunrise Hiker': '⛰️', 'Coffee Snob': '☕', 'Brunch Royalty': '🥐', Maker: '🛠️', 'Film Shooter': '📷', 'Music Head': '🎧', 'Plant Parent': '🪴', Bookworm: '📚', 'Hates Clutter': '✨', 'Cozy Nester': '🧶' };
+export const ICON: Record<string, string> = { 'Sunrise Hiker': '⛰️', 'Coffee Snob': '☕', 'Brunch Royalty': '🥐', Maker: '🛠️', 'Film Shooter': '📷', 'Music Head': '🎧', 'Plant Parent': '🪴', Bookworm: '📚', 'Hates Clutter': '✨', 'Cozy Nester': '🧶', 'Tea Lover': '🍵', 'Home Chef': '🍳', Baker: '🧁', 'Sweet Tooth': '🍫', 'Spice Chaser': '🌶️', 'Stationery Nerd': '✒️', 'Puzzle Solver': '🧩', 'Game Night Host': '🎲', 'Candle Collector': '🕯️', 'Spa Devotee': '🛁', Yogi: '🧘', 'Happy Camper': '🏕️', Globetrotter: '✈️', 'Dog Person': '🐕', 'Cat Person': '🐈', Gardener: '🌻', 'Bird Watcher': '🐦', Mixologist: '🍸', Artist: '🎨', 'Tech Lover': '🔌' };

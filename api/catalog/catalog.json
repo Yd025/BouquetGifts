@@ -205,6 +205,325 @@
         "image": "turntablelab-audio-technica-at-lp60x-gm-automatic-turntable-gunmetal-black.jpg",
         "imageSource": "https://cdn.shopify.com/s/files/1/0105/4542/products/atlp60x-gm-nolid.jpg?v=1762276441"
       }
+    ],
+    "Matcha Morning Set": [
+      {
+        "tierTitle": "Art of Tea ceremonial matcha",
+        "name": "Ceremonial Grade Matcha Tin",
+        "store": "Art of Tea",
+        "url": "https://artoftea.com/products/art-of-tea-ceremonial-matcha-40g-tin",
+        "priceCents": 4800,
+        "image": "artoftea-art-of-tea-ceremonial-matcha-40g-tin.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0311/4398/5197/files/20240812_ArtofTea__AudreyMa_0379.png?v=1729878546"
+      },
+      {
+        "tierTitle": "+ colored glass tea cup",
+        "name": "Colored Glass Tea Cup",
+        "store": "Art of Tea",
+        "url": "https://artoftea.com/products/colored-glass-tea-cup",
+        "priceCents": 1800,
+        "image": "artoftea-colored-glass-tea-cup.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0311/4398/5197/products/20220606_ArtofTea_0019-Edit.jpg?v=1656955436"
+      },
+      {
+        "tierTitle": "+ Dandelion Japanese tea bonbons",
+        "name": "Japanese Tea Bonbon Collection",
+        "store": "Dandelion Chocolate",
+        "url": "https://dandelionchocolate.com/products/japanese-tea-bonbon-collection",
+        "priceCents": 8000,
+        "image": "dandelionchocolate-japanese-tea-bonbon-collection.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2434/0841/files/dandelion-chocolate-japanese-tea-bonbon-collection-1259796444.png?v=1790885769"
+      }
+    ],
+    "Pizza & Games Night": [
+      {
+        "tierTitle": "Brightland Pizza Night olive oil set",
+        "name": "The Pizza Night Set",
+        "store": "Brightland",
+        "url": "https://brightland.co/products/the-pizza-night-set",
+        "priceCents": 9800,
+        "image": "brightland-the-pizza-night-set.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0020/7978/5023/files/PizzaNightGiftSet-1150x1400.jpg?v=1762286942"
+      },
+      {
+        "tierTitle": "+ Sell Me A Sasquatch party game",
+        "name": "Sell Me A Sasquatch",
+        "store": "Exploding Kittens",
+        "url": "https://explodingkittens.com/products/sell-me-a-sasquatch",
+        "priceCents": 1999,
+        "image": "explodingkittens-sell-me-a-sasquatch.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/01SMAS-COREAngled1400px.png?v=1784569706"
+      },
+      {
+        "tierTitle": "+ Dead Therapist party game",
+        "name": "Dead Therapist",
+        "store": "Exploding Kittens",
+        "url": "https://explodingkittens.com/products/dead-therapist",
+        "priceCents": 2499,
+        "image": "explodingkittens-dead-therapist.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/01DETH-COREAngled1400x1400_f99a771a-5783-4de4-bcde-dcc59057ff09.png?v=1782762549"
+      }
+    ],
+    "Campfire Cocoa Night": [
+      {
+        "tierTitle": "Dandelion peppermint hot chocolate",
+        "name": "Peppermint Hot Chocolate Mix - Large",
+        "store": "Dandelion Chocolate",
+        "url": "https://dandelionchocolate.com/products/peppermint-hot-chocolate-mix-large",
+        "priceCents": 3500,
+        "image": "dandelionchocolate-peppermint-hot-chocolate-mix-large.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2434/0841/files/dandelion-chocolate-gift-peppermint-hot-chocolate-mix-large-1190793074.png?v=1756850907"
+      },
+      {
+        "tierTitle": "+ Snow Peak backpacker cup",
+        "name": "Medium Backpackers Cup in Blue",
+        "store": "Snow Peak",
+        "url": "https://snowpeak.com/products/mini-backpackers-cup-in-blue",
+        "priceCents": 3495,
+        "image": "snowpeak-mini-backpackers-cup-in-blue.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/E-115-EC_20240410-SP_M4_08700_path_jpg.jpg?v=1773181424"
+      },
+      {
+        "tierTitle": "+ Barebones candle lantern set",
+        "name": "Box Candle Lantern Bundle",
+        "store": "Barebones",
+        "url": "https://barebonesliving.com/products/box-candle-lantern-bundle",
+        "priceCents": 9178,
+        "image": "barebonesliving-box-candle-lantern-bundle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0045/1297/2890/files/BoxCandleLanternBundle_PDP_01.jpg?v=1758165742"
+      }
+    ],
+    "Candlelit Bath Ritual": [
+      {
+        "tierTitle": "Japanese Satsuma 2-wick candle",
+        "name": "Japanese Satsuma Classic 2-Wick Candle",
+        "store": "Brooklyn Candle Studio",
+        "url": "https://brooklyncandlestudio.com/products/japanese-satsuma-classic-2-wick-candle",
+        "priceCents": 4500,
+        "image": "brooklyncandlestudio-japanese-satsuma-classic-2-wick-candle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0315/2749/files/japanese-satsuma-classic-2-wick-candle-brooklyn-candle-studio-148612.jpg?v=1786638834"
+      },
+      {
+        "tierTitle": "+ Bathing Culture organic bath towel",
+        "name": "Bathhouse Check Organic Towel",
+        "store": "Bathing Culture",
+        "url": "https://bathingculture.com/products/bathhouse-check-organic-towel",
+        "priceCents": 5400,
+        "image": "bathingculture-bathhouse-check-organic-towel.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1792/8179/files/BHC_LS4.webp?v=1773177599"
+      },
+      {
+        "tierTitle": "+ OSEA Sea Glow body routine",
+        "name": "Sea Glow Body Routine",
+        "store": "OSEA",
+        "url": "https://oseamalibu.com/products/sea-glow-body-routine",
+        "priceCents": 9800,
+        "image": "oseamalibu-sea-glow-body-routine.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1368/9993/files/2-STGBR-H26-PDP-ECOMM_1600x2000_f91f0221-8870-4d3f-8676-17725560b4a5.jpg?v=1790199944"
+      }
+    ],
+    "Sketchbook Getaway": [
+      {
+        "tierTitle": "Ohuhu acrylic paint markers",
+        "name": "Ohuhu Hilo Series Direct-ink Acrylic Paint Markers",
+        "store": "Ohuhu",
+        "url": "https://ohuhu.com/products/ohuhu-hilo-series-direct-ink-acrylic-paint-markers",
+        "priceCents": 3999,
+        "image": "ohuhu-ohuhu-hilo-series-direct-ink-acrylic-paint-markers.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0555/4212/0735/files/1Y30-80602-15hilo48.jpg?v=1786674035"
+      },
+      {
+        "tierTitle": "+ CALPAK Luka zip pouch",
+        "name": "Luka 1-Quart Zip Pouch",
+        "store": "CALPAK",
+        "url": "https://calpaktravel.com/products/luka-1-quart-zip-pouch",
+        "priceCents": 2400,
+        "image": "calpaktravel-luka-1-quart-zip-pouch.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0941/4996/files/ZLPS2601_LUKA_1-QUART-ZIP-POUCH_CHOCOLATE_1.jpg?v=1787693078"
+      },
+      {
+        "tierTitle": "+ Cotopaxi Todo shoulder bag",
+        "name": "Todo 1L Shoulder Bag",
+        "store": "Cotopaxi",
+        "url": "https://cotopaxi.com/products/todo-1l-shoulder-bag-copy",
+        "priceCents": 4500,
+        "image": "cotopaxi-todo-1l-shoulder-bag-copy.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0281/7544/files/1200x1200png-S26UTodo1LShoulderBagAster_F.png?v=1769189432"
+      }
+    ],
+    "Everyday Carry Upgrade": [
+      {
+        "tierTitle": "Baron Fig Draft writing journal",
+        "name": "Draft Writing Journal",
+        "store": "Baron Fig",
+        "url": "https://baronfig.com/products/draft-writing-journal",
+        "priceCents": 3400,
+        "image": "baronfig-draft-writing-journal.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0543/1257/products/draft-writing_square_variants_01.jpg?v=1646314227"
+      },
+      {
+        "tierTitle": "+ Native Union braided charging cable",
+        "name": "POP Cable XL",
+        "store": "Native Union",
+        "url": "https://nativeunion.com/products/pop-cable-xl",
+        "priceCents": 2499,
+        "image": "nativeunion-pop-cable-xl.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9050/4822/files/PopCableXL-AlarmRed.png?v=1766484948"
+      },
+      {
+        "tierTitle": "+ Native Union magnetic card wallet",
+        "name": "Slide Card Wallet | Magnetic",
+        "store": "Native Union",
+        "url": "https://nativeunion.com/products/slide-card-wallet",
+        "priceCents": 4999,
+        "image": "nativeunion-slide-card-wallet.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9050/4822/files/SlideCardWallet-Black_34.png?v=1778213833"
+      }
+    ],
+    "Backyard Bird Garden": [
+      {
+        "tierTitle": "Cardinal & Finch wild bird seed",
+        "name": "Cardinal & Finch Feast Wild Bird Seed Blend",
+        "store": "Modern Sprout",
+        "url": "https://modernsprout.com/products/cardinal-finch-feast-wild-bird-seed-blend",
+        "priceCents": 2299,
+        "image": "modernsprout-cardinal-finch-feast-wild-bird-seed-blend.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0019/8361/0978/files/3lbPouch_9.jpg?v=1786727457"
+      },
+      {
+        "tierTitle": "+ Bloomist terracotta planter",
+        "name": "Terracotta Basic Planter with Tray, Garden Sage",
+        "store": "Bloomist",
+        "url": "https://bloomist.com/products/terra-cotta-planter-garden-sage",
+        "priceCents": 4600,
+        "image": "bloomist-terra-cotta-planter-garden-sage.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0051/8373/3878/files/Garden-Sage-Planter-group-S-M-L.jpg?v=1790347575"
+      },
+      {
+        "tierTitle": "+ Bloomist terracotta birdhouse",
+        "name": "Terracotta Birdhouse, Garden Sage",
+        "store": "Bloomist",
+        "url": "https://bloomist.com/products/terracotta-bird-house-garden-sage",
+        "priceCents": 10000,
+        "image": "bloomist-terracotta-bird-house-garden-sage.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0051/8373/3878/files/BloomistxNYBG-Garden-Sage-Birdhouse-1.jpg?v=1790348685"
+      }
+    ],
+    "Hot Pot Party": [
+      {
+        "tierTitle": "Fly By Jing hot pot base",
+        "name": "Fire Hot Pot Base",
+        "store": "Fly By Jing",
+        "url": "https://flybyjing.com/products/hot-pot-base",
+        "priceCents": 2300,
+        "image": "flybyjing-hot-pot-base.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0065/8515/5653/files/FireHotPotBase_frontpackaging.png?v=1762459363"
+      },
+      {
+        "tierTitle": "+ Fly By Jing soy noodles",
+        "name": "Classic Soy Noodles",
+        "store": "Fly By Jing",
+        "url": "https://flybyjing.com/products/classic-soy-noodles",
+        "priceCents": 3000,
+        "image": "flybyjing-classic-soy-noodles.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0065/8515/5653/files/2026-NoodlePDP-ClassicSoy-1200x1200.png?v=1772065445"
+      },
+      {
+        "tierTitle": "+ Our Place rice bowl set",
+        "name": "Rice Bowl Set",
+        "store": "Our Place",
+        "url": "https://fromourplace.com/products/rice-bowl-set",
+        "priceCents": 6500,
+        "image": "fromourplace-rice-bowl-set.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0024/4137/9915/products/LNY_1.png?v=1672764643"
+      }
+    ],
+    "Studio Calm Kit": [
+      {
+        "tierTitle": "Manduka grip socks",
+        "name": "Equilibria Pilates Slipper Socks",
+        "store": "Manduka",
+        "url": "https://manduka.com/products/equilibria-pilates-slipper-socks",
+        "priceCents": 2200,
+        "image": "manduka-equilibria-pilates-slipper-socks.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0132/3529/0170/files/75266004O-EQUILIBRIA-PILATES-SLIPPER-CREW-SOCK-BLACK_07.jpg?v=1788405117"
+      },
+      {
+        "tierTitle": "+ Rishi Ritual Green tea sachets",
+        "name": "Ritual Green",
+        "store": "Rishi Tea",
+        "url": "https://rishi-tea.com/products/organic-ritual-green-teabag-sachets-50-count",
+        "priceCents": 3600,
+        "image": "rishi-tea-organic-ritual-green-teabag-sachets-50-count.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0645/3788/6970/files/Rishi-PDP-Carousel-FSTB-RitualGreen.jpg?v=1788282588"
+      },
+      {
+        "tierTitle": "+ Manduka CLOUD Pilates mat",
+        "name": "CLOUD Pilates Mat 12mm",
+        "store": "Manduka",
+        "url": "https://manduka.com/products/cloud-pilates-mat-12mm",
+        "priceCents": 12400,
+        "image": "manduka-cloud-pilates-mat-12mm.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0132/3529/0170/files/1H1013010-CLOUD-PILATES-12MM-68-DK-DEP-SEA_06.jpg?v=1785809815"
+      }
+    ],
+    "Half-Frame Travel Kit": [
+      {
+        "tierTitle": "Half-frame 35mm camera (with film)",
+        "name": "35mm Film Camera - Lomo Simple Half-Frame Color (with Film)",
+        "store": "Film Photography Project",
+        "url": "https://filmphotographystore.com/products/35mm-film-camera-lomo-simple-half-frame-color-with-film",
+        "priceCents": 3499,
+        "image": "filmphotographystore-35mm-film-camera-lomo-simple-half-frame-color-with-film.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1704/2353/files/LomoSimpleHalfFrame_Color_800x800_3422657a-5b29-459c-adb8-70d492f4a64a.jpg?v=1791388652"
+      },
+      {
+        "tierTitle": "+ Lomography ClassicColor 200 film",
+        "name": "35mm Color - Lomography ClassicColor 200",
+        "store": "Film Photography Project",
+        "url": "https://filmphotographystore.com/products/35mm-color-lomography-classiccolor-200",
+        "priceCents": 1199,
+        "image": "filmphotographystore-35mm-color-lomography-classiccolor-200.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1704/2353/files/LomographyClassicColor200_900x900_ac362fcc-0e98-44f2-882f-3d3fc629056b.jpg?v=1791383442"
+      },
+      {
+        "tierTitle": "+ CALPAK clear travel pouch",
+        "name": "Clear Quart Zip Pouch",
+        "store": "CALPAK",
+        "url": "https://calpaktravel.com/products/clear-quart-zip-pouch",
+        "priceCents": 3800,
+        "image": "calpaktravel-clear-quart-zip-pouch.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0941/4996/files/CQZP2601_CLEAR-QUART-ZIP-POUCH_LAVENDER_1.jpg?v=1787692718"
+      }
+    ],
+    "Literary Puzzle Night": [
+      {
+        "tierTitle": "Litographs Maltese Falcon text puzzle",
+        "name": "The Maltese Falcon",
+        "store": "Litographs",
+        "url": "https://litographs.com/products/maltese-puzzle",
+        "priceCents": 3900,
+        "image": "litographs-maltese-puzzle.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0098/1582/files/maltese_puzzle_17x22_orange9.png?v=1769479200"
+      },
+      {
+        "tierTitle": "+ Litographs book tote",
+        "name": "The Maltese Falcon",
+        "store": "Litographs",
+        "url": "https://litographs.com/products/maltese-tote",
+        "priceCents": 3200,
+        "image": "litographs-maltese-tote.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0098/1582/files/maltese_tote_orange9_front.png?v=1769479023"
+      },
+      {
+        "tierTitle": "+ Sense and Sensibility candle",
+        "name": "Sense and Sensibility Elinor's Sense Candle",
+        "store": "Homesick",
+        "url": "https://homesick.com/products/sense-and-sensibility-elinors-sense-candle",
+        "priceCents": 3495,
+        "image": "homesick-sense-and-sensibility-elinors-sense-candle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0987/6688/files/HMS_ElinorsSense_PDP.jpg?v=1790107683"
+      }
     ]
   },
   "traits": {
@@ -497,7 +816,588 @@
         "image": "parachutehome-cozy-knit-robe-garnet.jpg",
         "imageSource": "https://cdn.shopify.com/s/files/1/0396/8269/files/cozy-knit-robe_garnet_main_2058.jpg?v=1790101585"
       }
+    ],
+    "Tea Lover": [
+      {
+        "tierTitle": "Rishi Da Hong Pao oolong",
+        "name": "Wuyi Oolong Da Hong Pao",
+        "store": "Rishi Tea",
+        "url": "https://rishi-tea.com/products/wuyi-oolong-da-hong-pao",
+        "priceCents": 3000,
+        "image": "rishi-tea-wuyi-oolong-da-hong-pao.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0645/3788/6970/files/Rishi_TeaCircle_WuyiOolong_DaHongPao_WODHP50-RP_2025.jpg?v=1758911137"
+      },
+      {
+        "tierTitle": "Art of Tea cup and saucer",
+        "name": "Art of Tea Cup and Saucer",
+        "store": "Art of Tea",
+        "url": "https://artoftea.com/products/art-of-tea-cup-and-saucer",
+        "priceCents": 2400,
+        "image": "artoftea-art-of-tea-cup-and-saucer.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0311/4398/5197/files/20240228_ArtOfTea__AudreyMa_0272.png?v=1723459163"
+      },
+      {
+        "tierTitle": "Tokoname clay teapot",
+        "name": "Red Shudei Mogake Tokoname Teapot",
+        "store": "Rishi Tea",
+        "url": "https://rishi-tea.com/products/red-shudei-mogake-tokoname-teapot",
+        "priceCents": 7700,
+        "image": "rishi-tea-red-shudei-mogake-tokoname-teapot.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0645/3788/6970/files/Red-Shudei-Mogake-Tokoname-Teapot_TP215_2026_White-Background.jpg?v=1791565747"
+      }
+    ],
+    "Home Chef": [
+      {
+        "tierTitle": "Brightland olive oil & vinegar duo",
+        "name": "The Classic Oil & Vinegar Duo",
+        "store": "Brightland",
+        "url": "https://brightland.co/products/the-classic-oil-vinegar-duo",
+        "priceCents": 5800,
+        "image": "brightland-the-classic-oil-vinegar-duo.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0020/7978/5023/files/Classic.OliveOil_VinegarDuo-1150x1400-1.jpg?v=1783968034"
+      },
+      {
+        "tierTitle": "Our Place beechwood serving spoons",
+        "name": "Beechwood Serving Spoons",
+        "store": "Our Place",
+        "url": "https://fromourplace.com/products/beechwood-serving-spoons",
+        "priceCents": 2000,
+        "image": "fromourplace-beechwood-serving-spoons.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0024/4137/9915/files/beechwood-serving-spoons-ecomm.jpg?v=1774564081"
+      },
+      {
+        "tierTitle": "Our Place carbon steel wok",
+        "name": "Carbon Steel Wok",
+        "store": "Our Place",
+        "url": "https://fromourplace.com/products/carbon-steel-wok",
+        "priceCents": 18900,
+        "image": "fromourplace-carbon-steel-wok.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0024/4137/9915/files/carbon-steel-wok-spatula.jpg?v=1767993390"
+      }
+    ],
+    "Baker": [
+      {
+        "tierTitle": "Milk Bar shortbread baking mix",
+        "name": "Beautiful x Milk Bar Buttercream Shortbread Mix",
+        "store": "Milk Bar",
+        "url": "https://milkbarstore.com/products/drew-barrymore-buttercream-baking-mix",
+        "priceCents": 1399,
+        "image": "milkbarstore-drew-barrymore-buttercream-baking-mix.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0034/7550/5225/files/drew_1_e7b937fd-774a-4864-b8c8-c8b53a38543c.png?v=1771606885"
+      },
+      {
+        "tierTitle": "Great Jones whisk",
+        "name": "Great Whisk",
+        "store": "Great Jones",
+        "url": "https://greatjonesgoods.com/products/great-whisk",
+        "priceCents": 2000,
+        "image": "greatjonesgoods-great-whisk.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9312/6202/files/great-whisk-blueberry-01.png?v=1762450490"
+      },
+      {
+        "tierTitle": "Great Jones bakeware set",
+        "name": "Sweet Treats Gift Set",
+        "store": "Great Jones",
+        "url": "https://greatjonesgoods.com/products/sweet-treat-gift-set",
+        "priceCents": 7500,
+        "image": "greatjonesgoods-sweet-treat-gift-set.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9312/6202/files/6_a7f7c71a-6e52-4d14-af59-c0d1a87765b4.png?v=1762453257"
+      }
+    ],
+    "Sweet Tooth": [
+      {
+        "tierTitle": "Dandelion single-origin chocolate bars",
+        "name": "The Originals Collection",
+        "store": "Dandelion Chocolate",
+        "url": "https://dandelionchocolate.com/products/the-originals-collection",
+        "priceCents": 5500,
+        "image": "dandelionchocolate-the-originals-collection.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2434/0841/files/dandelion-chocolate-the-originals-collection-1261734585.jpg?v=1791930491"
+      },
+      {
+        "tierTitle": "Milk Bar cookie tin",
+        "name": "Salted Butterscotch Pudding Cookie Tin",
+        "store": "Milk Bar",
+        "url": "https://milkbarstore.com/products/salted-butterscotch-pudding-cookie-tin",
+        "priceCents": 3000,
+        "image": "milkbarstore-salted-butterscotch-pudding-cookie-tin.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0034/7550/5225/files/JelloXMilkBar2026_Arcangeli_01.jpg?v=1790089388"
+      },
+      {
+        "tierTitle": "Dandelion single-origin caramels",
+        "name": "Single-Origin Caramels",
+        "store": "Dandelion Chocolate",
+        "url": "https://dandelionchocolate.com/products/single-origin-caramel",
+        "priceCents": 3000,
+        "image": "dandelionchocolate-single-origin-caramel.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2434/0841/files/dandelion-chocolate-single-origin-caramel-collection-5-piece-1251597562.png?v=1785795249"
+      }
+    ],
+    "Spice Chaser": [
+      {
+        "tierTitle": "Fly By Jing Sichuan chili crisp",
+        "name": "Original Sichuan Chili Crisp",
+        "store": "Fly By Jing",
+        "url": "https://flybyjing.com/products/sichuan-chili-crisp",
+        "priceCents": 3000,
+        "image": "flybyjing-sichuan-chili-crisp.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0065/8515/5653/files/Core4PDP-Original-Hero-1200x1200.png?v=1762458321"
+      },
+      {
+        "tierTitle": "Hot Ones hot sauce trio",
+        "name": "Hot Ones Hot Sauce Trio Pack - Season 31",
+        "store": "Heatonist",
+        "url": "https://heatonist.com/products/hot-ones-hot-sauce-trio-pack-season-31",
+        "priceCents": 4000,
+        "image": "heatonist-hot-ones-hot-sauce-trio-pack-season-31.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2086/9287/files/Hot-Ones-S31-Hot-Sauce-Trio-_-Hot-Ones-Box-_-Logo-1.jpg?v=1785528140"
+      },
+      {
+        "tierTitle": "Fly By Jing mini hot pot set",
+        "name": "Mini Hot Pot",
+        "store": "Fly By Jing",
+        "url": "https://flybyjing.com/products/the-hot-pot-starter-set",
+        "priceCents": 5000,
+        "image": "flybyjing-the-hot-pot-starter-set.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0065/8515/5653/files/FBJ-HotpotStarterSet-Hero-1200x1200_ae34cea6-af9f-4781-8757-18aea1b79cbe.png?v=1787367370"
+      }
+    ],
+    "Stationery Nerd": [
+      {
+        "tierTitle": "Baron Fig hardcover notebook",
+        "name": "Legend Hardcover Notebook",
+        "store": "Baron Fig",
+        "url": "https://baronfig.com/products/legend-notebook",
+        "priceCents": 3600,
+        "image": "baronfig-legend-notebook.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0543/1257/files/legend_buy-variant_blackout_01.jpg?v=1750863561"
+      },
+      {
+        "tierTitle": "Baron Fig Squire pen",
+        "name": "Squire Hex Pen",
+        "store": "Baron Fig",
+        "url": "https://baronfig.com/products/squire-hex-pen",
+        "priceCents": 8500,
+        "image": "baronfig-squire-hex-pen.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0543/1257/files/squire-hex_variants_02.jpg?v=1776094309"
+      },
+      {
+        "tierTitle": "Baron Fig pen stand",
+        "name": "Squire Pen Stand",
+        "store": "Baron Fig",
+        "url": "https://baronfig.com/products/universal-squire-pen-stand",
+        "priceCents": 4000,
+        "image": "baronfig-universal-squire-pen-stand.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0543/1257/files/pen-stand_buy-square_06_7c9077ce-2dea-4337-9f56-9cf19292d493.jpg?v=1760641053"
+      }
+    ],
+    "Puzzle Solver": [
+      {
+        "tierTitle": "eeBoo 1000-piece mushroom puzzle",
+        "name": "Mushroom Rainbow 1000 Piece Puzzle",
+        "store": "eeBoo",
+        "url": "https://eeboo.com/products/mushroom-rainbow-1000pc-square-puzzle",
+        "priceCents": 2699,
+        "image": "eeboo-mushroom-rainbow-1000pc-square-puzzle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0522/9979/2582/files/PZTMRW_1_copy.jpg?v=1694209643"
+      },
+      {
+        "tierTitle": "Piecework 1000-piece puzzle",
+        "name": "Tinseltown",
+        "store": "Piecework",
+        "url": "https://pieceworkpuzzles.com/products/tinseltown",
+        "priceCents": 4000,
+        "image": "pieceworkpuzzles-tinseltown.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0088/6620/1680/products/TINSELTOWN-0076_1x1_cb6d05dd-d865-4c8d-9b30-fefd0c539af2.jpg?v=1635718785"
+      },
+      {
+        "tierTitle": "Wizard of Oz text puzzle",
+        "name": "The Wonderful Wizard of Oz",
+        "store": "Litographs",
+        "url": "https://litographs.com/products/oz2-puzzle",
+        "priceCents": 3900,
+        "image": "litographs-oz2-puzzle.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0098/1582/files/oz2_puzzle_17x22_black.png?v=1761958224"
+      }
+    ],
+    "Game Night Host": [
+      {
+        "tierTitle": "I Suck At Drawing party game",
+        "name": "I Suck At Drawing",
+        "store": "Exploding Kittens",
+        "url": "https://explodingkittens.com/products/i-suck-at-drawing",
+        "priceCents": 1999,
+        "image": "explodingkittens-i-suck-at-drawing.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/01ISAD-COREAngled_1400.png?v=1784063487"
+      },
+      {
+        "tierTitle": "Poetry for Neanderthals game",
+        "name": "Poetry For Neanderthals Uncensored",
+        "store": "Exploding Kittens",
+        "url": "https://explodingkittens.com/products/poetry-for-neanderthals-uncensored",
+        "priceCents": 1999,
+        "image": "explodingkittens-poetry-for-neanderthals-uncensored.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/01PFN-NSFWAngled_1400.png?v=1783443691"
+      },
+      {
+        "tierTitle": "Fast Friends card game",
+        "name": "Fast Friends",
+        "store": "Exploding Kittens",
+        "url": "https://explodingkittens.com/products/fast-friends",
+        "priceCents": 1999,
+        "image": "explodingkittens-fast-friends.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/01FASF-COREAngled.png?v=1764887411"
+      }
+    ],
+    "Candle Collector": [
+      {
+        "tierTitle": "Otherland Cardamom Milk candle",
+        "name": "Cardamom Milk",
+        "store": "Otherland",
+        "url": "https://otherland.com/products/cardamom-milk",
+        "priceCents": 2000,
+        "image": "otherland-cardamom-milk.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/2300/4201/files/Otherland-Cardamom-Milk-Manor-House-Weekend-candle-8oz-unlit-no-badge.jpg?v=1767712358"
+      },
+      {
+        "tierTitle": "Homesick Roasted Chestnuts candle",
+        "name": "Roasted Chestnuts Candle",
+        "store": "Homesick",
+        "url": "https://homesick.com/products/roasted-chestnuts-candle",
+        "priceCents": 2995,
+        "image": "homesick-roasted-chestnuts-candle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0987/6688/files/HMS-01-RCN.jpg?v=1790110962"
+      },
+      {
+        "tierTitle": "Brooklyn Candle Studio 2-wick candle",
+        "name": "Cardamom 2-Wick Candle",
+        "store": "Brooklyn Candle Studio",
+        "url": "https://brooklyncandlestudio.com/products/cardamom-classic-2-wick-candle",
+        "priceCents": 4500,
+        "image": "brooklyncandlestudio-cardamom-classic-2-wick-candle.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0315/2749/files/cardamom-2-wick-candle-brooklyn-candle-studio-807966.jpg?v=1786344911"
+      }
+    ],
+    "Spa Devotee": [
+      {
+        "tierTitle": "OSEA body butter",
+        "name": "Undaria Algae™ Body Butter Bergamot & Vanilla Bean",
+        "store": "OSEA",
+        "url": "https://oseamalibu.com/products/undaria-algae-body-butter-bergamot-vanilla-bean",
+        "priceCents": 5400,
+        "image": "oseamalibu-undaria-algae-body-butter-bergamot-vanilla-bean.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1368/9993/files/UABB-BVB.jpg?v=1791231559"
+      },
+      {
+        "tierTitle": "Bathing Culture sea sponge",
+        "name": "Jumbo Mineral Sea Sponge (8-12\")",
+        "store": "Bathing Culture",
+        "url": "https://bathingculture.com/products/jumbo-mineral-sea-sponge",
+        "priceCents": 4000,
+        "image": "bathingculture-jumbo-mineral-sea-sponge.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1792/8179/files/Photo_Jul_03_2026_2_59_18_PM.jpg?v=1783376438"
+      },
+      {
+        "tierTitle": "Bathing Culture organic robe",
+        "name": "Bathhouse Check Organic Robe",
+        "store": "Bathing Culture",
+        "url": "https://bathingculture.com/products/bathhouse-check-organic-robe",
+        "priceCents": 15700,
+        "image": "bathingculture-bathhouse-check-organic-robe.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/1792/8179/files/edits-21.jpg?v=1792021391"
+      }
+    ],
+    "Yogi": [
+      {
+        "tierTitle": "Manduka recycled foam yoga block",
+        "name": "Lean Recycled Foam Yoga Block",
+        "store": "Manduka",
+        "url": "https://manduka.com/products/lean-recycled-foam-yoga-block",
+        "priceCents": 2200,
+        "image": "manduka-lean-recycled-foam-yoga-block.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0132/3529/0170/files/451011684-LEAN-R-FOAM-BLOCK-LINEN_02.jpg?v=1781574603"
+      },
+      {
+        "tierTitle": "Manduka mat carrier",
+        "name": "Go Play 5.0 Mat Carrier",
+        "store": "Manduka",
+        "url": "https://manduka.com/products/go-play-5-0-mat-carrier",
+        "priceCents": 4400,
+        "image": "manduka-go-play-5-0-mat-carrier.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0132/3529/0170/products/2132md_Go-Play-3.0_322012013_Mat-Sling_Black_01_1.jpg?v=1606287446"
+      },
+      {
+        "tierTitle": "Manduka GRP yoga mat",
+        "name": "GRP Adapt Lite 2.1 Yoga Mat 4mm",
+        "store": "Manduka",
+        "url": "https://manduka.com/products/grp-adapt-lite-2-1-yoga-mat-4mm",
+        "priceCents": 10800,
+        "image": "manduka-grp-adapt-lite-2-1-yoga-mat-4mm.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0132/3529/0170/files/186011770-GRP-ADAPT-LITE-2.1-4MM-CARBON-BLACK_01.jpg?v=1790363145"
+      }
+    ],
+    "Happy Camper": [
+      {
+        "tierTitle": "Snow Peak titanium cup",
+        "name": "Titanium Backpackers Cup in Blue",
+        "store": "Snow Peak",
+        "url": "https://snowpeak.com/products/titaniumbackpackers-cup-blue",
+        "priceCents": 2995,
+        "image": "snowpeak-titaniumbackpackers-cup-blue.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0330/3299/4860/files/E-104-EC_20230613-SP_M4_04478_path_jpg.jpg?v=1764696379"
+      },
+      {
+        "tierTitle": "Barebones enamel camp kettle",
+        "name": "Enamel 2-Tone Kettle Indigo Blue",
+        "store": "Barebones",
+        "url": "https://barebonesliving.com/products/enamel-2-tone-kettle-indigo-blue",
+        "priceCents": 7199,
+        "image": "barebonesliving-enamel-2-tone-kettle-indigo-blue.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0045/1297/2890/files/CKW-1036_Enamel2ToneKettle-IndigoBlue_PDP_01.jpg?v=1772228412"
+      },
+      {
+        "tierTitle": "Snow Peak Home & Camp burner",
+        "name": "Home & Camp Burner Set",
+        "store": "Snow Peak",
+        "url": "https://snowpeak.com/products/home-camp-burner-set",
+        "priceCents": 13995,
+        "image": "snowpeak-home-camp-burner-set.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0330/3299/4860/products/home_camp_burner_bundle_gs-600slstrgset_hero_01.jpg?v=1603911566"
+      }
+    ],
+    "Globetrotter": [
+      {
+        "tierTitle": "CALPAK travel pouch",
+        "name": "Luka 2-Quart Zip Pouch",
+        "store": "CALPAK",
+        "url": "https://calpaktravel.com/products/luka-2-quart-zip-pouch",
+        "priceCents": 2800,
+        "image": "calpaktravel-luka-2-quart-zip-pouch.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0941/4996/files/ZLPM2601_LUKA_2-QUART-ZIP-POUCH_CHOCOLATE_1.jpg?v=1787693644"
+      },
+      {
+        "tierTitle": "CALPAK belt bag",
+        "name": "Luka Belt Bag in Vegan Leather",
+        "store": "CALPAK",
+        "url": "https://calpaktravel.com/products/luka-belt-bag-in-vegan-leather",
+        "priceCents": 7400,
+        "image": "calpaktravel-luka-belt-bag-in-vegan-leather.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0941/4996/files/BB1901_LUKA_BELT-BAG_BLACKPU_1.jpg?v=1785191837"
+      },
+      {
+        "tierTitle": "Cotopaxi Viaje 45L travel duffel",
+        "name": "Viaje 45L Travel Duffel",
+        "store": "Cotopaxi",
+        "url": "https://cotopaxi.com/products/viaje-45l-travel-duffel-copy",
+        "priceCents": 15000,
+        "image": "cotopaxi-viaje-45l-travel-duffel-copy.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0281/7544/files/1200x1200png-S26UViaje45LTravelDuffelAster_F.png?v=1769123048"
+      }
+    ],
+    "Dog Person": [
+      {
+        "tierTitle": "Wild One plush dog toy",
+        "name": "Playful Plush Dog Toy",
+        "store": "Wild One",
+        "url": "https://wildone.com/products/playful-plush-dog-toy",
+        "priceCents": 1500,
+        "image": "wildone-playful-plush-dog-toy.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0011/7532/2687/files/WO_VM_PlayfulPlush_SmileyFace_PDP_07_Web_2x3_f7f99971-b964-401c-abbf-2ccb818816b9.jpg?v=1763586821"
+      },
+      {
+        "tierTitle": "Pet drying towel",
+        "name": "Pride + Groom THE TOWEL Microfiber Dog & Cat Drying Towel",
+        "store": "Fable",
+        "url": "https://fablepets.com/products/the-towel-microfiber-dog-cat-drying-towel-hand-pockets-odor-resistant-7-water-absorbent",
+        "priceCents": 3500,
+        "image": "fablepets-the-towel-microfiber-dog-cat-drying-towel-hand-pockets-odor-resistant-.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0025/3470/3202/files/towel_0610786b-e975-45d4-8535-63a0031b1627.jpg?v=1762533050"
+      },
+      {
+        "tierTitle": "Wild One collar & leash walk kit",
+        "name": "Waterproof Collar + Lightweight Leash Walk Kit",
+        "store": "Wild One",
+        "url": "https://wildone.com/products/waterproof-collar-lightweight-leash-dog-walk-kit",
+        "priceCents": 6800,
+        "image": "wildone-waterproof-collar-lightweight-leash-dog-walk-kit.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0011/7532/2687/files/WO_VM_CollarWalkKit_ClassicCollar_AirLeash_Lilac_PDP_01_4x5_Web.jpg?v=1771238845"
+      }
+    ],
+    "Cat Person": [
+      {
+        "tierTitle": "Wild One cat wand toy",
+        "name": "Cat Wild Wand",
+        "store": "Wild One",
+        "url": "https://wildone.com/products/cat-wild-wand",
+        "priceCents": 1300,
+        "image": "wildone-cat-wild-wand.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0011/7532/2687/files/WO_VM_Cat_WildWand_UFO_PDP_04_4x5_Web.jpg?v=1777070890"
+      },
+      {
+        "tierTitle": "Wild One cat tunnel",
+        "name": "Cat Tunnel",
+        "store": "Wild One",
+        "url": "https://wildone.com/products/cat-tunnel",
+        "priceCents": 3000,
+        "image": "wildone-cat-tunnel.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0011/7532/2687/files/WO_VM_Cat_CatTunnel_Lunar_PDP_03_4x5_Web.jpg?v=1777070494"
+      },
+      {
+        "tierTitle": "Wild One cat bed",
+        "name": "Cat Bolster Bed",
+        "store": "Wild One",
+        "url": "https://wildone.com/products/cat-bolster-bed",
+        "priceCents": 5000,
+        "image": "wildone-cat-bolster-bed.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0011/7532/2687/files/WO_VM_Cat_Bed_Bubblegum_PDP_02_4x5_Web.jpg?v=1777070778"
+      }
+    ],
+    "Gardener": [
+      {
+        "tierTitle": "Modern Sprout indoor bulb kit",
+        "name": "Winter Bulb Kits",
+        "store": "Modern Sprout",
+        "url": "https://modernsprout.com/products/winter-bulb-kits",
+        "priceCents": 4000,
+        "image": "modernsprout-winter-bulb-kits.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0019/8361/0978/products/MS-BK-GR-BKG-PKG-Comp-R1.jpg?v=1670955014"
+      },
+      {
+        "tierTitle": "Barebones herb harvest tool",
+        "name": "Herb Harvest and Strip Tool",
+        "store": "Barebones",
+        "url": "https://barebonesliving.com/products/herb-harvest-strip-tool",
+        "priceCents": 3599,
+        "image": "barebonesliving-herb-harvest-strip-tool.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0045/1297/2890/files/GDN-096_HerbHarvestStripTool-TumbledBlack_PDP_01.jpg?v=1690491300"
+      },
+      {
+        "tierTitle": "Barebones hori hori garden knife",
+        "name": "Hori Hori Ultimate II",
+        "store": "Barebones",
+        "url": "https://barebonesliving.com/products/hori-hori-ultimate-ii",
+        "priceCents": 8499,
+        "image": "barebonesliving-hori-hori-ultimate-ii.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0045/1297/2890/files/GDN-088_HoriHoriUltimateII_PDP_01.jpg?v=1779387514"
+      }
+    ],
+    "Bird Watcher": [
+      {
+        "tierTitle": "Songbird wild bird seed",
+        "name": "Songbird Symphony Wild Bird Seed Blend",
+        "store": "Modern Sprout",
+        "url": "https://modernsprout.com/products/songbird-symphony-wild-bird-seed-blend",
+        "priceCents": 2499,
+        "image": "modernsprout-songbird-symphony-wild-bird-seed-blend.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0019/8361/0978/files/Songbird3lbPouch_2.jpg?v=1786727451"
+      },
+      {
+        "tierTitle": "Window bird feeder",
+        "name": "Birds on the Block Window Birdfeeder",
+        "store": "Modern Sprout",
+        "url": "https://modernsprout.com/products/birds-on-the-block-window-birdfeeder",
+        "priceCents": 1799,
+        "image": "modernsprout-birds-on-the-block-window-birdfeeder.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0019/8361/0978/files/MS-BR-GR-LFS-PRD-02.jpg?v=1785940417"
+      },
+      {
+        "tierTitle": "Bloomist terracotta bird bath",
+        "name": "Terracotta Bird Bath, Garden Sage",
+        "store": "Bloomist",
+        "url": "https://bloomist.com/products/terracotta-bird-bath-garden-sage",
+        "priceCents": 8000,
+        "image": "bloomist-terracotta-bird-bath-garden-sage.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0051/8373/3878/files/BloomistxNYBG-Garden-Sage-Bird-Bath-1.jpg?v=1790348830"
+      }
+    ],
+    "Mixologist": [
+      {
+        "tierTitle": "Cocktail Kingdom mixing glass",
+        "name": "SEAMLESS PADDLE MIXING GLASS / 550ml (19oz)",
+        "store": "Cocktail Kingdom",
+        "url": "https://cocktailkingdom.com/products/seamless-paddle-mixing-glass-550ml-19oz",
+        "priceCents": 4599,
+        "image": "cocktailkingdom-seamless-paddle-mixing-glass-550ml-19oz.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0280/4429/6252/products/MXG-SPAD550_01.jpg?v=1744397870"
+      },
+      {
+        "tierTitle": "Lucky Cat bar spoon",
+        "name": "LUCKY CAT BARSPOON – GOLD-PLATED / 29.5cm",
+        "store": "Cocktail Kingdom",
+        "url": "https://cocktailkingdom.com/products/lucky-cat-barspoon-stainless-steel-29-5cm",
+        "priceCents": 3499,
+        "image": "cocktailkingdom-lucky-cat-barspoon-stainless-steel-29-5cm.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0280/4429/6252/files/BSP-CAT295-G_01.jpg?v=1771519213"
+      },
+      {
+        "tierTitle": "Tiki zombie glasses (2)",
+        "name": "MUSTIPHER ZOMBIE GLASS - 16oz (450ml) / 2 PACK",
+        "store": "Cocktail Kingdom",
+        "url": "https://cocktailkingdom.com/products/mustipher-zombie-glass-16oz-450ml-2-pack",
+        "priceCents": 2199,
+        "image": "cocktailkingdom-mustipher-zombie-glass-16oz-450ml-2-pack.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0280/4429/6252/files/SMU-GLA-ZMB15-01_01c18015-ee41-41b6-b658-0934d76303b1.jpg?v=1780927653"
+      }
+    ],
+    "Artist": [
+      {
+        "tierTitle": "Ohuhu 24 dual-tip art markers",
+        "name": "Ohuhu Honolulu² S 24 Basic Colors Dual Tips Alcohol Art Markers, Brush & Soft Chisel",
+        "store": "Ohuhu",
+        "url": "https://ohuhu.com/products/ohuhu-honolulu-s-24-colors-dual-soft-tips-alcohol-art-markers-brush-soft-chisel",
+        "priceCents": 2999,
+        "image": "ohuhu-ohuhu-honolulu-s-24-colors-dual-soft-tips-alcohol-art-markers-brush-soft-c.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0555/4212/0735/files/Honolulu_S24BasicY30-80406-39_1.jpg?v=1784107272"
+      },
+      {
+        "tierTitle": "Ohuhu bleedproof marker sketchbook",
+        "name": "Ohuhu Heavyweight Bleedproof Double-Sided Marker Pad with PU Cover",
+        "store": "Ohuhu",
+        "url": "https://ohuhu.com/products/ohuhu-heavyweight-bleedproof-double-sided-marker-pad-with-pu-cover",
+        "priceCents": 2099,
+        "image": "ohuhu-ohuhu-heavyweight-bleedproof-double-sided-marker-pad-with-pu-cover.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0555/4212/0735/files/1Y44-83001-20A4.png?v=1786587492"
+      },
+      {
+        "tierTitle": "Ohuhu 104-color marker set",
+        "name": "Ohuhu Honolulu² S 104 Basic Colors Dual Tips Alcohol Art Markers, Brush & Soft Chisel",
+        "store": "Ohuhu",
+        "url": "https://ohuhu.com/products/ohuhu-honolulu-2s-104-basic-colors-dual-tips-alcohol-art-markers-brush-soft-chisel",
+        "priceCents": 9999,
+        "image": "ohuhu-ohuhu-honolulu-2s-104-basic-colors-dual-tips-alcohol-art-markers-brush-sof.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0555/4212/0735/files/Honolulu2S_104_Colors_10.jpg?v=1789988395"
+      }
+    ],
+    "Tech Lover": [
+      {
+        "tierTitle": "Native Union Find It tracker cards",
+        "name": "Find It Card Duo",
+        "store": "Native Union",
+        "url": "https://nativeunion.com/products/find-it-card-duo",
+        "priceCents": 3999,
+        "image": "nativeunion-find-it-card-duo.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9050/4822/files/FinditCardDuo_1_7041d1d8-e944-4066-8423-462469c3094e.png?v=1787302283"
+      },
+      {
+        "tierTitle": "Native Union cable set",
+        "name": "Belt Cable XL Set",
+        "store": "Native Union",
+        "url": "https://nativeunion.com/products/belt-cable-xl-set",
+        "priceCents": 4199,
+        "image": "nativeunion-belt-cable-xl-set.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9050/4822/files/Bundle_Set-2.png?v=1768382076"
+      },
+      {
+        "tierTitle": "Native Union POP retro handset",
+        "name": "POP Phone Bubble Gum | Limited Edition",
+        "store": "Native Union",
+        "url": "https://nativeunion.com/products/pop-phone-bubble-gum-limited-edition",
+        "priceCents": 3999,
+        "image": "nativeunion-pop-phone-bubble-gum-limited-edition.png",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0066/9050/4822/files/0001_PopPhone_Studio_BubbleGum_1-r.png?v=1791345472"
+      }
     ]
   },
-  "traitsFetchedAt": "2026-10-17T18:10:24.052Z"
+  "traitsFetchedAt": "2026-10-17T18:10:24.052Z",
+  "addedAt": "2026-10-18T15:14:00.713Z"
 }

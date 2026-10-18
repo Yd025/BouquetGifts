@@ -129,7 +129,7 @@ describe('bouquet lifecycle', () => {
   it('landing sample gift is a real recipe with real catalog products', async () => {
     const g = (await request(app).get('/api/catalog/featured')).body.gift;
     expect(g.products.length).toBeGreaterThanOrEqual(3); expect(g.tiers).toHaveLength(g.products.length);
-    for (const p of g.products) { expect(p.url).toMatch(/^https:\/\/[a-z.]+\/products\//); const img = await request(app).get(p.photoUrl); expect(img.status).toBe(200); expect(img.headers['content-type']).toMatch(/^image\//); }
+    for (const p of g.products) { expect(p.url).toMatch(/^https:\/\/[a-z.-]+\/products\//); const img = await request(app).get(p.photoUrl); expect(img.status).toBe(200); expect(img.headers['content-type']).toMatch(/^image\//); }
   });
   it('deadline sweep releases every hold and expires the bouquet (and races with lock safely)', async () => {
     const { org, b, friends } = await setup(2, 20000);
@@ -274,7 +274,7 @@ describe('real-product catalog', () => {
     const { CATALOG, productsFor } = await import('../src/catalog.js'); const { RECIPES } = await import('../src/domain.js');
     expect(Object.keys(CATALOG.recipes).length).toBe(RECIPES.length);
     for (const r of RECIPES) { const ps = productsFor(r.title); expect(ps).toHaveLength(3);
-      let sum = 0; ps.forEach((p, i) => { sum += p.priceCents; expect(p.url).toMatch(/^https:\/\/[a-z.]+\/products\/[a-z0-9-]+$/); expect(p.priceCents).toBeGreaterThan(0);
+      let sum = 0; ps.forEach((p, i) => { sum += p.priceCents; expect(p.url).toMatch(/^https:\/\/[a-z.-]+\/products\/[a-z0-9-]+$/); expect(p.priceCents).toBeGreaterThan(0);
         expect(r.tiers[i].title).toBe(p.tierTitle); expect(r.tiers[i].threshold_cents).toBe(Math.ceil(sum / 100) * 100); }); }
     const { org, b, friends } = await setup(3, 30000);
     for (const f of friends) await answerAll(f, b.id, -1);
@@ -291,7 +291,7 @@ describe('real-product catalog', () => {
     const traits = [...new Set(D.QUESTIONS.flatMap(q => q.options.map(o => o.trait)).filter(Boolean))] as string[];
     expect(CATALOG.currency).toBe('USD');
     for (const t of traits) { const ps = traitProducts(t); expect(ps, t).toHaveLength(3);
-      for (const p of ps) { expect(p.url).toMatch(/^https:\/\/[a-z.]+\/products\/[a-z0-9-]+$/); expect(p.priceCents).toBeGreaterThan(0); expect(p.imageSource).toMatch(/^https:\/\//);
+      for (const p of ps) { expect(p.url).toMatch(/^https:\/\/[a-z.-]+\/products\/[a-z0-9-]+$/); expect(p.priceCents).toBeGreaterThan(0); expect(p.imageSource).toMatch(/^https:\/\//);
         expect(fs.statSync(path.resolve('catalog/images', p.image)).size).toBeGreaterThan(5000); } }
     const recipeHeroes = new Set(Object.values(CATALOG.recipes).map(ps => ps[0].url)); // a Treasure Box never repeats a recipe's photo
     for (const t of traits) expect(recipeHeroes.has(traitProducts(t)[0].url), t).toBe(false);

@@ -82,13 +82,14 @@ cd web && npm i && npm run build && npm start
 
 ## Real product catalog
 - Every recipe gift has **3 real products**, one per tier. Each was pulled from the store's own public Shopify product JSON (`https://<store>/products/<handle>.json`) by `api/scripts/build-catalog.mjs`.
-- Every one of the 10 traits also has **3 real products** (`traits` in `catalog.json`), so non-recipe gifts are real too:
+- Every one of the 30 traits also has **3 real products** (`traits` in `catalog.json`), so non-recipe gifts are real too:
   - A **Treasure Box** (one trait) is that trait's three products. For example, Bookworm is an Out of Print Library Card tote ($22), then an East Fork mug, then Craighill False Books.
   - A **Duo Box** (two traits) is each trait's hero product plus one add-on. It leads with whichever hero isn't already on the gift table.
   - Tiers and thresholds come from those products' real prices, exactly as for recipes. Each trait's hero is a different product from every recipe's hero.
-- 37 products from 16 US stores: GSI Outdoors, TIMEMORE, Fellow, Retrospekt, Turntable Lab, Parachute, The Sill, Soltech, East Fork, Ugmonk, Topo Designs, Out of Print, Craighill, Leatherman, Orbitkey and Brooklinen.
+- A hand-curated catalog of 130 real products from the online shops of 48 US brands, mostly small and independent, across 18 named gifts and 30 traits (coffee, tea, cooking, baking, sweets, hot sauce, stationery, books, puzzles, games, music, film photography, plants, gardening, birding, hiking, camping, travel, yoga, spa, candles, cocktails, art supplies, tech, dogs, cats and more). Stores include GSI Outdoors, TIMEMORE, Fellow, Retrospekt, Turntable Lab, Parachute, The Sill, East Fork, Ugmonk, Topo Designs, Rishi Tea, Art of Tea, Our Place, Great Jones, Brightland, Milk Bar, Dandelion Chocolate, Fly By Jing, Baron Fig, Piecework, Exploding Kittens, Otherland, OSEA, Manduka, Snow Peak, Barebones, CALPAK, Cotopaxi, Wild One, Bloomist, Cocktail Kingdom, Ohuhu and Native Union.
+  - The quiz has 12 random questions (each friend draws 2), so the newer traits show up naturally alongside the original ten.
   - The script refuses any store whose public `/meta.json` doesn't report USD.
-  - `--only=traits` refreshes the trait lists without touching recipe prices.
+  - `--only=traits` refreshes the trait lists without touching recipe prices; `--add` fetches only lists that aren't in `catalog.json` yet.
   - For each product the script records the store page URL, the price shown (first variant, USD) and the product photo. Photos are downloaded and cached in `api/catalog/images/`.
 - On boot the API copies the photos into storage (R2 or the media volume) and serves them at `/api/media/catalog/…`, so the demo never hotlinks a store.
 - Tier thresholds are the **cumulative real prices**, rounded up to the dollar. For example, Reading Nook is $22 → $66 → $165. "Tier 2 funded" therefore means those two products are actually paid for.
