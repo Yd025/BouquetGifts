@@ -58,7 +58,7 @@ test('AI bridges people and payment: concierge, chip-in in plain words, payment 
   // 4) Top-up plan: Priya (no payday, room under her cap) gets her own one-tap ask; Jon's room updates live, no reload
   const priya = await (await browser.newContext({ storageState: await f1.storageState() })).newPage();
   await priya.goto(`/b/${b.id}`); await expect(priya.getByTestId('topup')).toBeVisible();
-  await expect(priya.getByTestId('topup-title')).toHaveText(/^Top up \$\d+\?$/); await expect(priya.getByTestId('topup-message')).toContainText('unlocks');
+  await expect(priya.getByTestId('topup-title')).toHaveText(/^Top up \$\d+\?$/); await expect(priya.getByTestId('topup-message')).toContainText(/unlock/);
   await expect(priya.getByTestId('topup-group')).toContainText(/^\+\$\d+ from you · /);
   await priya.waitForTimeout(600); await priya.getByTestId('topup').screenshot({ path: SHOTS + '16e-ai-topup.png' });
   const before = await jon.getByTestId('funded').textContent();
