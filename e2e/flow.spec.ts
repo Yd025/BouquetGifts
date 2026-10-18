@@ -23,6 +23,7 @@ async function signup(browser: Browser, name: string, next = '') {
   await page.click('button[type=submit]'); return page;
 }
 async function fillCard(page: Page, pref: string[], story: string, shot?: string) {
+  await expect(page.getByTestId('q-card').or(page.getByTestId('q-memory'))).toBeVisible(); // the questionnaire loads async
   for (let k = 0; k < 8; k++) {
     if (!(await page.getByTestId('q-card').isVisible().catch(() => false))) break;
     if (shot && k === 0) { await settle(page.getByTestId('q-card')); await page.screenshot({ path: SHOTS + shot + '-a.png', fullPage: true, style: NOFAB }); }
@@ -168,7 +169,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
     await settle(f.getByTestId('pay-sheet')); await expectCrisp(f.getByTestId('pay-sheet'), f.getByTestId('pay-confirm')); // opaque, nothing stacked over the Hold button
     expect(await f.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden'); // page behind the modal is scroll-locked
     if (k === 0) await f.screenshot({ path: SHOTS + '10b-pay-sheet.png' });
-    await f.getByTestId('pay-confirm').click(); await expect(f.getByText('Visa •••• 4242', { exact: true }).first()).toBeVisible();
+    await f.getByTestId('pay-confirm').click(); await expect(f.getByText('Card •••• 4242', { exact: true }).first()).toBeVisible();
     await expect(f.getByTestId('pay-sheet')).toHaveCount(0); expect(await f.evaluate(() => document.body.style.overflow)).toBe(''); // lock released on close
     await expect(f.getByTestId('hold')).toHaveText(`Add $${amounts[k]} more`); // a second hold reads as adding, not replacing
     if (await f.getByTestId('unlock-pop').waitFor({ timeout: 2500 }).then(() => true, () => false)) { pops++; if (pops === 1) await f.screenshot({ path: SHOTS + '10c-unlock-pop.png', fullPage: true, style: NOFAB }); }
