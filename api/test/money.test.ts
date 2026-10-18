@@ -77,3 +77,12 @@ describe('holds older than six days', { timeout: 60000 }, () => {
     ctx.clock.offsetMs = 0;
   });
 });
+
+describe('seeded demo', { timeout: 60000 }, () => {
+  it('the organizer of the seeded demo gift chips in $40 when the gift is picked, so Bought shows their own receipt', async () => {
+    const { ctx, org, b, choose } = await fundingBouquet(new MockAi());
+    await ctx.db.query('UPDATE bouquets SET is_demo=true WHERE id=$1', [b.id]); await ctx.db.query('UPDATE members SET budget_max_cents=8000 WHERE bouquet_id=$1 AND user_id=(SELECT organizer_id FROM bouquets WHERE id=$1)', [b.id]);
+    await choose();
+    const me = (await org.get(`/api/bouquets/${b.id}`)).body.me; expect(me.receipt.heldCents).toBe(4000);
+  });
+});

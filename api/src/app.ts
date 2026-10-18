@@ -344,6 +344,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       await q('DELETE FROM gift_tiers WHERE bouquet_id=$1 AND candidate_id<>$2', [bq.id, cid]);
       await q(`UPDATE bouquets SET status='funding', chosen_candidate_id=$2 WHERE id=$1`, [bq.id, cid]);
     });
+    // Seeded demo only: the organizer chips in too ($40 on a test card), so the Bought screen shows a real receipt for them.
+    if (bq.is_demo) try { const om = (await db.query('SELECT * FROM members WHERE bouquet_id=$1 AND user_id=$2', [bq.id, bq.organizer_id]))[0];
+      if (om) await placeHold({ ...bq, status: 'funding' }, om, Math.min(4000, om.budget_max_cents), { token: 'tok_demo_organizer_4242', last4: '4242' }, `demo-org-${bq.id}`); } catch (e) { console.warn('demo organizer hold skipped', (e as Error).message); }
     notify(bq.id, 'chosen'); return state(bq.id, uid);
   }));
 
