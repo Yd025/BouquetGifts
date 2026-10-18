@@ -93,9 +93,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       COALESCE(SUM(CASE type WHEN 'capture' THEN amount_cents ELSE 0 END),0)::int AS captured FROM ledger_events WHERE bouquet_id=$1`, [bid]);
     return { held: Number(r.held), captured: Number(r.captured) };
   };
-  const getBouquet = async (bid: string) => (await db.query('SELECT * FROM bouquets WHERE id=$1', [bid]))[0] ?? fail(404, 'Bouquet not found');
+  const getBouquet = async (bid: string) => (await db.query('SELECT * FROM bouquets WHERE id=$1', [bid]))[0] ?? fail(404, 'Gift not found');
   const memberOf = async (bid: string, uid: string) => (await db.query('SELECT * FROM members WHERE bouquet_id=$1 AND user_id=$2', [bid, uid]))[0];
-  const requireMember = async (bid: string, uid: string) => (await memberOf(bid, uid)) ?? fail(403, 'You are not part of this bouquet');
+  const requireMember = async (bid: string, uid: string) => (await memberOf(bid, uid)) ?? fail(403, 'You’re not part of this gift');
   const requireOrganizer = async (bid: string, uid: string) => { const b = await getBouquet(bid); if (b.organizer_id !== uid) fail(403, 'Only the organizer can do that'); return b; };
   const deadlinePassed = (b: any) => clock.now().getTime() > new Date(b.buy_by_at).getTime();
 
@@ -208,7 +208,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     let uid = userOf(req);
     if (b.budgetMinCents > b.budgetMaxCents) fail(400, 'Minimum budget cannot exceed maximum');
     const [bq] = await db.query('SELECT * FROM bouquets WHERE invite_token=$1', [String(req.params.token)]); if (!bq) fail(404, 'This invite link is not valid');
-    if (!['collecting', 'fusing', 'funding'].includes(bq.status) || deadlinePassed(bq)) fail(409, 'This bouquet is closed to new friends');
+    if (!['collecting', 'fusing', 'funding'].includes(bq.status) || deadlinePassed(bq)) fail(409, 'This gift isn’t taking new friends anymore');
     const holdFor = async (memberId: string) => { if (!b.hold) return;
       if (bq.status !== 'funding') fail(409, 'Chipping in opens once the group picks the gift');
       const [m] = await db.query('SELECT * FROM members WHERE id=$1', [memberId]);
@@ -240,7 +240,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     await db.query('UPDATE members SET budget_min_cents=$2, budget_max_cents=$3 WHERE id=$1', [m.id, b.budgetMinCents, b.budgetMaxCents]);
     if (b.payday !== undefined) await db.query('UPDATE members SET payday=$2 WHERE id=$1', [m.id, b.payday]); // optional, private: lets Bouquet schedule a top-up after payday
     if (b.condition !== undefined) { // "or $40 if it gets us the Polaroid": the part above baseCents is only for that tier (or higher)
-      if (b.condition && !(await db.query('SELECT 1 FROM gift_tiers WHERE id=$1 AND bouquet_id=$2', [b.condition.tierId, m.bouquet_id])).length) fail(400, 'Unknown tier');
+      if (b.condition && !(await db.query('SELECT 1 FROM gift_tiers WHERE id=$1 AND bouquet_id=$2', [b.condition.tierId, m.bouquet_id])).length) fail(400, 'That item isn’t part of this gift');
       if (b.condition && b.condition.baseCents > b.budgetMaxCents) fail(400, 'The unconditional part cannot exceed your maximum');
       await db.query('UPDATE members SET condition_tier_id=$2, condition_base_cents=$3 WHERE id=$1', [m.id, b.condition?.tierId ?? null, b.condition?.baseCents ?? null]); }
     notify(String(req.params.id), 'budget'); return state(String(req.params.id), uid);
@@ -293,7 +293,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   /* ---------- fusion + vote ---------- */
   app.post('/api/bouquets/:id/fuse', h(async req => {
     const uid = auth(req); const bq = await requireOrganizer(String(req.params.id), uid);
-    if (bq.status !== 'collecting') fail(409, 'Already fused');
+    if (bq.status !== 'collecting') fail(409, 'The cards are already turned over');
     const cards = await db.query('SELECT * FROM cards WHERE bouquet_id=$1', [bq.id]);
     if (cards.length < 2) fail(409, 'Fusion needs at least 2 friend cards');
     const agg = D.aggregateTraits(cards.map((c: any) => ({ id: c.id, memberId: c.member_id, traits: c.traits })));
@@ -555,7 +555,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       if (deadlinePassed(b)) fail(409, 'The buy-by deadline has passed');
       const tiers = await q('SELECT * FROM gift_tiers WHERE bouquet_id=$1', [bid]);
       const { held } = await fundedCents(bid, q);
-      const tier = D.highestFundedTier(tiers, held); if (!tier) fail(409, 'Not funded yet — the first tier is not reached');
+      const tier = D.highestFundedTier(tiers, held); if (!tier) fail(409, 'Not funded yet. The first item still needs more');
       const holds = await q(`SELECT * FROM contributions WHERE bouquet_id=$1 AND status='held' ORDER BY id FOR UPDATE`, [bid]);
       const alloc = D.allocateCapture(holds, tier.threshold_cents);
       for (const hd of holds) { const amt = alloc.get(hd.id) ?? 0;
@@ -571,7 +571,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const uid = auth(req); const bq = await getBouquet(String(req.params.id)); const m = await requireMember(bq.id, uid);
     const n = await db.tx(async q => {
       const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
-      if (cur.status !== 'funding') fail(409, 'Holds can only be withdrawn before checkout');
+      if (cur.status !== 'funding') fail(409, 'You can only take your money back before the gift is bought');
       const rows = await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE member_id=$1 AND status='held' RETURNING id`, [m.id]);
       if (!rows.length) fail(409, 'You have no hold to withdraw');
       await q('UPDATE members SET condition_tier_id=NULL, condition_base_cents=NULL WHERE id=$1', [m.id]);
@@ -584,7 +584,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const uid = auth(req); const bq = await requireOrganizer(String(req.params.id), uid);
     await db.tx(async q => {
       const [cur] = await q('SELECT status FROM bouquets WHERE id=$1 FOR UPDATE', [bq.id]);
-      if (!['collecting', 'fusing', 'funding'].includes(cur.status)) fail(409, 'Only a bouquet that hasn’t been bought can be cancelled');
+      if (!['collecting', 'fusing', 'funding'].includes(cur.status)) fail(409, 'Only a gift that hasn’t been bought can be cancelled');
       await q(`UPDATE contributions SET status='release_pending', captured_cents=0 WHERE bouquet_id=$1 AND status='held'`, [bq.id]);
       await q(`UPDATE bouquets SET status='expired', cancelled_at=now() WHERE id=$1`, [bq.id]); });
     await settlePending(bq.id); notify(bq.id, 'expired');
@@ -619,8 +619,8 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
 
   /* ---------- recipient reveal (public by token) ---------- */
   async function revealPayload(token: string) {
-    const [b] = await db.query('SELECT * FROM bouquets WHERE reveal_token=$1', [token]); if (!b) fail(404, 'This bouquet link is not valid');
-    if (!['purchased', 'revealed'].includes(b.status)) fail(409, 'This bouquet is still being arranged');
+    const [b] = await db.query('SELECT * FROM bouquets WHERE reveal_token=$1', [token]); if (!b) fail(404, 'This link isn’t valid');
+    if (!['purchased', 'revealed'].includes(b.status)) fail(409, 'This gift isn’t ready to open yet');
     const cards = await db.query('SELECT c.*, m.display_name, m.flower_back FROM cards c JOIN members m ON m.id=c.member_id WHERE c.bouquet_id=$1 ORDER BY c.created_at', [b.id]);
     const [cand] = await db.query('SELECT * FROM candidates WHERE id=$1', [b.chosen_candidate_id]);
     const [tier] = await db.query('SELECT * FROM gift_tiers WHERE id=$1', [b.captured_tier_id]);
