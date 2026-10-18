@@ -32,6 +32,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   const human = async (req: Request) => { if (deps.internalToken && req.headers['x-internal-seed'] === deps.internalToken) return; if (!(await turnstile.verify(req.headers['x-turnstile-token'] as string | undefined, req.ip))) fail(403, 'Please complete the human check'); };
   const clock = deps.clock ?? makeClock();
   const SECRET = deps.secret ?? process.env.JWT_SECRET ?? 'dev-secret-change-me';
+  // Fail closed: a public https deployment must have a real session secret, never a placeholder.
+  if (PUBLIC_ORIGIN.startsWith('https://') && (!SECRET || SECRET.length < 16 || ['dev-secret-change-me', 'change-me-in-prod'].includes(SECRET))) throw new Error('JWT_SECRET must be set to a long random value when PUBLIC_ORIGIN is https');
+  const SECURE_COOKIE = PUBLIC_ORIGIN.startsWith('https://');
   const bus = new EventEmitter(); bus.setMaxListeners(1000);
   const rt = deps.realtime ?? (process.env.REALTIME_URL ? { url: process.env.REALTIME_URL, publicUrl: process.env.PUBLIC_REALTIME_URL ?? process.env.REALTIME_URL, secret: process.env.REALTIME_SECRET ?? 'dev-realtime-secret' } : undefined);
   // Fan-out: in-process SSE bus always; the Cloudflare Durable Object room too when configured (fire-and-forget, SSE/polling stay as fallback).
@@ -55,7 +58,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
   };
   const auth = (req: Request) => userOf(req) ?? fail(401, 'Please log in');
   const issue = (res: Response, uid: string) => { const t = jwt.sign({ sub: uid }, SECRET, { expiresIn: '7d' });
-    res.cookie('bq', t, { httpOnly: true, sameSite: 'lax', maxAge: 7 * 864e5 }); return t; };
+    res.cookie('bq', t, { httpOnly: true, sameSite: 'lax', secure: SECURE_COOKIE, maxAge: 7 * 864e5 }); return t; };
   const pubUser = (u: any) => ({ id: u.id, email: u.is_guest ? null : u.email, name: u.name, phone: u.phone, phoneVerified: !!u.phone_verified_at, isGuest: !!u.is_guest });
 
   // Public sample gift for the landing page: a real recipe's real catalog products and cumulative tier prices (nothing invented).

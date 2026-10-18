@@ -45,3 +45,15 @@ describe('card numbers never reach the server', { timeout: 60000 }, () => {
     const rows = await ctx.db.query('SELECT card_last4 FROM contributions WHERE bouquet_id=$1', [b.id]); expect(rows).toEqual([{ card_last4: '4242' }]);
   });
 });
+
+describe('sessions on a public https origin', { timeout: 30000 }, () => {
+  it('refuses a placeholder secret and marks the session cookie Secure', async () => {
+    const { makeDb } = await import('../src/db.js'); const { createApp } = await import('../src/app.js'); const { MockVisaPayments, MockNetwork } = await import('../src/adapters.js');
+    const request = (await import('supertest')).default;
+    const db = await makeDb('memory'); const base = { db, payments: new MockVisaPayments(), network: new MockNetwork(), ai: new MockAi(), publicOrigin: 'https://bouquet.example' } as any;
+    expect(() => createApp({ ...base, secret: 'change-me-in-prod' })).toThrow(/JWT_SECRET/);
+    const { app } = createApp({ ...base, secret: 'a-long-random-test-secret-123456' });
+    const r = await request(app).post('/api/auth/signup').send({ email: `s${Math.random()}@x.io`, password: 'password1', name: 'S' });
+    expect(String(r.headers['set-cookie'])).toMatch(/Secure/);
+  });
+});

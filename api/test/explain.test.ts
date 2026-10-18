@@ -16,11 +16,11 @@ describe('payment explainer (rules)', () => {
     expect(figures('$1,200 and $3.50')).toEqual(['$1200', '$3.50']);
   });
   it('says what each state means for this person', () => {
-    const base = { recipient: 'Maya', gift: 'Trail Kit', organizer: 'Olivia', buyBy: '2026-10-24T20:00:00Z', tiersCount: 3, isOrganizer: false, nextTierTitle: null, nextTierGapCents: null, firstTierGapCents: null } as any;
+    const base = { recipient: 'Maya', gift: 'Trail Kit', organizer: 'Adelin', buyBy: '2026-10-24T20:00:00Z', tiersCount: 3, isOrganizer: false, nextTierTitle: null, nextTierGapCents: null, firstTierGapCents: null } as any;
     expect(explainRules({ ...base, status: 'funding', holders: 0, heldCents: 0, myHeldCents: 0, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null, firstTierGapCents: 4500 }))
       .toMatch(/Nothing is charged yet\. The first item of Trail Kit needs \$45 more/);
     const f = explainRules({ ...base, status: 'funding', holders: 2, heldCents: 9000, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500, nextTierTitle: 'Map', nextTierGapCents: 3000 });
-    expect(f).toMatch(/if Olivia checks out now, you pay \$41\.67 of your \$50 hold and \$8\.33 goes back/); expect(f).toMatch(/Map would need \$30 more/);
+    expect(f).toMatch(/if Adelin checks out now, you pay \$41\.67 of your \$50 hold and \$8\.33 goes back/); expect(f).toMatch(/Map would need \$30 more/);
     expect(f).toContain('the first item (Mug) costs $75 in total and the group holds $90, so that is fully funded'); expect(f).toContain('charged exactly $75'); expect(f).toContain('the other $15 is released');
     expect(explainRules({ ...base, status: 'purchased', holders: 2, heldCents: 0, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500 })).toMatch(/You paid \$41\.67 of your \$50 hold\. The other \$8\.33 went back/);
     expect(explainRules({ ...base, status: 'expired', holders: 0, heldCents: 0, myHeldCents: 1500, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null })).toMatch(/Nobody was charged, including your \$15 hold/);
