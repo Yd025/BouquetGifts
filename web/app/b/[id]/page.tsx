@@ -181,9 +181,9 @@ function Funding({ s, act, setS }: any) {
 function Purchased({ s }: any) {
   const link = s.bouquet.revealToken && typeof window !== 'undefined' ? `${location.origin}/reveal/${s.bouquet.revealToken}` : null;
   const mine = s.me.contributions.filter((c: any) => c.status === 'captured').reduce((a: number, c: any) => a + c.captured_cents, 0);
-  return <div className="panel"><h2>🎉 Purchased!</h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
-      if (!held) return <p>The group gift is on its way. You didn’t place a hold, so you weren’t charged anything.</p>;
-      return <p>The group gift is on its way. You were charged <b data-testid="my-charge">{$(mine)}</b>{held > mine ? <>, not {$(held)}, because the group funded tier {tier?.level} (“{tier?.title.replace(/^\+ /, '')}”) and the rest of your hold was released</> : ''}.</p>; })()}
+  return <div className="panel"><h2>🎉 Purchased! <span className="chip" data-testid="sandbox-chip" title="Holds and captures run on our mock Visa sandbox this weekend">Visa sandbox</span></h2>{(() => { const held = s.me.contributions.reduce((a: number, c: any) => a + c.amount_cents, 0); const tier = s.tiers.find((t: any) => t.id === s.bouquet.capturedTierId);
+      if (!held) return <p>Checked out. The organizer orders the gift from the store link. You didn’t place a hold, so nothing was captured from you.</p>;
+      return <p>Checked out. Visa sandbox captured <b data-testid="my-charge">{$(mine)}</b> from your hold (demo: no real money moves){held > mine ? <>, not {$(held)}, because the group funded tier {tier?.level} (“{tier?.title.replace(/^\+ /, '')}”) and the rest of your hold was released</> : ''}. The organizer orders the gift from the store link.</p>; })()}
     <ExplainPay bid={s.bouquet.id} label="Explain what I paid" />
     {link && <><label>Send this to {s.bouquet.recipientName} to open their bouquet</label><div className="copy"><input readOnly value={link} data-testid="reveal-link" /><a className="btn sm" href={link} target="_blank">Preview</a></div></>}</div>;
 }

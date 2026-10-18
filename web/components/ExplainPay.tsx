@@ -15,7 +15,7 @@ export default function ExplainPay({ bid, label = 'Explain my payment' }: { bid:
         <div className="rl why"><span>Why</span><span data-testid="receipt-why">{r.receipt.why}</span></div></div>}
       <details className="whyprose"><summary data-testid="explain-why">Why? In plain words</summary><p style={{ margin: '6px 0 0' }}>{r.text}</p>
         {r.source === 'gemini' && <p className="muted" style={{ fontSize: 13, margin: '6px 0 0' }} data-testid="explain-rules">Exact math: {r.rules}</p>}</details>
-      <div className="row muted" style={{ fontSize: 12, marginTop: 8 }}><span className="grow" data-testid="explain-source">{r.source === 'gemini' ? 'Worded by Gemini · every amount checked against the ledger' : 'Every amount computed from the group’s ledger'}</span></div>
+      <div className="row muted" style={{ fontSize: 12, marginTop: 8 }}><span className="grow" data-testid="explain-source">{r.source === 'gemini' ? 'Worded by Gemini · every amount checked against the ledger' : 'Every amount computed from the group’s ledger'} · Visa sandbox: no real money moves</span></div>
     </div>}
   </div>;
 }
