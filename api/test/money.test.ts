@@ -65,3 +65,15 @@ describe('a capture that keeps failing', { timeout: 60000 }, () => {
     expect(visa.tries).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe('holds older than six days', { timeout: 60000 }, () => {
+  it('are re-authorized once by the sweep and logged, without changing anyone’s money', async () => {
+    const { ctx, friends, b, choose } = await fundingBouquet(new MockAi()); await choose();
+    expect((await friends[0].post(`/api/bouquets/${b.id}/contributions`).send({ amountCents: 2000, cardToken: TOK, last4: '4242', idempotencyKey: `ra-${b.id}` })).status).toBe(201);
+    await ctx.sweep(); expect((await ctx.db.query(`SELECT * FROM ledger_events WHERE type='reauth'`)).length).toBe(0);
+    ctx.clock.offsetMs = 6 * 864e5 + 3600e3; await ctx.sweep(); await ctx.sweep();
+    const ev = await ctx.db.query(`SELECT * FROM ledger_events WHERE type='reauth' AND bouquet_id=$1`, [b.id]); expect(ev.length).toBe(1); expect(ev[0].amount_cents).toBe(2000);
+    const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me; expect(me.receipt.heldCents).toBe(2000); expect(me.contributions[0].status).toBe('held');
+    ctx.clock.offsetMs = 0;
+  });
+});

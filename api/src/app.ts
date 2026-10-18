@@ -673,6 +673,13 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       await settlePending(bid);
       notify(bid, 'expired');
     }
+    // Holds last about 7 days at the card network: re-authorize any hold that has been waiting 6 days (ledger 'reauth').
+    const stale = new Date(clock.now().getTime() - 6 * 864e5).toISOString();
+    for (const hd of await db.query(`SELECT id, bouquet_id, hold_id, amount_cents FROM contributions WHERE status='held' AND authorized_at < $1`, [stale])) {
+      try { await payments.reauthorize?.(hd.hold_id, hd.amount_cents); } catch (e) { console.error('reauth failed, will retry', hd.id, (e as Error).message); continue; }
+      await db.tx(async q => { const done = await q(`UPDATE contributions SET authorized_at=$2 WHERE id=$1 AND status='held' AND authorized_at < $3 RETURNING id`, [hd.id, clock.now().toISOString(), stale]); if (!done.length) return;
+        await q(`INSERT INTO ledger_events (bouquet_id,contribution_id,type,amount_cents) VALUES ($1,$2,'reauth',$3)`, [hd.bouquet_id, hd.id, hd.amount_cents]); });
+    }
     // retry anything a processor error left pending (captures and releases)
     for (const { bouquet_id } of await db.query(`SELECT DISTINCT bouquet_id FROM contributions WHERE status IN ('capture_pending','release_pending')`)) await settlePending(bouquet_id);
     return due.length;

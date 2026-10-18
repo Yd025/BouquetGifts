@@ -11,6 +11,8 @@ export const CARD_TOKEN = /^v?tok_[A-Za-z0-9_]{12,}$/; // vtok_ = saved before b
 export interface Payments { hold(a: { amountCents: number; token: string; last4: string; idempotencyKey: string }): Promise<{ holdId: string; last4: string; token: string }>;
   capture(holdId: string, amountCents: number): Promise<void>; release(holdId: string): Promise<void>;
   /** Single-use virtual card locked to one merchant for an exact amount (Visa virtual card / Intelligent Commerce in production). */
+  /** Refresh an authorization before it lapses (~7 days). */
+  reauthorize?(holdId: string, amountCents: number): Promise<void>;
   issueVirtualCard?(a: { amountCents: number; merchant: string; idempotencyKey: string }): Promise<{ cardId: string; last4: string }> }
 export class MockVisaPayments implements Payments {
   holds = new Map<string, { amount: number; state: string }>(); byKey = new Map<string, string>();
@@ -26,6 +28,7 @@ export class MockVisaPayments implements Payments {
   }
   async capture(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h) { if (amountCents > h.amount) throw new PaymentError('over-capture'); h.state = 'captured'; } }
   async release(holdId: string) { const h = this.holds.get(holdId); if (h) h.state = 'released'; }
+  async reauthorize(holdId: string, amountCents: number) { const h = this.holds.get(holdId); if (h && h.state === 'held') h.amount = amountCents; }
   cards = new Map<string, { amount: number; merchant: string }>();
   async issueVirtualCard({ amountCents, merchant, idempotencyKey }: { amountCents: number; merchant: string; idempotencyKey: string }) {
     const h = crypto.createHash('sha256').update('vcard|' + idempotencyKey).digest('hex');
