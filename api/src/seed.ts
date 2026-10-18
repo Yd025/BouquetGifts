@@ -29,7 +29,7 @@ export async function seedDemoBouquet(base: string, internalToken = ''): Promise
   const existing = (await call(org, '/bouquets')).bouquets.find((b: any) => b.recipientName === 'Maya' && b.status !== 'expired');
   if (existing && existing.members >= 4) return existing.id;
   // Reuse (repair) a partially seeded demo bouquet instead of creating a duplicate.
-  const b = existing ? (await call(org, `/bouquets/${existing.id}`)).bouquet : (await call(org, '/bouquets', { recipientName: 'Maya', occasion: 'Birthday', note: 'Maya turns 25! Demo bouquet: add your own card, then fuse.', neededBy: new Date(Date.now() + 14 * 864e5).toISOString(), shipBufferDays: 3, budgetMaxCents: 8000 })).bouquet;
+  const b = existing ? (await call(org, `/bouquets/${existing.id}`)).bouquet : (await call(org, '/bouquets', { recipientName: 'Maya', occasion: 'Birthday', note: 'Maya turns 25! Let’s make it special.', neededBy: new Date(Date.now() + 14 * 864e5).toISOString(), shipBufferDays: 3, budgetMaxCents: 8000 })).bouquet;
   const picks: Record<string, string[]> = { jon: ['Sunrise Hiker', 'Coffee Snob'], priya: ['Film Shooter', 'Sunrise Hiker'], sam: ['Music Head', 'Film Shooter'] };
   // Jon uses Nokia's "no SIM swap" simulator number, so his large holds pass a live Network as Code check.
   for (const [i, who] of ['jon', 'priya', 'sam'].entries()) {
