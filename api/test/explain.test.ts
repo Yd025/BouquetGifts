@@ -20,7 +20,7 @@ describe('payment explainer (rules)', () => {
     expect(explainRules({ ...base, status: 'funding', holders: 0, heldCents: 0, myHeldCents: 0, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null, firstTierGapCents: 4500 }))
       .toMatch(/Nothing is charged yet\. The first tier of Trail Kit needs \$45 more/);
     const f = explainRules({ ...base, status: 'funding', holders: 2, heldCents: 9000, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500, nextTierTitle: 'Map', nextTierGapCents: 3000 });
-    expect(f).toMatch(/If Olivia checks out now, you pay \$41\.67 of your \$50 hold and \$8\.33 goes back/); expect(f).toMatch(/Map would need \$30 more/);
+    expect(f).toMatch(/if Olivia checks out now, you pay \$41\.67 of your \$50 hold and \$8\.33 goes back/); expect(f).toMatch(/Map would need \$30 more/);
     expect(f).toContain('tier 1 (Mug) costs $75 in total and the group holds $90, so it is fully funded'); expect(f).toContain('capture exactly $75'); expect(f).toContain('release the other $15');
     expect(explainRules({ ...base, status: 'purchased', holders: 2, heldCents: 0, myHeldCents: 5000, myChargeCents: 4167, tierLevel: 1, tierTitle: 'Mug', chargeCents: 7500 })).toMatch(/You paid \$41\.67 of your \$50 hold\. The other \$8\.33 went back/);
     expect(explainRules({ ...base, status: 'expired', holders: 0, heldCents: 0, myHeldCents: 1500, myChargeCents: 0, tierLevel: null, tierTitle: null, chargeCents: null })).toMatch(/Nobody was charged, including your \$15 hold/);
@@ -58,7 +58,7 @@ describe('GET /explain', { timeout: 30000 }, () => {
     if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`release the other ${$(ost.totals.heldCents - co.chargeCents)}`);
     // every per-person share adds up to exactly the amount that will be captured
     const shares = await Promise.all([friends[0], friends[1], org].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.totals.checkout.myChargeCents));
-    expect(shares.reduce((p: number, x: number) => p + x, 0)).toBe(co.chargeCents); expect(pre.text).toContain('If Org checks out now'); void org;
+    expect(shares.reduce((p: number, x: number) => p + x, 0)).toBe(co.chargeCents); expect(pre.text).toContain('if Org checks out now'); void org;
     await org.post(`/api/bouquets/${b.id}/lock`);
     const after = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; const me = (await friends[0].get(`/api/bouquets/${b.id}`)).body.me;
     const paid = me.contributions.reduce((x: number, k: any) => x + (k.captured_cents ?? 0), 0);
@@ -76,5 +76,14 @@ describe('GET /explain', { timeout: 30000 }, () => {
     const { friends, b, choose } = await fundingBouquet(ai); await choose();
     const g = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; expect(g.source).toBe('gemini'); expect(g.text).toBe('Plainly: ' + g.rules);
     mode = 'bad'; const r = (await friends[0].get(`/api/bouquets/${b.id}/explain`)).body; expect(r.source).toBe('rules'); expect(r.text).toBe(r.rules);
+  });
+});
+
+import { keepsRecipient } from '../src/bridge.js';
+describe('Gemini rewording keeps whose gift it is', () => {
+  it("rejects \"Olive's gift\" when the gift is for Maya", () => {
+    expect(keepsRecipient("You're all set to pay $30 for Olive's gift since the Polaroid is fully funded at $237.", 'Maya')).toBe(false);
+    expect(keepsRecipient('You pay $30 toward Maya’s gift; $237 is fully funded.', 'Maya')).toBe(true);
+    expect(keepsRecipient('If Olive checks out now, you pay $30.', 'Maya')).toBe(true);
   });
 });

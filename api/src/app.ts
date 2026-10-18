@@ -457,7 +457,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       tierLevel: tierRow?.level ?? null, tierTitle: tierRow?.title.replace(/^\+ /, '') ?? null, chargeCents: done ? b.capturedCents : co?.chargeCents ?? null, tiersCount: st.tiers.length,
       nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, nextTierGapCents: nt ? nt.thresholdCents - st.totals.fundedCents : null,
       firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer, groupHidden: !!st.totals.blurred };
-    const rules = B.explainRules(facts); const friendly = await ai.reword('explain', rules);
+    const rules = B.explainRules(facts); const w = await ai.reword('explain', rules); const friendly = w && B.keepsRecipient(w, facts.recipient) ? w : null;
     return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules), receipt: B.receipt(facts) };
   }));
   // 3) Gift concierge: ranks the gifts on the table from the group's kept cards + votes, checks them against everyone's combined budget caps,
