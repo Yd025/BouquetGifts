@@ -48,8 +48,14 @@ describe('GET /explain', { timeout: 30000 }, () => {
     const $ = (x: number) => '$' + (x / 100).toFixed(x % 100 ? 2 : 0);
     expect(pre.text).toContain(`you pay ${$(co.myChargeCents)} of your ${$(co.myHeldCents)} hold`);
     // "fully funded" really means held ≥ tier price, and the text says it in that order
-    expect(co.chargeCents).toBeLessThanOrEqual(st.totals.heldCents); expect(pre.text).toContain(`costs ${$(co.chargeCents)} in total and the group holds ${$(st.totals.heldCents)}, so it is fully funded`);
-    if (st.totals.heldCents > co.chargeCents) expect(pre.text).toContain(`release the other ${$(st.totals.heldCents - co.chargeCents)}`);
+    // only two holders: a holder never sees the exact group total (they could back out the other's amount)
+    expect(st.totals.blurred).toBe(true); expect(co.releaseCents).toBeNull(); expect(st.totals.heldCents).toBe(co.chargeCents);
+    expect(pre.text).not.toContain('the group holds'); expect(pre.text).toContain('group total stays private'); expect(pre.text).toContain(`costs ${$(co.chargeCents)} in total and it is fully funded`);
+    // the organizer (not holding) sees the full reconciliation
+    const ost = (await org.get(`/api/bouquets/${b.id}`)).body; const opre = (await org.get(`/api/bouquets/${b.id}/explain`)).body;
+    expect(ost.totals.blurred).toBe(false); expect(ost.totals.heldCents).toBe(a + c);
+    expect(co.chargeCents).toBeLessThanOrEqual(ost.totals.heldCents); expect(opre.text).toContain(`costs ${$(co.chargeCents)} in total and the group holds ${$(ost.totals.heldCents)}, so it is fully funded`);
+    if (ost.totals.heldCents > co.chargeCents) expect(opre.text).toContain(`release the other ${$(ost.totals.heldCents - co.chargeCents)}`);
     // every per-person share adds up to exactly the amount that will be captured
     const shares = await Promise.all([friends[0], friends[1], org].map(async x => (await x.get(`/api/bouquets/${b.id}`)).body.totals.checkout.myChargeCents));
     expect(shares.reduce((p: number, x: number) => p + x, 0)).toBe(co.chargeCents); expect(pre.text).toContain('If Org checks out now'); void org;

@@ -150,6 +150,7 @@ export type ExplainFacts = {
   status: string; recipient: string; gift: string; organizer: string; buyBy: string; holders: number;
   heldCents: number; myHeldCents: number; myChargeCents: number; tierLevel: number | null; tierTitle: string | null; chargeCents: number | null; tiersCount: number;
   nextTierTitle: string | null; nextTierGapCents: number | null; firstTierGapCents: number | null; isOrganizer: boolean;
+  /** only two friends are holding: never state the group total (each could deduce the other's amount) */ groupHidden?: boolean;
 };
 export function explainRules(f: ExplainFacts): string {
   const by = new Date(f.buyBy).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -162,12 +163,14 @@ export function explainRules(f: ExplainFacts): string {
   if (f.status === 'expired') return `The buy-by date passed before checkout, so every hold was released. Nobody was charged${f.myHeldCents ? `, including your ${money(f.myHeldCents)} hold` : ''}.`;
   if (f.tierLevel === null) {
     const gap = f.firstTierGapCents ?? 0;
+    if (f.groupHidden) return `Nothing is charged yet. The first tier of ${f.gift} needs more holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
     return `Nothing is charged yet. The first tier of ${f.gift} needs ${money(gap)} more in holds before anyone can check out.${f.myHeldCents ? ` Your ${money(f.myHeldCents)} is only a hold.` : ''} If it isn’t funded by ${by}, every hold is released and nobody pays.`;
   }
   const back = f.myHeldCents - f.myChargeCents;
   const mine = f.myHeldCents ? `If ${who} now, you pay ${money(f.myChargeCents)} of your ${money(f.myHeldCents)} hold${back > 0 ? ` and ${money(back)} goes back to your card` : ''}.` : `You haven’t placed a hold, so you won’t pay anything.`;
   // Wording matters as much as maths here: always "costs X, group holds Y (Y ≥ X)", then what is captured and what is released.
   const charge = f.chargeCents ?? 0, spare = f.heldCents - charge;
+  if (f.groupHidden) return `${mine} Why: tier ${f.tierLevel} (${f.tierTitle}) costs ${money(charge)} in total and it is fully funded, so Visa would capture exactly ${money(charge)}, split in proportion to each hold, and release anything above that. (Only two friends are holding, so the group total stays private.)${f.nextTierTitle ? ` ${f.nextTierTitle} is next.` : ' That is the top tier.'} If nobody checks out by ${by}, every hold is released and nobody pays.`;
   const why = `Why: tier ${f.tierLevel} (${f.tierTitle}) costs ${money(charge)} in total and the group holds ${money(f.heldCents)}, so it is fully funded. Visa would capture exactly ${money(charge)}, split in proportion to each hold${spare > 0 ? `, and release the other ${money(spare)}` : ', using every hold in full'}.${f.nextTierGapCents ? ` ${f.nextTierTitle} would need ${money(f.nextTierGapCents)} more in holds.` : ' That is the top tier.'}`;
   return `${mine} ${why} If nobody checks out by ${by}, every hold is released and nobody pays.`;
 }

@@ -120,6 +120,10 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
     const liveHolds = previewTier ? await db.query(`SELECT id,member_id,amount_cents FROM contributions WHERE bouquet_id=$1 AND status='held' ORDER BY id`, [bid]) : [];
     const previewAlloc = previewTier ? D.allocateCapture(liveHolds, previewTier.threshold_cents) : new Map<string, number>();
     const myHolds = liveHolds.filter((h: any) => h.member_id === me.id);
+    // Two holders: an exact group total would let each work out the other's private amount. Show tier progress instead.
+    const holderIds = b.status === 'funding' ? new Set((await db.query(`SELECT DISTINCT member_id FROM contributions WHERE bouquet_id=$1 AND status='held'`, [bid])).map((r: any) => r.member_id)) : new Set();
+    const blurred = holderIds.size === 2 && holderIds.has(me.id);
+    const shownTotal = blurred ? (D.highestFundedTier(tiers, total)?.threshold_cents ?? 0) : total;
     return {
       now: clock.now().toISOString(),
       bouquet: { id: b.id, recipientName: b.recipient_name, occasion: b.occasion, note: b.note, status: b.status, buyByAt: b.buy_by_at, shipBufferDays: b.ship_buffer_days,
@@ -141,9 +145,9 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
         citedFriends: (c.member_ids as string[]).map(x => name.get(x)).filter(Boolean) })),
       tiers: tiers.map((t: any) => ({ id: t.id, level: t.level, title: t.title, thresholdCents: t.threshold_cents, unlocked: t.threshold_cents <= total,
         product: (() => { const c = candidates.find((x: any) => x.id === t.candidate_id); return publicProduct(c ? productAt(c.title, t.level, c.trait_labels) : null); })() })),
-      totals: { fundedCents: total, heldCents: f.held, capturedCents: f.captured,
+      totals: { fundedCents: shownTotal, heldCents: blurred ? shownTotal : f.held, capturedCents: f.captured, blurred,
         currentTier: D.highestFundedTier(tiers, total)?.id ?? null, nextTier: D.nextTier(tiers, total)?.id ?? null,
-        checkout: previewTier ? { tierId: previewTier.id, tierLevel: previewTier.level, chargeCents: previewTier.threshold_cents, releaseCents: f.held - previewTier.threshold_cents,
+        checkout: previewTier ? { tierId: previewTier.id, tierLevel: previewTier.level, chargeCents: previewTier.threshold_cents, releaseCents: blurred ? null : f.held - previewTier.threshold_cents,
           holders: new Set(liveHolds.map((h: any) => h.member_id)).size,
           myHeldCents: myHolds.reduce((a: number, h: any) => a + h.amount_cents, 0), myChargeCents: myHolds.reduce((a: number, h: any) => a + (previewAlloc.get(h.id) ?? 0), 0) } : null },
     };
@@ -424,7 +428,7 @@ export function createApp(deps: { db: Db; payments: Payments; network: NetworkVe
       myChargeCents: done ? mine.reduce((a: number, c: any) => a + (c.captured_cents ?? 0), 0) : co?.myChargeCents ?? 0,
       tierLevel: tierRow?.level ?? null, tierTitle: tierRow?.title.replace(/^\+ /, '') ?? null, chargeCents: done ? b.capturedCents : co?.chargeCents ?? null, tiersCount: st.tiers.length,
       nextTierTitle: nt?.title.replace(/^\+ /, '') ?? null, nextTierGapCents: nt ? nt.thresholdCents - st.totals.fundedCents : null,
-      firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer };
+      firstTierGapCents: st.tiers.length ? Math.max(0, st.tiers[0].thresholdCents - st.totals.heldCents) : null, isOrganizer: b.isOrganizer, groupHidden: !!st.totals.blurred };
     const rules = B.explainRules(facts); const friendly = await ai.reword('explain', rules);
     return { text: friendly ?? rules, rules, source: friendly ? 'gemini' : 'rules', figures: B.figures(rules) };
   }));

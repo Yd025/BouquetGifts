@@ -102,7 +102,7 @@ function Funding({ s, act, setS }: any) {
   const next = s.tiers.find((t: any) => t.id === s.totals.nextTier); const cand = s.candidates.find((c: any) => c.id === b.chosenCandidateId);
   const prevTier = useRef<string | null>(s.totals.currentTier); const prevTotal = useRef<number>(total);
   useEffect(() => { const cur = s.totals.currentTier;
-    if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(`+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
+    if (cur && cur !== prevTier.current) { const t = s.tiers.find((x: any) => x.id === cur); setPop(s.totals.blurred ? `Unlocked ${t?.title.replace(/^\+ /, '')} ✿` : `+${$(total - prevTotal.current)} unlocked ${t?.title.replace(/^\+ /, '')} ✿`); setTimeout(() => setPop(null), 5000); }
     prevTier.current = cur; prevTotal.current = total; }, [s.totals.currentTier, total]);
   const petals = s.members.filter((m: any) => m.holding); const co = b.status === 'funding' ? s.totals.checkout : null;
   const pay = async (card: string, human: string | null) => { setErr('');
@@ -112,13 +112,13 @@ function Funding({ s, act, setS }: any) {
     {pop && <div className="unlockpop" data-testid="unlock-pop">{pop}</div>}
     <div className="panel" style={{ textAlign: 'center' }}><h2>{cand?.title}</h2>
       {s.tiers.some((t: any) => t.product) && <GiftStrip items={s.tiers.map((t: any) => ({ photoUrl: t.product?.photoUrl, label: t.product?.label ?? t.title.replace(/^\+ /, ''), href: t.product?.url, title: t.product ? `${t.product.name} · ${t.product.store} · ${$(t.product.priceCents)}` : undefined,
-        unlocked: t.unlocked, note: t.unlocked ? (b.status === 'funding' ? `Tier ${t.level} unlocked` : `Tier ${t.level} · in the box`) : b.status === 'funding' ? `${$(t.thresholdCents - total)} more` : 'Not funded' }))} />}
+        unlocked: t.unlocked, note: t.unlocked ? (b.status === 'funding' ? `Tier ${t.level} unlocked` : `Tier ${t.level} · in the box`) : b.status === 'funding' ? (s.totals.blurred ? 'Not yet' : `${$(t.thresholdCents - total)} more`) : 'Not funded' }))} />}
       <div className="bloomwrap"><Bloom progress={total / top} stems={3 + s.members.length} />
         <div className="petals" data-testid="petals">{petals.map((m: any, i: number) => <div key={m.id} className="petal pop" style={{ animationDelay: `${i * 90}ms` }}><Flower fb={m.flowerBack} size={30} /><span>{m.displayName}</span></div>)}</div></div>
       <div className="bar" style={{ margin: '14px 0 6px' }}><div style={{ width: `${Math.min(100, (total / top) * 100)}%` }} /></div>
-      <div data-testid="funded">{b.status === 'funding' && total >= top ? <><b>{$(total)}</b> held · {$(top)} goal reached ✿</> : b.status === 'funding' ? <><b>{$(total)}</b> held of {$(top)}</> : b.status === 'expired' ? <>Deadline passed · every hold was released, no one was charged</> : <><b>{$(total)}</b> charged · tier {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length}</>}</div>
-      {next && b.status === 'funding' && <p className="muted">{$(next.thresholdCents - total)} more unlocks <b>{next.title.replace(/^\+ /, '')}</b></p>}
-      {co && <div className="goal" data-testid="checkout-preview">{co.releaseCents > 0 || total >= top
+      <div data-testid="funded">{b.status === 'funding' && s.totals.blurred ? <span data-testid="funded-private">{s.totals.currentTier ? <><b>Tier {s.tiers.find((t: any) => t.id === s.totals.currentTier)?.level} funded</b> of {s.tiers.length}</> : <b>Not funded yet</b>} · 2 friends holding. With just two, the exact total stays private so neither can work out the other’s amount.</span> : b.status === 'funding' && total >= top ? <><b>{$(total)}</b> held · {$(top)} goal reached ✿</> : b.status === 'funding' ? <><b>{$(total)}</b> held of {$(top)}</> : b.status === 'expired' ? <>Deadline passed · every hold was released, no one was charged</> : <><b>{$(total)}</b> charged · tier {s.tiers.find((t: any) => t.id === b.capturedTierId)?.level ?? '–'} of {s.tiers.length}</>}</div>
+      {next && b.status === 'funding' && <p className="muted">{s.totals.blurred ? 'Next up:' : `${$(next.thresholdCents - total)} more unlocks`} <b>{next.title.replace(/^\+ /, '')}</b></p>}
+      {co && <div className="goal" data-testid="checkout-preview">{co.releaseCents === null ? <><b>Tier {co.tierLevel} is fully funded.</b> Checkout charges exactly {$(co.chargeCents)}, split pro-rata across both holds; anything above that is released, never charged.</> : co.releaseCents > 0 || total >= top
         ? <>{total >= top ? <b>Fully funded: every tier is unlocked. </b> : <b>Tier {co.tierLevel} is fully funded. </b>}{total >= top ? 'Checkout charges' : 'Checking out now charges'} exactly {$(co.chargeCents)}, split pro-rata across {co.holders === 1 ? 'the 1 hold' : `${co.holders} friends’ holds`}.{co.releaseCents > 0 && <> The extra {$(co.releaseCents)} is released back to their cards, never charged.</>}</>
         : <><b>Tier {co.tierLevel} is exactly funded.</b> Checkout charges {$(co.chargeCents)}, and every hold is used in full.</>}</div>}
       <div className="tiers" style={{ marginTop: 14, textAlign: 'left' }}>{s.tiers.map((t: any) => <div key={t.id} className={`tier ${t.unlocked ? 'unlocked' : ''}`} data-testid="tier">
