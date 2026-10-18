@@ -193,7 +193,7 @@ test('organizer + 3 friends + recipient reveal', async ({ browser }) => {
   await org.reload(); await expect(org.getByTestId('funded')).toContainText('$135');
   await org.getByTestId('checkout').click(); await expect(org.getByText('Purchased!')).toBeVisible();
   await friends[0].reload(); await expect(friends[0].getByTestId('my-charge')).toBeVisible(); await expect(friends[0].getByText(/because the group funded tier/)).toBeVisible();
-  await expect(org.getByText('You didn’t place a hold')).toBeVisible(); await expect(org.getByTestId('gift-strip')).toBeVisible(); await expect(org.getByTestId('funded')).toContainText(/charged · tier \d of \d/); await expect(org.getByTestId('countdown')).toHaveText('✓ Purchased in time'); await expect(org.getByTestId('countdown')).not.toContainText('left');
+  await expect(org.getByText('You didn’t place a hold')).toBeVisible(); await expect(org.getByTestId('gift-strip')).toBeVisible(); await expect(org.getByTestId('funded')).toContainText(/captured on the Visa sandbox · tier \d of \d/); await expect(org.getByTestId('countdown')).toHaveText('✓ Purchased in time'); await expect(org.getByTestId('countdown')).not.toContainText('left');
   await f2.reload(); await expect(f2.getByTestId('my-charge')).toHaveText('$' + (share % 1 ? share.toFixed(2) : share)); // the preview was exactly what got charged
   await org.waitForTimeout(900);
   await org.screenshot({ path: SHOTS + '11-purchased.png', fullPage: true, style: NOFAB });
