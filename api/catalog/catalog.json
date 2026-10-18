@@ -442,15 +442,6 @@
     ],
     "Hates Clutter": [
       {
-        "tierTitle": "Orbitkey leather key organizer",
-        "name": "Key Organizer Matte Leather",
-        "store": "Orbitkey",
-        "url": "https://orbitkey.com/products/key-organiser-matte-leather",
-        "priceCents": 4350,
-        "image": "orbitkey-key-organiser-matte-leather.jpg",
-        "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/OrbitkeyKeyOrganiser-MatteLeather-Cyber-1.jpg?v=1769489840"
-      },
-      {
         "tierTitle": "Orbitkey Tech Organizer Mini",
         "name": "Tech Organizer Mini",
         "store": "Orbitkey",
@@ -467,6 +458,15 @@
         "priceCents": 3990,
         "image": "orbitkey-deskmat.jpg",
         "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/Orbitkey-DeskMat-Large-Black2.jpg?v=1791258169"
+      },
+      {
+        "tierTitle": "Orbitkey leather key organizer",
+        "name": "Key Organizer Matte Leather",
+        "store": "Orbitkey",
+        "url": "https://orbitkey.com/products/key-organiser-matte-leather",
+        "priceCents": 4350,
+        "image": "orbitkey-key-organiser-matte-leather.jpg",
+        "imageSource": "https://cdn.shopify.com/s/files/1/0932/4482/files/OrbitkeyKeyOrganiser-MatteLeather-Cyber-1.jpg?v=1769489840"
       }
     ],
     "Cozy Nester": [
